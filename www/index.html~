@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html>
+<head><meta http-equiv="Content-Type" content="text/html;charset=utf-8"></head>
+<link rel="shortcut icon" type="image/png" href="favicon.png"/>
+<link href="http://fonts.googleapis.com/css?family=Schoolbell" rel="stylesheet" type="text/css">
+<style type="text/css"> 
+h1,h2,h3,h4,h5,h6,input,a,p,p6{font-family:helvetica,arial,sans-serif;}
+h1,h2 {background-color:#F4F4F4; font-size:64; margin:0;}
+h4 {background-color:#F4F4F4; font-size:14; font-variant: small-caps; margin:0 0 0 0; color:#888; text-indent:50px;}
+n1{font-variant: small-caps;font-size:44; text-decoration:underline; vertical-align: baseline; top:-8; position:relative; }
+mail{font-family:courier; color: #666;}
+net1{font-variant: small-caps; font-size: x-small; text-decoration:underline; vertical-align: baseline; top:-.2em;position:relative;}
+net{font-variant: small-caps; text-decoration:underline;}
+it{text-decoration:underline;font-style: italic; font-family: times}
+sc{font-variant: small-caps}
+a{text-decoration:none;}
+h1,a {color:Dodgerblue;}
+h6 {text-align:right;color:#CCC;background-color:#F4F4F4;}
+l {text-align:left;}
+b.red{color:red;}
+p{padding-left:30;}
+div{position:absolute; top:10;right:20;}
+p1,p2,p3,p4,p5 { font-family: 'Schoolbell',Helvetica, sans-serif;}
+p1 { color: #2b2b2b; font-size:32;}
+p2 {text-align:right; color: Dodgerblue; font-size:30; position:absolute;top:42;right:100;}
+p3 {text-align:right; color: Dodgerblue; font-size:30; position:absolute;top:12;right:100;}
+p4 {text-align:right; color: Dodgerblue; font-size:30; position:absolute;top:12;right:280;}
+p5 {text-align:right; color: Dodgerblue; font-size:30; position:absolute;top:12;left:340;}
+img {vertical-align:top;}
+</style>
+<title>The ⊔Foundation</title>
+<h1 title="the 'cup' Foundation">⊔<n1>Foundation</n1></h1>
+<h4>Digital Currency for Digital Goods</h4>
+<div class="logo"><svg xmlns="http://www.w3.org/2000/svg" width="70"><path stroke-width="0" fill="Dodgerblue" stroke="none" d="M10,10L10,10L10,70L70,70L70,10L60,10L60,60L20,60L20,10z"/></svg></div>
+<a href="http://pi.pelinquin.fr/bank"><p3>The Bank!</p3></a>
+<a href="http://pi.pelinquin.fr/node"><p4>A Node!</p4></a>
+<a href="http://pi.pelinquin.fr/cup"><p2>The Simulator!</p2></a>
+<a href="http://cupfoundation.wordpress.com"><p5>Blog.fr</p5></a>
+
+<p><b>The fair ⊔ principle for <i>Intangible Goods Trading:</i></b><br/><p1>"&nbsp;Authors cumulative Income of an <a href="http://en.wikipedia.org/wiki/Intangible_good">Intangible Good</a> is bounded while every time, all buyers pay the very same price down to zero&nbsp;"</p1></p>
+<p><img title="one-to-many relation for Intangible Good" src="ig_relation.svg" width="450"/><img title="Income and price function of the number of buyers for a 10⊔100 Intangible Good" src="cup_fig.svg" width="470"/></p>
+<p>The <a>⊔<net>Foundation</net></a> is a non-profit organization promoting the <a href="http://fr.wikipedia.org/wiki/Utilisateur:Pelinquin/Brouillon">⊔</a> money used by the network <a href="">⊔<it>net</it></a>.</p>
+<h3>What is <a>⊔</a>?</h3> 
+<p><a href="http://fr.wikipedia.org/wiki/Utilisateur:Pelinquin/Brouillon">⊔</a> is pronounced /kʌp/ and is <i>Unicode</i> character U+2294.<br/>
+<a href="http://fr.wikipedia.org/wiki/Utilisateur:Pelinquin/Brouillon">⊔</a> is a worldwide digital <i>currency</i> dedicated to <i>intangible goods</i> (e-book, music, picture, video). <br/>
+<a href="http://fr.wikipedia.org/wiki/Utilisateur:Pelinquin/Brouillon">⊔</a> requires a strong authentication secure layer over the <i>Internet</i> and provides many benefits for both artists/sellers and consumers/buyers.<br/>
+<a href="http://fr.wikipedia.org/wiki/Utilisateur:Pelinquin/Brouillon">⊔</a> supports state/country <i>tax</i> recovery and is speculation resistant.<br/>
+<a href="http://fr.wikipedia.org/wiki/Utilisateur:Pelinquin/Brouillon">⊔</a> seems to be a fair solution to face illegal downloading.<br/>
+<a href="http://fr.wikipedia.org/wiki/Utilisateur:Pelinquin/Brouillon">⊔</a> will push out intermediates companies business models <small>(<i>Visa, MasterCard, PayPal, Apple iTunesStore, Amazon</i>,...)</small>.<br/>
+<a href="http://fr.wikipedia.org/wiki/Utilisateur:Pelinquin/Brouillon">⊔</a> proposes a <a href="">⊔<it>net</it></a>, public <i>Open-Source</i> <i>Peer-to-peer</i> architecture for any intangible multimedia content trading.<br/>
+</p>
+<h3>News</h3> 
+<p>⊔ Open Meeting in Toulouse the 27th of March at <a href="http://www.toulibre.org">Toulibre</a> (<a href="./presentation_cup.pdf">Beamer</a>)</p> 
+<p>Next ⊔ Meeting in Paris the 18th of April at <a href="http://www.insideelectronicpipo.com">Sciences Po</a> (to be confimed).</p>
+<h3>Focus Projects</h3> 
+<p>A large scale <a href="http://www.latex-project.org">LaTex</a> document is under construction to capture names of all citizens, you and your friends, supporting of the <a>⊔</a> money.</p>
+<p>Graphical on-line simulation of <a href="">⊔<it>net</it></a> exchanges; Open-Source code on  <a href="https://github.com/pelinquin/cup">Github</a> and <a href="http://www.openstreetmap.org">Openstreetmap</a> database... join us!</p>
+<!--<p>Simple authentication based on <a href="http://openid.net">OpenId</a></p>-->
+<h3>Documentation</h3> 
+<p><a href="http://hal.archives-ouvertes.fr/docs/00/75/73/33/PDF/eco_fr.pdf"><img src="pdf_logo.svg" width="20"/> Paper on <i>HAL</i></a> | <a href="http://arxiv.org/pdf/1210.4014"><img src="pdf_logo.svg" width="20"/> Paper on <i>arXiv.org</i></a> | <a href="eco_fr.pdf"><img src="pdf_logo.svg" width="20"/> Last revision</a>...feedback welcome!</p>
+<p><a href="http://fr.wikipedia.org/wiki/Utilisateur:Pelinquin/Brouillon"><img src="wikipedia.svg" width="20"/> <i>Wikipedia.fr</i></a> | <a href="http://fr.wikiversity.org/wiki/Recherche:Monnaie_cup"><img src="wikipedia.svg" width="20"/> <i>Wikiversity.fr</i></a> | <a href="http://fr.wikipedia.org/wiki/bien_immatériel"><img src="wikipedia.svg" width="20"/> <i>"Bien immatériel".fr</i></a>...please modify, post and translate it!</p>
+<p><a href="faq_fr.html">FAQ.fr</a> | FAQ.en </p>
+<!-- <p>Position.en | <a href="global_fr.html">Position.fr</a> | Position.de</p> -->
+<h6>Contact: <mail>laurent.fournier@cupfoundation.net</mail><br/>
+PGP: FE3C DB5F C479 85BA 5CB6  2FCD 622B E793 4516 7406<br/>
+⊔FOUNDATION is currently registered in Toulouse/France  SIREN: 399 661 602 00025<br/>
+Updated: 2013-04-05 <img src="cc-by-nc-sa.svg" width="80"/>
+</h6>
+</html>
+
+
