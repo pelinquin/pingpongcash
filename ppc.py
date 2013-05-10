@@ -62,7 +62,7 @@ def log(s, ip=''):
 def app_update(host):
     "_"
     here = os.path.dirname(os.path.abspath(__file__))
-    cmd = 'cd %s; ls' % here  if host == 'cup' else 'cd %s/..; rm -rf %s; git clone https://github.com/pelinquin/%s.git' % (here, __ppc__, __ppc__) 
+    cmd = 'cd %s; ls' % here  if host == 'cup' else 'cd %s/..; git clone https://github.com/pelinquin/%s.git' % (here, __ppc__, __ppc__) 
     out, err = subprocess.Popen((cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
     o = '<html><pre>Application Update...\n'
     o += 'Error:%s\n' % err if err else 'Message:%s\nUpdate OK\n' % out.decode('utf-8')
@@ -226,7 +226,7 @@ def frontpage():
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<svg %s %s>\n' % (_SVGNS, _XLINKNS) + favicon()
     o += '<style type="text/css"></style>\n'
-    o += '<text x="80" y="70" font-size="45">%s %s</text>\n' % (__app__, __digest__.decode('ascii'))
+    o += '<text x="80" y="70" font-size="45">TEST %s %s</text>\n' % (__app__, __digest__.decode('ascii'))
     return o + '</svg>'
 
 # crypto primitives
