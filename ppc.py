@@ -110,33 +110,38 @@ def application(environ, start_response):
             val2 = reg.v.group(9)
             if bicb == d['$bic']:
                 if cntb in d.keys():
-                    arg = d[cntb].decode('ascii').split('/')
-                    if verify(RSA_E, b64toi(arg[5].encode('ascii')), msg, sig):
+                    argb = d[cntb].decode('ascii').split('/')
+                    if verify(RSA_E, b64toi(argb[5].encode('ascii')), msg, sig):
                         k = '</%s/%s' % (epoch, s_cntb)
                         if k.encode('ascii') in d.keys():
                             o += 'transaction already done'
                         else:
-                            if arg[0] == '*':
-                                if float(val1) <= float(arg[1]):
+                            if argb[0] == '*':
+                                if float(val1) <= float(argb[1]):
                                     adm = d['$admin'].split(b'/')
                                     now = datetime.datetime.now().date()
-                                    if (arg[3] and datetime.datetime.strptime(arg[3], '%Y-%m-%d').date() > now) or (bics == adm[0] and cnts == adm[1]):
-                                        d[cntb] = '*/%6.2f/%s' % (float(arg[1]) - float(val1), '/'.join(arg[2:]))
+                                    if (argb[3] and datetime.datetime.strptime(argb[3], '%Y-%m-%d').date() > now) or (bics == adm[0] and cnts == adm[1]):
+                                        d[cntb] = '*/%6.2f/%s' % (float(argb[1]) - float(val1), '/'.join(argb[2:]))
                                         d[k] = '/'.join([bics.decode('ascii'), cnts.decode('ascii'), val1, val2, s_sig])
                                         o = 'TRANSACTION OK'
                                     else:
                                         o += 'validation date passed'
                                     if bics == adm[0] and cnts == adm[1]:
-                                        arg = d[cntb].decode('ascii').split('/')
+                                        argb = d[cntb].decode('ascii').split('/')
                                         ds = int(float(val1)*100)
-                                        start = datetime.datetime.now() if arg[3] == '' else datetime.datetime.strptime(arg[3], '%Y-%m-%d').date()
+                                        start = datetime.datetime.now() if argb[3] == '' else datetime.datetime.strptime(argb[3], '%Y-%m-%d').date()
                                         deadline = '%s' % (start + datetime.timedelta(days=ds))
-                                        d[cntb] = '/'.join(arg[:3] + [deadline[:10],] + arg[4:])
+                                        d[cntb] = '/'.join(argb[:3] + [deadline[:10],] + argb[4:])
                                         o = 'PAYED'
                                 else:
-                                    o += 'locked account'
+                                    o += 'not balanced'
+                            elif argb[0] == '$' and bics == d['$bic'] and cnts in d.keys():
+                                args = d[cnts].decode('ascii').split('/')
+                                now = '%s' % datetime.datetime.now()
+                                dl = now[:10] if args[3] == '' else args[3] 
+                                d[cnts] = '*/' + '/'.join(args[1:3] + [dl,] + args[4:])
                             else:
-                                o += 'not balanced'
+                                o += 'locked account'
                     else:
                         o += 'bad signature'
                 else:
@@ -147,12 +152,6 @@ def application(environ, start_response):
                 d[cnts] = '%s/%6.2f/%s' % (args[0], float(args[1]) + float(val1), '/'.join(args[2:]))
                 d[k] = '/'.join([bics.decode('ascii'), cntb.decode('ascii'), val1, val2, s_sig])
                 o = 'RECEIVED TRX'
-                if bicb == d['$bic'] and cntb in d.keys(): 
-                    argb = d[cntb].decode('ascii').split('/')
-                    if argb[0] == '$': 
-                        now = '%s' % datetime.datetime.now()
-                        dl = now[:10] if args[3] == '' else args[3] 
-                        d[cnts] = '*/' + '/'.join(args[1:3] + [dl,] + args[4:])
             if bicb != d['$bic'] and bics != d['$bic']:
                 o += 'not valid iban' 
         # GET PERSONAL (S)TATUS
@@ -165,10 +164,10 @@ def application(environ, start_response):
             sig = bytes(reg.v.group(5), 'ascii')
             o += 'balance request'
             if bic == d['$bic'] and cnt in d.keys():
-                arg = d[cnt].decode('ascii').split('/')
-                if verify(RSA_E, b64toi(arg[5].encode('ascii')), msg + today[:-10], sig):
-                    status = 'Locked' if arg[0].encode('ascii') == b'!' else 'Active'
-                    o = '%s %s %s' % (status, arg[1], arg[3])
+                argb = d[cnt].decode('ascii').split('/')
+                if verify(RSA_E, b64toi(argb[5].encode('ascii')), msg + today[:-10], sig):
+                    status = 'Locked' if argb[0].encode('ascii') == b'!' else 'Active'
+                    o = '%s %s %s' % (status, argb[1], argb[3])
         # LIST TRANSACTIONS FOR (A)DMIN
         elif reg(re.match(r'^A/1/(\d{10,16})/([^/]{150,200})$', arg)):
             today = '%s' % datetime.datetime.now()
@@ -179,12 +178,14 @@ def application(environ, start_response):
                 o = ''
                 for x in d.keys():
                     if reg(re.match(r'^(<|>)/\d{10,16}/[^/]{5,40}$', x.decode('ascii'))):
+                        tab = x.decode('ascii').split('/')
+                        trx = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(tab[1])))
                         tab = d[x].decode('utf-8').split('/')
-                        o += '%s %s\n' % (x.decode('utf-8'), ' '.join(tab[:2]))
+                        o += '%s %s %s\n' % (x.decode('ascii'), trx, ' '.join(tab[:2]))
             else:
                 o += 'admin'
         # PUBLIC KEY (R)EGISTRATION
-        elif reg(re.match(r'^R/1/(([^/]{5,20})/([^/]{8,20})/([^/]{50,200}))/([^/]{150,200})$', arg, re.U)):
+        elif reg(re.match(r'^R/1/(([^/]{5,30})/([^/]{8,20})/([^/]{50,200}))/([^/]{150,200})$', arg, re.U)):
             msg = reg.v.group(1)
             cnt = reg.v.group(2)
             pw = reg.v.group(3)
@@ -238,10 +239,22 @@ def itob64(n):
     if len(c)%2: c = '0'+c
     return re.sub(b'=*$', b'', base64.urlsafe_b64encode(bytes.fromhex(c)))
 
+def itob32(n):
+    " utility to transform int to base64"
+    c = hex(n)[2:]
+    if len(c)%2: c = '0'+c
+    return re.sub(b'=*$', b'', base64.b32encode(bytes.fromhex(c))).lower()
+
 def b64toi(c):
     "transform base64 to int"
     if c == '': return 0
     return int.from_bytes(base64.urlsafe_b64decode(c + b'='*((4-(len(c)%4))%4)), 'big')
+
+def b32toi(c):
+    "transform base64 to int"
+    c = c.upper()
+    if c == '': return 0
+    return int.from_bytes(base64.b32decode(c + b'='*((4-(len(c)%4))%4)), 'big')
 
 def H(*tab):
     return int(hashlib.sha1(b''.join(bytes('%s' % i, 'ascii') for i in tab)).hexdigest(), 16)
@@ -253,11 +266,11 @@ def verify(e, n, msg, s):
     return (pow(b64toi(s), e, n) == H(msg)) 
 
 def register():
-    CRAG = 'bIQnkg/BP2alRu5'
-    POST = 'd3RKxA/iMReFzM'
-    CRMT = 'PUMEeQ/eOYqzQ'
-    BPU1 = 'aiNTbg/BB8v5O8M'
-    BPUB = 'aiNTbg/BCYxhLB6' 
+    BPU1 = 'nirvg3q/BB8v5O8M' 
+    CRMT = 'hvbqi6i/eOYqzQ'
+    BPUB = 'nirvg3q/BCYxhLB6'
+    CRAG = 'nsccpeq/BP2alRu5'
+    POST = 'o52evra/iMReFzM'
 
     d = dbm.open('/cup/ppc/keys')
     kCRAG = [b64toi(x) for x in d[CRAG].split(b'/')[2:]]
@@ -270,7 +283,7 @@ def register():
     db, now = '/cup/%s/trx.db' % __app__, '%s' % datetime.datetime.now()
     d = dbm.open(db[:-3], 'c')
     deadline = '%s' % (datetime.datetime.now() + datetime.timedelta(days=365))
-    d['$bic'] = BPU1[:6]
+    d['$bic'] = BPU1[:7]
     d['$admin'] = CRMT + '/' + itob64(kCRMT[1]).decode('ascii')
 
     # 1/ preparation
@@ -284,14 +297,13 @@ def register():
     # 6 reopen        ->  !/95/toto/future/pw2/pubkey2
     # 7 valid again   ->  */95/toto/future/pw2/pubkey2
 
-    d[BPU1[7:]] = '!/300.00/MY SUPER HERO///' # regular user
-    d[BPUB[7:]] = '$/800.00/BANKER 1/%s/DTlbuslcLG/%s' % (deadline[:10], itob64(kBPUB[1]).decode('ascii')) # banker
-    #d['$bank'] = '%s' % BPUB[7:]
+    d[BPU1[8:]] = '!/300.00/MY SUPER HERO///' # regular user
+    d[BPUB[8:]] = '$/800.00/BANKER 1/%s/DTlbuslcLG/%s' % (deadline[:10], itob64(kBPUB[1]).decode('ascii')) # banker
 
     d.close()
 
 if __name__ == '__main__':
-    #register()
+    register()
     #print (itob64(H("hero"))[:10], itob64(H("banker"))[:10]) # 'CRGu1iGhRf' 'DTlbuslcLG'
     arg = '/cup/%s/trx.db' % __app__
     if os.path.isfile(arg):
@@ -301,6 +313,31 @@ if __name__ == '__main__':
             for x in d.keys():
                 print (x.decode('utf-8') ,'->', d[x].decode('utf-8'))
             d.close()
+
+    CHAR_MAP = {"A":"10", "B":"11", "C":"12", "D":"13", "E":"14", "F":"15", "G":"16", "H":"17", "I":"18", "J":"19", 
+                "K":"20", "L":"21", "M":"22", "N":"23", "O":"24", "P":"25", "Q":"26", "R":"27", "S":"28", "T":"29", 
+                "U":"30", "V":"31", "W":"32", "X":"33", "Y":"34", "Z":"35"}
+
+    iban = 'FR76 1780 7000 1445 3199 4029 836'
+    bic, cnt = iban[5:17], iban[17:]
+    for x in CHAR_MAP: cnt = re.sub(x, CHAR_MAP[x], cnt)
+    ibic, icnt = itob64(int(re.sub(' ', '', bic))), itob64(int(re.sub(' ', '', cnt)))
+    
+    bic = re.sub(' ', '', bic)
+    n = int(bic)
+    a = itob32(n)
+    print (n, b'bic-' + itob32(n) + b'.net')
+    print (b32toi(a))
+
+    t = 66000
+    for i in range(t,t+10):
+        a = itob32(i)
+        print (i, a)
+        j = b32toi(a)
+        print (i, a, j)
+
+
+    #<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAIAAAAiOjnJAAACyElEQVR42u3bQVIDQQwEQf//0/AFgp3plrxZZwc2Uu4Bhfn8SBf6GIHAElgCSwJLYAksCSyBJbAksASWwJLAElgCSwJLYAksCSyBJbAksASWwJLAElgC6/8/dFgPP7n5gAUWWGCBBZb5gAUWWGCB9XBwub9y/zy44s5i2y1uByywwAILLLDAAgsssMACCyywOh+9u7MMwa5+sMACCyywwAILLLDAAgsssMACayis44cosMACCyywwAILLLDAAgsssMAC6zthFbWBBRZYYIEFFlhggQUWWGCBBRZYt2Bl3no1rL3bAQsssMACCyywwAILLLDAAgusxHaLHXfQvU5l5gMWWGCBBRZYYIEFFlhggQUWWLNgrejJ3Ls72zFesMACCyywwAILLLDAAgsssMC6vbMul+OwblynYmdCsMACCyywwAILLLDAAgsssMD6ElixUd7QNm21YIEFFlhggQUWWGCBBRZYYIH1RlhFLgMXOY0gWGCBBRZYYIEFFlhggQVW/twwcBbFbyLceGXREFhggQUWWGCBBRZYYIEFFlhgDYLVXWRG25ZXggUWWGCBBRZYYIEFFlhggQXWdFgrynzFZcUZDCywwAILLLDAAgsssMACCyywVt6xuh1fZPd/b2JXPbDAAgsssMACCyywwAILLLDAGg3ry0Y5UH9XMFhggQUWWGCBBRZYYIEFFlhgTYE18Gsqx3+d7sNT9AcWWGCBBRZYYIEFFlhggQUWWGAd+Ejdi5c7FlhggQUWWGCBBRZYYIEFFlhg7YbVNZ15JMACCyywwAILLLDAAgsssMACayWszFvH7lixR6IrBiywwAILLLDAAgsssMACCyywpsDqVjz8dLkUtYEFFlhggQUWWGCBBRZYb4YlgSWwBJbAksASWAJLAktgCSwJLIElsCSwBJbAksASWAJLAktgCSwJLIElsCSwBJZe0i+6xuvNqJkQcgAAAABJRU5ErkJg">
 
     #sys.exit()
 

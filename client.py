@@ -12,10 +12,22 @@ def itob64(n):
     if len(c)%2: c = '0'+c
     return re.sub(b'=*$', b'', base64.urlsafe_b64encode(bytes.fromhex(c)))
 
+def itob32(n):
+    " utility to transform int to base64"
+    c = hex(n)[2:]
+    if len(c)%2: c = '0'+c
+    return re.sub(b'=*$', b'', base64.b32encode(bytes.fromhex(c))).lower()
+
 def b64toi(c):
     "transform base64 to int"
     if c == '': return 0
     return int.from_bytes(base64.urlsafe_b64decode(c + b'='*((4-(len(c)%4))%4)), 'big')
+
+def b32toi(c):
+    "transform base64 to int"
+    c = c.upper()
+    if c == '': return 0
+    return int.from_bytes(base64.b32decode(c + b'='*((4-(len(c)%4))%4)), 'big')
 
 def H(*tab):
     "hash"
@@ -61,7 +73,7 @@ def compact (iban):
     assert int(ll) % 97 == 1
     bic, cnt = iban[5:17], iban[17:]
     for x in CHAR_MAP: cnt = re.sub(x, CHAR_MAP[x], cnt)
-    ibic, icnt = itob64(int(re.sub(' ', '', bic))), itob64(int(re.sub(' ', '', cnt)))
+    ibic, icnt = itob32(int(re.sub(' ', '', bic))), itob64(int(re.sub(' ', '', cnt)))
     return '%s/%s' % (ibic.decode('ascii'), icnt.decode('ascii'))
 
 def findiban (iban):
@@ -82,12 +94,13 @@ if __name__ == '__main__':
         'FR19 2004 1100 2000 5874 1005 T15': 'POST',
         }
     #register(liban)
+    #sys.exit()
 
-    CRAG = 'bIQnkg/BP2alRu5'
-    POST = 'd3RKxA/iMReFzM'
-    CRMT = 'PUMEeQ/eOYqzQ'
-    BPU1 = 'aiNTbg/BB8v5O8M'
-    BPUB = 'aiNTbg/BCYxhLB6' 
+    BPU1 = 'nirvg3q/BB8v5O8M' 
+    CRMT = 'hvbqi6i/eOYqzQ'
+    BPUB = 'nirvg3q/BCYxhLB6'
+    CRAG = 'nsccpeq/BP2alRu5'
+    POST = 'o52evra/iMReFzM'
 
     d = dbm.open('/cup/ppc/keys')
     kCRAG = [b64toi(x) for x in d[CRAG].split(b'/')[2:]]
@@ -100,23 +113,24 @@ if __name__ == '__main__':
     epoch, today = '%s' % time.mktime(time.gmtime()), '%s' % datetime.datetime.now()
 
     # 1/ register account
-    msg = '/'.join([BPU1[7:], itob64(H('hero'))[:10].decode('ascii'), itob64(kBPU1[1]).decode('ascii')])
+    msg = '/'.join([BPU1[8:], itob64(H('hero'))[:10].decode('ascii'), itob64(kBPU1[1]).decode('ascii')])
     s = sign(kBPU1[0], kBPU1[1], msg)
+    print (msg)
     print (1, 'REGISTER', format_cmd(True, '/'.join(['R', '1', msg, s.decode('ascii')]), False))
 
-    msg = '/'.join([epoch[:-2], BPUB[:6], BPUB[7:], BPU1[:6], BPU1[7:], '000.00'])    
+    msg = '/'.join([epoch[:-2], BPUB[:7], BPUB[8:], BPU1[:7], BPU1[8:], '000.00'])    
     s = sign(kBPUB[0], kBPUB[1], msg)
     print (2, 'VALIDATE', format_cmd(True, '/'.join(['T', '1', msg, s.decode('ascii')]), False))
 
-    msg = '/'.join([epoch[:-2], BPU1[:6], BPU1[7:], CRMT[:6], CRMT[7:], '018.45'])    
+    msg = '/'.join([epoch[:-2], BPU1[:7], BPU1[8:], CRMT[:7], CRMT[8:], '018.45'])    
     s = sign(kBPU1[0], kBPU1[1], msg)
     print (3,'PAY TO ADMIN', format_cmd(True, '/'.join(['T', '1', msg, s.decode('ascii')]), False))
 
-    msg = '/'.join([epoch[:-2], BPU1[:6], BPU1[7:]])
+    msg = '/'.join([epoch[:-2], BPU1[:7], BPU1[8:]])
     s = sign(kBPU1[0], kBPU1[1], msg+today[:-10])
     print (4, 'STATUS', format_cmd(True, '/'.join(['S', '1', msg, s.decode('ascii')]), False))
 
-    msg = '/'.join([epoch[:-2], POST[:6], POST[7:], BPU1[:6], BPU1[7:], '10.00'])    
+    msg = '/'.join([epoch[:-2], POST[:7], POST[8:], BPU1[:7], BPU1[8:], '010.00'])    
     s = sign(kPOST[0], kPOST[1], msg)
     print (5, 'OUTSIDE', format_cmd(True, '/'.join(['T', '1', msg, s.decode('ascii')]), False))
 
