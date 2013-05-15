@@ -74,7 +74,7 @@ def compact (iban):
     bic, cnt = iban[5:17], iban[17:]
     for x in CHAR_MAP: cnt = re.sub(x, CHAR_MAP[x], cnt)
     ibic, icnt = itob32(int(re.sub(' ', '', bic))), itob64(int(re.sub(' ', '', cnt)))
-    return '%s/%s' % (ibic.decode('ascii'), icnt.decode('ascii'))
+    return 'fr%s/%s' % (ibic.decode('ascii'), icnt.decode('ascii'))
 
 def findiban (iban):
     "_"
@@ -96,11 +96,11 @@ if __name__ == '__main__':
     #register(liban)
     #sys.exit()
 
-    BPU1 = 'nirvg3q/BB8v5O8M' 
-    CRMT = 'hvbqi6i/eOYqzQ'
-    BPUB = 'nirvg3q/BCYxhLB6'
-    CRAG = 'nsccpeq/BP2alRu5'
-    POST = 'o52evra/iMReFzM'
+    BPU1 = 'frnirvg3q/BB8v5O8M' 
+    CRMT = 'frhvbqi6i/eOYqzQ'
+    BPUB = 'frnirvg3q/BCYxhLB6'
+    CRAG = 'frnsccpeq/BP2alRu5'
+    POST = 'fro52evra/iMReFzM'
 
     d = dbm.open('/cup/ppc/keys')
     kCRAG = [b64toi(x) for x in d[CRAG].split(b'/')[2:]]
@@ -113,30 +113,29 @@ if __name__ == '__main__':
     epoch, today = '%s' % time.mktime(time.gmtime()), '%s' % datetime.datetime.now()
 
     # 1/ register account
-    msg = '/'.join([BPU1[8:], itob64(H('hero'))[:10].decode('ascii'), itob64(kBPU1[1]).decode('ascii')])
+    msg = '/'.join([BPU1[10:], itob64(H('hero'))[:10].decode('ascii'), itob64(kBPU1[1]).decode('ascii')])
     s = sign(kBPU1[0], kBPU1[1], msg)
-    print (msg)
     print (1, 'REGISTER', format_cmd(True, '/'.join(['R', '1', msg, s.decode('ascii')]), False))
 
-    msg = '/'.join([epoch[:-2], BPUB[:7], BPUB[8:], BPU1[:7], BPU1[8:], '000.00'])    
+    msg = '/'.join([epoch[:-2], BPUB[:9], BPUB[10:], BPU1[:9], BPU1[10:], '000.00'])    
     s = sign(kBPUB[0], kBPUB[1], msg)
-    print (2, 'VALIDATE', format_cmd(True, '/'.join(['T', '1', msg, s.decode('ascii')]), False))
+    #print (2, 'VALIDATE', format_cmd(True, '/'.join(['T', '1', msg, s.decode('ascii')]), False))
 
-    msg = '/'.join([epoch[:-2], BPU1[:7], BPU1[8:], CRMT[:7], CRMT[8:], '018.45'])    
+    msg = '/'.join([epoch[:-2], BPU1[:9], BPU1[10:], CRMT[:9], CRMT[10:], '018.45'])    
     s = sign(kBPU1[0], kBPU1[1], msg)
-    print (3,'PAY TO ADMIN', format_cmd(True, '/'.join(['T', '1', msg, s.decode('ascii')]), False))
+    #print (3,'PAY TO ADMIN', format_cmd(True, '/'.join(['T', '1', msg, s.decode('ascii')]), False))
 
-    msg = '/'.join([epoch[:-2], BPU1[:7], BPU1[8:]])
+    msg = '/'.join([epoch[:-2], BPU1[:9], BPU1[10:]])
     s = sign(kBPU1[0], kBPU1[1], msg+today[:-10])
-    print (4, 'STATUS', format_cmd(True, '/'.join(['S', '1', msg, s.decode('ascii')]), False))
+    #print (4, 'STATUS', format_cmd(True, '/'.join(['S', '1', msg, s.decode('ascii')]), False))
 
-    msg = '/'.join([epoch[:-2], POST[:7], POST[8:], BPU1[:7], BPU1[8:], '010.00'])    
+    msg = '/'.join([epoch[:-2], POST[:9], POST[10:], BPU1[:9], BPU1[10:], '010.00'])    
     s = sign(kPOST[0], kPOST[1], msg)
-    print (5, 'OUTSIDE', format_cmd(True, '/'.join(['T', '1', msg, s.decode('ascii')]), False))
+    #print (5, 'OUTSIDE', format_cmd(True, '/'.join(['T', '1', msg, s.decode('ascii')]), False))
 
     msg = epoch[:-2]
     s = sign(kCRMT[0], kCRMT[1], msg+today[:-10])
-    print (6, 'LIST', format_cmd(True, '/'.join(['A', '1', msg, s.decode('ascii')]), False))
+    #print (6, 'LIST', format_cmd(True, '/'.join(['A', '1', msg, s.decode('ascii')]), False))
 
     # change pubkey
     # block transactions on the web

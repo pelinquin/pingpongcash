@@ -266,11 +266,11 @@ def verify(e, n, msg, s):
     return (pow(b64toi(s), e, n) == H(msg)) 
 
 def register():
-    BPU1 = 'nirvg3q/BB8v5O8M' 
-    CRMT = 'hvbqi6i/eOYqzQ'
-    BPUB = 'nirvg3q/BCYxhLB6'
-    CRAG = 'nsccpeq/BP2alRu5'
-    POST = 'o52evra/iMReFzM'
+    BPU1 = 'frnirvg3q/BB8v5O8M' 
+    CRMT = 'frhvbqi6i/eOYqzQ'
+    BPUB = 'frnirvg3q/BCYxhLB6'
+    CRAG = 'frnsccpeq/BP2alRu5'
+    POST = 'fro52evra/iMReFzM'
 
     d = dbm.open('/cup/ppc/keys')
     kCRAG = [b64toi(x) for x in d[CRAG].split(b'/')[2:]]
@@ -283,7 +283,7 @@ def register():
     db, now = '/cup/%s/trx.db' % __app__, '%s' % datetime.datetime.now()
     d = dbm.open(db[:-3], 'c')
     deadline = '%s' % (datetime.datetime.now() + datetime.timedelta(days=365))
-    d['$bic'] = BPU1[:7]
+    d['$bic'] = BPU1[:9]
     d['$admin'] = CRMT + '/' + itob64(kCRMT[1]).decode('ascii')
 
     # 1/ preparation
@@ -297,14 +297,14 @@ def register():
     # 6 reopen        ->  !/95/toto/future/pw2/pubkey2
     # 7 valid again   ->  */95/toto/future/pw2/pubkey2
 
-    d[BPU1[8:]] = '!/300.00/MY SUPER HERO///' # regular user
-    d[BPUB[8:]] = '$/800.00/BANKER 1/%s/DTlbuslcLG/%s' % (deadline[:10], itob64(kBPUB[1]).decode('ascii')) # banker
-
+    d[BPU1[10:]] = '!/300.00/MY SUPER HERO/fr269072927202807/toto@free.fr///' # regular user
+    d[BPUB[10:]] = '$/800.00/BANKER 1/fr167071927202809/bestbank@gmail.com/%s/DTlbuslcLG/%s' % (deadline[:10], itob64(kBPUB[1]).decode('ascii')) # banker
+    #print (itob64(H("hero"))[:10], itob64(H("banker"))[:10]) # 'CRGu1iGhRf' 'DTlbuslcLG'
     d.close()
 
 if __name__ == '__main__':
-    register()
-    #print (itob64(H("hero"))[:10], itob64(H("banker"))[:10]) # 'CRGu1iGhRf' 'DTlbuslcLG'
+    #register()
+
     arg = '/cup/%s/trx.db' % __app__
     if os.path.isfile(arg):
         m = re.search(r'^(.+)\.(dat|db)', arg)
@@ -320,24 +320,17 @@ if __name__ == '__main__':
 
     iban = 'FR76 1780 7000 1445 3199 4029 836'
     bic, cnt = iban[5:17], iban[17:]
-    for x in CHAR_MAP: cnt = re.sub(x, CHAR_MAP[x], cnt)
-    ibic, icnt = itob64(int(re.sub(' ', '', bic))), itob64(int(re.sub(' ', '', cnt)))
-    
-    bic = re.sub(' ', '', bic)
-    n = int(bic)
+    for x in CHAR_MAP: cnt = re.sub(x, CHAR_MAP[x], cnt)    
+    n = int(re.sub(' ', '', bic))
     a = itob32(n)
-    print (n, b'bic-' + itob32(n) + b'.net')
+    print (n, b'bic-fr' + itob32(n) + b'.net')
     print (b32toi(a))
 
     t = 66000
     for i in range(t,t+10):
         a = itob32(i)
-        print (i, a)
         j = b32toi(a)
-        print (i, a, j)
-
-
-    #<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAIAAAAiOjnJAAACyElEQVR42u3bQVIDQQwEQf//0/AFgp3plrxZZwc2Uu4Bhfn8SBf6GIHAElgCSwJLYAksCSyBJbAksASWwJLAElgCSwJLYAksCSyBJbAksASWwJLAElgC6/8/dFgPP7n5gAUWWGCBBZb5gAUWWGCB9XBwub9y/zy44s5i2y1uByywwAILLLDAAgsssMACCyywOh+9u7MMwa5+sMACCyywwAILLLDAAgsssMACayis44cosMACCyywwAILLLDAAgsssMAC6zthFbWBBRZYYIEFFlhggQUWWGCBBRZYt2Bl3no1rL3bAQsssMACCyywwAILLLDAAgusxHaLHXfQvU5l5gMWWGCBBRZYYIEFFlhggQUWWLNgrejJ3Ls72zFesMACCyywwAILLLDAAgsssMC6vbMul+OwblynYmdCsMACCyywwAILLLDAAgsssMD6ElixUd7QNm21YIEFFlhggQUWWGCBBRZYYIH1RlhFLgMXOY0gWGCBBRZYYIEFFlhggQVW/twwcBbFbyLceGXREFhggQUWWGCBBRZYYIEFFlhgDYLVXWRG25ZXggUWWGCBBRZYYIEFFlhggQXWdFgrynzFZcUZDCywwAILLLDAAgsssMACCyywVt6xuh1fZPd/b2JXPbDAAgsssMACCyywwAILLLDAGg3ry0Y5UH9XMFhggQUWWGCBBRZYYIEFFlhgTYE18Gsqx3+d7sNT9AcWWGCBBRZYYIEFFlhggQUWWGAd+Ejdi5c7FlhggQUWWGCBBRZYYIEFFlhg7YbVNZ15JMACCyywwAILLLDAAgsssMACayWszFvH7lixR6IrBiywwAILLLDAAgsssMACCyywpsDqVjz8dLkUtYEFFlhggQUWWGCBBRZYb4YlgSWwBJbAksASWAJLAktgCSwJLIElsCSwBJbAksASWAJLAktgCSwJLIElsCSwBJZe0i+6xuvNqJkQcgAAAABJRU5ErkJg">
+        #print (i, a, j)
 
     #sys.exit()
 
