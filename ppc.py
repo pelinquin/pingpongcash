@@ -59,7 +59,7 @@ def log(s, ip=''):
     cont = open(logf, 'r', encoding='utf8').read()
     open(logf, 'w', encoding='utf8').write('%s|%s|%s\n%s' % (now[:-7], ip, s, cont))
 
-def app_update(host):
+def app_update_old(host):
     "_"
     here = os.path.dirname(os.path.abspath(__file__))
     cmd = 'cd %s; ls' % here  if host == 'cup' else 'cd %s/..; rm -rf %s; git clone https://github.com/pelinquin/%s.git' % (here, __ppc__, __ppc__) 
@@ -68,6 +68,17 @@ def app_update(host):
     o += 'Error:%s\n' % err if err else 'Message:%s\nUpdate OK\n' % out.decode('utf-8')
     o += '</pre><br/><a href="%s">Reload the new version</a></html>' % __app__
     return o
+
+def app_update(host):
+    "_"
+    here = os.path.dirname(os.path.abspath(__file__))
+    cmd = 'cd %s; git pull' % here 
+    out, err = subprocess.Popen((cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+    o = '<html><pre>Application Update...\n'
+    o += 'Error:%s\n' % err if err else 'Message:%s\nUpdate OK\n' % out.decode('utf-8')
+    o += '</pre><br/><a href="%s">Reload the new version</a></html>' % __app__
+    return o
+
 
 def application(environ, start_response):
     "wsgi server app"
