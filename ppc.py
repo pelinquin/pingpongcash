@@ -211,7 +211,8 @@ def application(environ, start_response):
         elif raw.lower() in ('log',):
             o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
         else:
-            o, mime = frontpage(), 'application/xhtml+xml; charset=utf8'
+            #o, mime = frontpage(), 'application/xhtml+xml; charset=utf8'
+            o, mime = frontpage_html(), 'text/html; charset=utf8'
     d.close()
     start_response('200 OK', [('Content-type', mime), ('Content-Disposition', 'filename={}'.format(fname))])
     return [o if mime == 'application/pdf' else o.encode('utf8')] 
@@ -229,6 +230,18 @@ def frontpage():
     o += '<style type="text/css"></style>\n'
     o += '<text x="80" y="70" font-size="45">TEST %s %s</text>\n' % (__app__, __digest__.decode('ascii'))
     return o + '</svg>'
+
+def frontpage_html():
+    "_"
+    o = '<?xml version="1.0" encoding="utf8"?>\n' 
+    o += '<html>\n' + favicon()
+    o += '<style type="text/css"></style>\n'
+    o += '<p>Digest: %s</p>\n' % __digest__.decode('ascii')
+    o += '<input class="sh" type="text" name="iban" placeholder="Votre IBAN"/>'
+    o += "<p>Communiquer votre numéro IBAN ne court aucun risque. Personne ne peut retirer de l'argent sur votre compte, on peut seulement en déposer. Voir pour plus de détails les documents sur le virement SEPA, plus exactement le SEPA Credit Transfert. Toute demande de prélèvement avec votre numéro IBAN serait refusée par votre banque. <br/>Pour vous en convaincre, voici l'IBAN de notre société:  <a>FR76 1027 8022 3300 0202 8350 157</a><br/>Essayez de faire un retrait sur notre compte !</p>" 
+    o += '<p>Pour optimisez les transactions, nous utilisons une forme plus compact pour déclarer un IBAN et elle est représentée par un QRcode: <br/> Voici par exemple notre IBAN: <a>frhvbqi6i/eOYqzQ</a><p>'
+    #import qrc
+    return o + '</html>'
 
 # crypto primitives
 from Crypto.PublicKey import RSA
@@ -265,6 +278,13 @@ def sign(d, n, msg):
 def verify(e, n, msg, s):
     return (pow(b64toi(s), e, n) == H(msg)) 
 
+def luhn(num):
+    s = 0
+    for i, c in enumerate('%s' % x):
+        ci = int(c)
+        s += (1 + 2*(ci-5) if ci>=5 else 2*ci) if i%2 == 0 else ci
+    return (s % 10 == 0)
+
 def register():
     BPU1 = 'frnirvg3q/BB8v5O8M' 
     CRMT = 'frhvbqi6i/eOYqzQ'
@@ -287,8 +307,8 @@ def register():
     d['$admin'] = CRMT + '/' + itob64(kCRMT[1]).decode('ascii')
 
     # 1/ preparation
-    # !$/Balance/Name/Date/pw/Key
-
+    # !$/Balance/Name/SID/email/Date/pw/Key
+    #  0   1      2    3    4    5   6   7
     # 1 banker list   ->  !/100/toto///
     # 2 user register ->  !/100/toto//pw1/pubkey1
     # 3 banker valid  ->  */100/toto/today/pw1/pubkey1
@@ -314,17 +334,11 @@ if __name__ == '__main__':
                 print (x.decode('utf-8') ,'->', d[x].decode('utf-8'))
             d.close()
 
+    sys.exit()
+
     CHAR_MAP = {"A":"10", "B":"11", "C":"12", "D":"13", "E":"14", "F":"15", "G":"16", "H":"17", "I":"18", "J":"19", 
                 "K":"20", "L":"21", "M":"22", "N":"23", "O":"24", "P":"25", "Q":"26", "R":"27", "S":"28", "T":"29", 
                 "U":"30", "V":"31", "W":"32", "X":"33", "Y":"34", "Z":"35"}
-
-    iban = 'FR76 1780 7000 1445 3199 4029 836'
-    bic, cnt = iban[5:17], iban[17:]
-    for x in CHAR_MAP: cnt = re.sub(x, CHAR_MAP[x], cnt)    
-    n = int(re.sub(' ', '', bic))
-    a = itob32(n)
-    print (n, b'bic-fr' + itob32(n) + b'.net')
-    print (b32toi(a))
 
     t = 66000
     for i in range(t,t+10):
@@ -332,6 +346,9 @@ if __name__ == '__main__':
         j = b32toi(a)
         #print (i, a, j)
 
-    #sys.exit()
+    
+    #for x in [4059390430395175, 4417123456789113, 4971520044037525]: print (luhn(x))
+
+
 
 # End ⊔net!
