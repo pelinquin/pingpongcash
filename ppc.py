@@ -64,7 +64,7 @@ def app_update(host):
     cmd = 'cd %s; git pull origin' % os.path.dirname(os.path.abspath(__file__))
     out, err = subprocess.Popen((cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
     o = '<html><pre>Application Update...\n'
-    o += 'Error:%s\n' % err if err else 'Message:%s\n' % out.decode('utf-8')
+    o += 'Error: %s\n' % err.decode('utf8') if err else 'Message:%s\n' % out.decode('utf8')
     o += '</pre><br/><a href="%s">Reload the new version</a></html>' % __app__
     return o
 
