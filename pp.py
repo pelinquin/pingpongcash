@@ -189,6 +189,7 @@ def daylist(d, msg, day, iban, sig):
                 for t in d[cc].decode('ascii').split('/'):
                     o += '%s/%s\n' % (t, d['%s/%s' % (t, ee)].decode('ascii'))
         #smail (pb[_MAIL_], 'THIS IS A LIST \n %s' % o)
+        smail (pb[_MAIL_], 'THIS IS A \nSIMPLE MAIL TEST \n')
         #o = 'mail send! to %s' % pb[_MAIL_]
     else:
         o = 'Error:Bad signature'
@@ -198,7 +199,7 @@ def smail(dest, content):
     s = smtplib.SMTP('cup')
     print (dest)
     #s.sendmail ('contact@pingpongcash.net', [dest], content)
-    s.sendmail ('pelinquin@gmail.com', [dest], content)
+    s.sendmail ('ct@àà.eu', [dest], content)
     s.quit()
 
 def transaction (d, msg, epoch, s_biban, s_siban, val, s_sig):
