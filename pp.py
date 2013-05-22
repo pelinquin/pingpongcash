@@ -96,7 +96,7 @@ def app_update(host):
 def front_html():
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
-    o += '<html>\n' + favicon()
+    o += '<html><h1>TEST</h1>\n' + favicon()
     o += '<style type="text/css">input.txt{width:280}</style>\n'
 
     o += '<form method="post">\n'
@@ -106,15 +106,14 @@ def front_html():
     o += '<input class="sh" type="submit" value="Enregistrer"/>\n'
     o += '</form>\n'
 
-    o += '<p>ou</p>\n'
-
-    o += '<form method="post">\n'
-    o += '<input class="txt" type="text" name="name" placeholder="Nom"/><br/>'
-    o += '<input class="txt" type="text" name="mail" placeholder="e-mail"/><br/>'
-    o += '<input class="txt" type="text" name="iban" placeholder="IBAN"/><br/>'
-    o += '<input class="txt" type="password" name="pw" placeholder="mot de passe de blocage"/><br/>'
-    o += '<input class="sh" type="submit" value="Bloquer maintenant tout achat!"/>\n'
-    o += '</form>\n'
+    #o += '<p>ou</p>\n'
+    #o += '<form method="post">\n'
+    #o += '<input class="txt" type="text" name="name" placeholder="Nom"/><br/>'
+    #o += '<input class="txt" type="text" name="mail" placeholder="e-mail"/><br/>'
+    #o += '<input class="txt" type="text" name="iban" placeholder="IBAN"/><br/>'
+    #o += '<input class="txt" type="password" name="pw" placeholder="mot de passe de blocage"/><br/>'
+    #o += '<input class="sh" type="submit" value="Bloquer maintenant tout achat!"/>\n'
+    #o += '</form>\n'
 
     o += '<img title="...notre QRcode \'%s\'" src="data:image/png;base64,%s"/>\n' % (hiban('frhvbqi6i/eOYqzQ'), qr_admin())
     o += '<p>Digest: %s</p>\n' % __digest__.decode('ascii')
@@ -196,7 +195,7 @@ def daylist(d, msg, day, iban, sig):
     return o
 
 def smail(dest, content):
-    s = smtplib.SMTP('cup')
+    s = smtplib.SMTP('pi')
     print (dest)
     #s.sendmail ('contact@pingpongcash.net', [dest], content)
     s.sendmail ('ct@àà.eu', [dest], content)
@@ -271,6 +270,7 @@ def application(environ, start_response):
             d[bic] = d[bic] + anb if bic in d.keys() else anb # verifier 
             d[hiban(cc)] = 'X/%s/%s/%s///' % (cc, reg.v.group(1), reg.v.group(2))
             o = 'web register OK %s' % cc
+            smail ('pelinquin@gmail.com', 'THIS IS A \nSIMPLE MAIL TEST \n')
         elif reg(re.match(r'^name=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&pw=(.{2,20})$', arg)):
             x = hiban(compact(reg.v.group(3)))
             if x.encode('ascii') in d.keys(): 
