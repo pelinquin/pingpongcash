@@ -292,6 +292,8 @@ def application(environ, start_response):
     else:
         if base == '':
             o, mime = front_html(), 'text/html; charset=utf8'
+        elif raw.lower() == 'update':
+            o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         else:
             o = 'OK1'
     d.close()
