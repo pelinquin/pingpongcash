@@ -20,7 +20,7 @@
 #-----------------------------------------------------------------------------
 "_"
 
-import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time
+import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time, smtplib
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:5]
 __app__    = os.path.basename(__file__)[:-3]
@@ -41,6 +41,9 @@ def reg(value):
     " function attribute is a way to access matching group in one line test "
     reg.v = value
     return value
+
+def qr_admin():
+    return 'iVBORw0KGgoAAAANSUhEUgAAAIwAAACMCAIAAAAhotZpAAACJklEQVR42u3d623DIBQG0OyRUbpW928maOTclyGcT/3pyIETyXAN9PEny+ehCyAJJEgCSSBBEkgCCZJAgiSQBBIkgSTFSM+f36a/K3fJf8n/LptvIyRIkCBBqkRKPhIDDbj4kWSX5Xu2sMcgQYIECdLHt8yPDgKNbOrxwIgmMDyBBAkSJEiQIBUhJV1r2wIJEiRIkCB9VkWeKYVAggQJEqQNkGb64mK1u2/g4FUFJEiQIC2KNLNaqG/+a0kXJEiQIEGC1Iw0k0CVYWZAOB9IkCBBglQ5fy6sKAfAZgZB25eFIEGCBGl3pMDa0tq9lQH+wuFJX+EcEiRIkCDdXGAt7MraHk9eBgkSJEiQIB2MVFhlyP8sAh8PlELmqyeQIEGCBKlMJX+ET7Jh9x7Kd//WF0iQIEE6BKlvUc46k9m+lwCQIEGCBGmhyezMnLFvajm/ABYSJEiQIEE6ACmAlzyVPXCXwnHjV23HhAQJEqRdkAqn3H3vTGe2vkCCBAkSpONOROnbLVO4tfSrJrOQIEGCtAvSskepFc6s+/5LMSRIkCBBgnQwUu0QrqnyXbsAeH5rJiRIkCBBqvyWM7seay+bP+IAEiRIkCAtitQ3opl58i/0+hwSJEiQIBUibfF4P3EyCwkSJEiQIK1YBU/+YmZGepAgQYIE6Wak+aPk8pP85A7OZLdAggQJEqRKJBkOJEgCCZJAEkiQBJJAgiSQIAkkgQRJIMm7vAC6a+kW1XzFvQAAAABJRU5ErkJg'
 
 def init_db(db):
     "_"
@@ -68,8 +71,91 @@ def app_update(host):
     o += '</pre><br/><a href="%s">Reload the new version</a></html>' % __app__
     return o
 
+def compact (iban):
+    "_"
+    CHAR_MAP = {"A":"10", "B":"11", "C":"12", "D":"13", "E":"14", "F":"15", "G":"16", "H":"17", "I":"18", "J":"19", 
+                "K":"20", "L":"21", "M":"22", "N":"23", "O":"24", "P":"25", "Q":"26", "R":"27", "S":"28", "T":"29", 
+                "U":"30", "V":"31", "W":"32", "X":"33", "Y":"34", "Z":"35"}
+    ll = re.sub(' ', '', iban[4:]) + iban[:4]
+    for x in CHAR_MAP: ll = re.sub(x, CHAR_MAP[x], ll)
+    if int(ll) % 97 != 1:
+        return 'Error: non valid!'
+    bic, cnt = iban[5:17], iban[17:]
+    for x in CHAR_MAP: cnt = re.sub(x, CHAR_MAP[x], cnt)
+    ibic, icnt = itob32(int(re.sub(' ', '', bic))), itob64(int(re.sub(' ', '', cnt)))
+    return 'fr%s/%s' % (ibic.decode('ascii'), icnt.decode('ascii'))
+
+
+def front_html():
+    "_"
+    o = '<?xml version="1.0" encoding="utf8"?>\n' 
+    o += '<html>\n' + favicon()
+    o += '<style type="text/css">input.txt{width:280}</style>\n'
+    o += '<p>Digest: %s</p>\n' % __digest__.decode('ascii')
+    o += '<form method="post">\n'
+    o += '<input class="txt" type="text" name="name" placeholder="Nom"/><br/>'
+    o += '<input class="txt" type="text" name="mail" placeholder="e-mail"/><br/>'
+    o += '<input class="txt" type="text" name="iban" placeholder="IBAN"/><br/>'
+    o += '<input class="txt" type="text" name="pk"   placeholder="Public Key"/><br/>'
+    o += '<input class="sh" type="submit" value="Vérifier"/>\n'
+    o += '</form>\n'
+    #o += '<img title="...notre IBAN: [frhvbqi6i/eOYqzQ]" src="data:image/png;base64,' + qr_admin() + '"/>\n'
+    return o + '</html>'
+
+def compacti (iban):
+    "_"
+    CHAR_MAP = {"A":"10", "B":"11", "C":"12", "D":"13", "E":"14", "F":"15", "G":"16", "H":"17", "I":"18", "J":"19", "K":"20", "L":"21", "M":"22", 
+                "N":"23", "O":"24", "P":"25", "Q":"26", "R":"27", "S":"28", "T":"29", "U":"30", "V":"31", "W":"32", "X":"33", "Y":"34", "Z":"35"}
+    ll = re.sub(' ', '', iban[4:]) + iban[:4]
+    for x in CHAR_MAP: ll = re.sub(x, CHAR_MAP[x], ll)
+    if int(ll) % 97 != 1: return 'Error: non valid IBAN!'
+    bic, cnt = iban[5:17], iban[17:]
+    for x in CHAR_MAP: cnt = re.sub(x, CHAR_MAP[x], cnt)
+    ibic, icnt = itob32(int(re.sub(' ', '', bic))), itob64(int(re.sub(' ', '', cnt)))
+    return 'fr%s/%s' % (ibic.decode('ascii'), icnt.decode('ascii'))
+
+def init_db(db):
+    "_"
+    di = '/cup/%s' % __app__
+    if not os.path.exists(di):
+        os.makedirs(di)
+    if not os.path.isfile(db):
+        d = dbm.open(db[:-3], 'c')
+        d['He8Tx-d'] = 'A/frhvbqi6i/eOYqzQ/Laurent Fournier/pelinquin@gmail.com/sdsdds' 
+        d.close()
+        os.chmod(db, 511)
 
 def application(environ, start_response):
+    "wsgi server app"
+    mime, o, db, now, fname = 'text/plain; charset=utf8', 'Error:', '/cup/%s/qrb.db' % __app__, '%s' % datetime.datetime.now(), 'default.txt'
+    init_db(db)
+    (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
+    base = environ['PATH_INFO'][1:]
+    d = dbm.open(db[:-3], 'c')
+    if way == 'post':
+        arg = urllib.parse.unquote_plus(raw.decode('utf8'))
+        zz1 = 'FR76 1027 8022 3300 0202 8350 157'
+        if reg(re.match(r'^name=([^&/]+)&mail=([^&/]+@[^&/]+)&iban=([A-Z\d ]{25,36})&pk=([^&/]+)$', arg)):
+            cc = compacti(reg.v.group(3))
+            k = base64.urlsafe_b64encode(hashlib.sha1(cc.encode('ascii')).digest())[:7].decode('ascii')
+            #s = smtplib.SMTP('cup')
+            #s.sendmail ('lolo@cup', ['pelinquin@gmail.com'], 'hello')
+            #s.quit()
+            d[k] = 'C/%s/%s/%s/%s' % (cc, reg.v.group(1), reg.v.group(2), reg.v.group(4))
+            o = 'OK %s' % k
+        else:
+            o += 'not valid args %s' % arg
+    else:
+        if base == '':
+            o, mime = front_html(), 'text/html; charset=utf8'
+        else:
+            o = 'OK1'
+    d.close()
+    start_response('200 OK', [('Content-type', mime), ('Content-Disposition', 'filename={}'.format(fname))])
+    return [o if mime == 'application/pdf' else o.encode('utf8')] 
+
+
+def application1(environ, start_response):
     "wsgi server app"
     mime, o, db, now, fname = 'text/plain; charset=utf8', 'Error:', '/cup/%s/trx.db' % __app__, '%s' % datetime.datetime.now(), 'default.txt'
     init_db(db)
@@ -97,8 +183,10 @@ def application(environ, start_response):
         # if not bicb or not bics:
         #   E not validated
         #
-        # (T)ransaction
-        if reg(re.match(r'^T/1/((\d{10,16})/([^/]{3,20})/([^/]{3,20})/([^/]{3,20})/([^/]{3,20})/(\d{3}\.\d{2}))/([^/]{150,200})(|\d{3}\.\d{2})$', arg)):
+        # (T)ransaction 
+        if reg(re.match(r'iban=([A-Z\d ]{20,40})$', arg)):
+            o = compact(reg.v.group(1))
+        elif reg(re.match(r'^T/1/((\d{10,16})/([^/]{3,20})/([^/]{3,20})/([^/]{3,20})/([^/]{3,20})/(\d{3}\.\d{2}))/([^/]{150,200})(|\d{3}\.\d{2})$', arg)):
             msg = reg.v.group(1)
             epoch = reg.v.group(2)
             bicb = bytes(reg.v.group(3), 'ascii')
@@ -213,6 +301,7 @@ def application(environ, start_response):
         else:
             #o, mime = frontpage(), 'application/xhtml+xml; charset=utf8'
             o, mime = frontpage_html(), 'text/html; charset=utf8'
+            o, mime = 'ARG=%s' % environ['PATH_INFO'][1:], 'text/plain; charset=utf8'
     d.close()
     start_response('200 OK', [('Content-type', mime), ('Content-Disposition', 'filename={}'.format(fname))])
     return [o if mime == 'application/pdf' else o.encode('utf8')] 
@@ -235,11 +324,15 @@ def frontpage_html():
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<html>\n' + favicon()
-    o += '<style type="text/css"></style>\n'
+    o += '<style type="text/css">input.txt{width:280}</style>\n'
     o += '<p>Digest: %s</p>\n' % __digest__.decode('ascii')
-    o += '<input class="sh" type="text" name="iban" placeholder="Votre IBAN"/>'
+    o += '<form method="post">\n'
+    o += '<input class="txt" type="text" name="iban" placeholder="Votre IBAN"/>'
+    o += '<input class="sh" type="submit" value="Vérifier"/>\n'
+    o += '</form>\n'
     o += "<p>Communiquer votre numéro IBAN ne court aucun risque. Personne ne peut retirer de l'argent sur votre compte, on peut seulement en déposer. Voir pour plus de détails les documents sur le virement SEPA, plus exactement le SEPA Credit Transfert. Toute demande de prélèvement avec votre numéro IBAN serait refusée par votre banque. <br/>Pour vous en convaincre, voici l'IBAN de notre société:  <a>FR76 1027 8022 3300 0202 8350 157</a><br/>Essayez de faire un retrait sur notre compte !</p>" 
-    o += '<p>Pour optimisez les transactions, nous utilisons une forme plus compact pour déclarer un IBAN et elle est représentée par un QRcode: <br/> Voici par exemple notre IBAN: <a>frhvbqi6i/eOYqzQ</a><p>'
+    o += '<p>Pour optimisez les transactions, nous utilisons une forme plus compact pour déclarer un IBAN et elle est représentée par un QRcode: <br/> Voici par exemple notre IBAN: <a>frhvbqi6i/eOYqzQ</a><p>\n'
+    o += '<img title="...notre IBAN: [frhvbqi6i/eOYqzQ]" src="data:image/png;base64,' + qr_admin() + '"/>\n'
     #import qrc
     return o + '</html>'
 
@@ -334,6 +427,22 @@ if __name__ == '__main__':
                 print (x.decode('utf-8') ,'->', d[x].decode('utf-8'))
             d.close()
 
+    #__digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:5]
+
+
+    import qrc
+    zz1 = 'FR76 1027 8022 3300 0202 8350 157'
+    zz2 = 'frhvbqi6i/eOYqzQ'
+    base = 'zzz.eu/'
+    toto = base + base64.urlsafe_b64encode(hashlib.sha1(zz1.encode('ascii')).digest())[:7].decode('ascii')
+    tata = base + base64.urlsafe_b64encode(hashlib.sha1(zz2.encode('ascii')).digest())[:7].decode('ascii')
+
+    print (toto, ' ', tata)
+    qr = qrc.QRCode(data=toto)
+    #qr.tty()
+    print (qr.m_count)
+
+
     sys.exit()
 
     CHAR_MAP = {"A":"10", "B":"11", "C":"12", "D":"13", "E":"14", "F":"15", "G":"16", "H":"17", "I":"18", "J":"19", 
@@ -348,7 +457,5 @@ if __name__ == '__main__':
 
     
     #for x in [4059390430395175, 4417123456789113, 4971520044037525]: print (luhn(x))
-
-
 
 # End ⊔net!
