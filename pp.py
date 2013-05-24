@@ -27,6 +27,8 @@ Status:
 'B' Banker (at least one per agency)
 'C' Validated by banquer and payed to admin
 
+# blocked 
+
 # status/bic/account/name/email/date/passwd/pubkey
 #   0     1     2     3    4     5     6      7
 """
@@ -93,30 +95,85 @@ def app_update(host):
     o += '</pre><br/><a href="%s">Reload the new version</a></html>' % __app__
     return o
 
-def front_html():
+def get_image(img):
+    "_"
+    here = os.path.dirname(os.path.abspath(__file__))
+    return 'data:image/png;base64,%s' % base64.b64encode(open('%s/%s' % (here, img), 'rb').read()).decode('ascii')
+
+def help_register():
+    "_"
+    o = "<p>Le mot de passe choisi ne permet que d'accéder au statut de votre compte et éventuellement de bloquer l'autorisation de dépenser de l'argent si vous perdez votre <i>iPhone</i>, mais en aucun cas de faire des achâts. Pour donner de l'argent à autre personne, il vous faut obligatoirement utiliser le code <b>alpha-pin</b> de votre <i>iPhone</i>, après création d'un jeux de clés cryptographiques, uniquement sur téléphone, déconnecté de l'Internet et enfin après acquisition du certificat de votre banquier qui confirmera le lien avec votre compte bancaire. Personne (ni l'opérateur téléphonique, ni le banquier, ni nos administrateurs informatique, ni l'Etat et aucun hacker) à part vous ne connaît ou ne doit connaître votre code <b>alpha-pin</b>, et si vous le perdez ou vi vous changez de téléphone, vous devrez simplement re-suivre la procédure d'enregistrement. Vous récupérez bien entendu le délai de cotisation de votre ancien compte.</p>"
+    o += "<p>Vous pouvez vous enregistrer même si vous ne possédez pas d'<i>iPhone</i>. Vous ne pourrez que recevoir de l'argent et pas en donner.</p>"
+    o += "<p>Le fait de nous communiquer votre IBAN+BIC ne permet à personne, nous compris, de retirer de l'argent sur votre compte. Il faudrait pour cela votre signature numérique réalisée uniquement par votre <i>iPhone</i> et avec la connaissance de votre code <b>alpha-pin</b>. Votre banquier doit respecter les directives du virement SEPA et toute transaction n'est utilisable qu'une seule fois. Afin de mieux encore garantir votre confidentialité, aucun de vos correspondants autre que les banquiers et nous, n'aura accès à votre IBAN, BIC, ni à votre e-mail. Vous utilisez et diffusez un <i>code marchand</i> représenté par un QRcode reçu par e-mail si l'enregistrement est validé. En revanche, ce <i>code marchand</i> permet à la personne qui le possède de vous verser de l'argent et vous en êtes notifiés. Nous référençons ce jour 21065 agences bancaires en France et si par malchance votre agence n'est pas trouvée par votre IBAN, un email vous invitera à nous donner l'adresse exacte de votre agence.</p>"
+    o += "<p>Le numéro de sécurité sociale est optionel. Il vous permet de demander la validation (un certificat) de votre identité numérique à une administration locale, et ainsi guarantir l'unicité de cette identité. Ce qui sera requis pour de futures opérations citoyenne comme le vote par Internet. Cette fonction est indépendante du moyen de paiement numérique mais ellesuit le même principe de sécurité, en particulier une authentification forte par votre <i>iPhone</i> et la connaissance du code 'alpha-pin' associé.</p>"
+    o += "<p>Le nom et le(s) prénom(s) doivent correspondre strictement à ceux déclarés auprès de votre banquier lors de l'ouverture du compte identifié par l'IBAN, sinon le conseiller financier ne vous validera pas votre identité et vous ne pourrez pas payer, seulement recevoir de l'argent. De même, pour utiliser votre <i>iPhone</i> lors de démarches citoyennes, il faudra que les noms et prénoms soient ceux de vos papiers d'identité officiels pour avoir une validation de l'administration.</p>"
+    o += "<p>Le code BIC n'est pas utile dans le mesure où il est retrouvé à partir de l'IBAN, mais nous nous en servons seulement pour vérification. Toute demande d'enregistrement avec un IBAN+BIC incohérents est refusée. Nous référençons 538 codes BIC pour la France, et si selon une très faible probabilité, votre BIC est inconnu à l'enregistrement, merci de nous le communiquer afin que nous puissions vérifier et corriger.<p>"
+    o += '<p>Pour vérifier que vous utiliser la dernière version du site, vous pouvez comparer le code du condensé : <b>%s</b> avec celui affiché sur <a href="">github</a>. Cette page ne contient aucun code <i>JavaScript</i>, ni <i>cookies</i>.</p>\n' % __digest__.decode('ascii')
+    return o
+
+
+def front_html(login='', tab = []):
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
-    o += '<html><h1>TEST</h1>\n' + favicon()
-    o += '<style type="text/css">input.txt{width:280}</style>\n'
+    o += '<html>\n' + favicon()
+    o += '<style type="text/css">h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:330}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div{position:absolute;top:150;left:350;margin:20}h6{text-align:right;color:#AAA;}</style>\n'
+    if tab:
+        o += '<h6>Bonjour %s %s !</h6>' % (tab[2], tab[3])
+    
+    o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
+    o += '<img title="...notre QRcode \'%s\'" src="data:image/png;base64,%s"/>\n' % (hiban('frhvbqi6i/eOYqzQ'), qr_admin())    
 
-    o += '<form method="post">\n'
-    o += '<input class="txt" type="text" name="name" placeholder="Nom"/><br/>'
-    o += '<input class="txt" type="text" name="mail" placeholder="e-mail"/><br/>'
-    o += '<input class="txt" type="text" name="iban" placeholder="IBAN"/><br/>'
-    o += '<input class="sh" type="submit" value="Enregistrer"/>\n'
-    o += '</form>\n'
+    if login == '':
+        o += '<form method="post">\n'
+        o += '<input class="txt" type="text" name="mail" placeholder="E-mail" required="yes"/><br/>'
+        o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe"/><br/>'
+        o += '<input class="sh" type="submit" value="Se connecter"/> '
+        o += '<input class="sh" type="submit" name="lost" value="Mot de passe oublié"/>\n'
+        o += '</form>\n'
+ 
+        o += '<form method="post">\n'
+        o += '<input class="txt" type="text" name="first" placeholder="Prénom(s)" title="liste complète" required="yes"/><br/>'
+        o += '<input class="txt" type="text" name="last" placeholder="Nom de famille" required="yes"/><br/>'
+        o += '<input class="txt" type="text" name="mail" placeholder="E-mail" title="n\'est pas communiqué" required="yes"/><br/>'
+        o += '<input class="txt" type="text" name="iban" placeholder="IBAN" required="yes"/><br/>'
+        o += '<input class="txt" type="text" name="bic" placeholder="Code BIC" pattern="[A-Z0-9]{8,11}" title="pour vérification" required="yes"/><br/>'
+        o += '<input class="txt" type="text" name="ssid" placeholder="[Optionel] Numéro de sécurité sociale"/><br/>'
+        o += '<input class="txt" type="text" name="name" placeholder="[Optionel] Nom affiché de marchand"/><br/>'
+        o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" title="de plus de 4 caractères" required="yes"/><br/>'
+        o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
+        o += '<input class="txt" type="checkbox" name="read" title="j\'ai lu les avertissements ci contre" required="yes"/>'
+        o += '<input class="sh" type="submit" value="S\'enregistrer"/>\n'
+        o += '</form>\n'
 
-    #o += '<p>ou</p>\n'
-    #o += '<form method="post">\n'
-    #o += '<input class="txt" type="text" name="name" placeholder="Nom"/><br/>'
-    #o += '<input class="txt" type="text" name="mail" placeholder="e-mail"/><br/>'
-    #o += '<input class="txt" type="text" name="iban" placeholder="IBAN"/><br/>'
-    #o += '<input class="txt" type="password" name="pw" placeholder="mot de passe de blocage"/><br/>'
-    #o += '<input class="sh" type="submit" value="Bloquer maintenant tout achat!"/>\n'
-    #o += '</form>\n'
+        o += '<div>'
+        o += help_register()
 
-    o += '<img title="...notre QRcode \'%s\'" src="data:image/png;base64,%s"/>\n' % (hiban('frhvbqi6i/eOYqzQ'), qr_admin())
-    o += '<p>Digest: %s</p>\n' % __digest__.decode('ascii')
+    else:
+        o += '<p>Identifiant: %s</p>' % login
+        o += '<p>Status: %s</p>' % 'Récection: Valide | Achât: en attente de validation par le banquier'
+        o += '<p>Seuils d\'achâts : %d€/jour maximum %d€</p>' % (100, 3000) 
+        today = '%s' % datetime.datetime.now()
+        o += '<p>Montant autorisé le %s : %d€</p>' % (today[:10],0) 
+        o += '<p>Code marchand: <b>%s</b></p>' % tab[0]
+        #o += '<p>Nom affiché de marchand: <b>%s</b></p>' % tab1[1]
+        o += '<p>Date d\'enregistrement: %s</p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(tab[1])))
+              
+        o += '<form method="post">\n'
+        o += '<input class="txt" type="password" name="pw" placeholder="Nouveau mot de passe" required="yes"/><br/>'
+        o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
+        o += '<input class="sh" type="submit" name="new" value="Changer votre mot de passe"/> '
+        o += '</form>\n'
+        
+        o += '<form method="post">\n'
+        o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" required="yes"/><br/>'
+        o += '<input class="sh" type="submit" name="lock" value="Bloquer tout achât" %s/>\n' % 'disabled="yes"'
+        o += '</form>\n'
+
+        o += '<div>'
+        o += "<p>Attention: le bloquage du compte doit être utilisé si vous perdez ou vous faites voler votre <i>iPhone</i> et il n'a de sens que si vous avez autorisation d'achât délivrée par votre banquier.</p>"
+        o += "<p>Nous n'avons pas accès au solde de votre compte. La limite des montants d'achât est encadrée par les deux valeurs de seuils fournies par votre banquier. Vous pouvez le contacter votre négocier des valeur différentes.</p>"
+    o += '<h6>Contact: <a href="mailto:contact@pingpongcash.net">contact@pingpongcash.net</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025<br/></h6>'
+    o += '</div>'
     return o + '</html>'
 
 def compact (iban):
@@ -141,6 +198,14 @@ def hiban (code):
     "_"
     return base64.urlsafe_b64encode(hashlib.sha1(code.encode('ascii')).digest())[:ID_SIZE].decode('ascii')
 
+def h6 (code):
+    "_"
+    return base64.urlsafe_b64encode(hashlib.sha1(code.encode('ascii')).digest())[:6].decode('ascii')
+
+def h10 (code):
+    "_"
+    return base64.urlsafe_b64encode(hashlib.sha1(code.encode('utf8')).digest())[:10].decode('ascii')
+
 def gbic (code):
     "_"
     return code.split('/')[0]
@@ -148,13 +213,23 @@ def gbic (code):
 def init_db(db):
     "_"
     di = '/cup/%s' % __app__
-    if not os.path.exists(di):
-        os.makedirs(di)
+    if not os.path.exists(di): os.makedirs(di)
     if not os.path.isfile(db):
         d = dbm.open(db[:-3], 'c')
         d['He8Tx-d'] = 'A/frhvbqi6i/eOYqzQ/Laurent Fournier/pelinquin@gmail.com//nopw/uGhhu3XsnKNDfCOW0cISKmsx_ML_jN5bA7A5ViSm7AhMm-Upu-S24UfH8hznnWpDKuEswnZsI96_TfBVQDkkn4DlhhnUR1fPm2pYs5if5Q51RWua5k8M7sPnWzsrbF3NPkcc_-XtHo6YhRlGrvFj1I9ogYO3Ha0ooVjNQN-Ca3c' 
         d.close()
         os.chmod(db, 511)
+
+def init_dbs(dbs):
+    "_"
+    di = '/cup/%s' % __app__
+    if not os.path.exists(di): os.makedirs(di)
+    for dbn in dbs:
+        db = '/cup/%s/%s.db' % (__app__, dbn)
+        if not os.path.isfile(db):
+            d = dbm.open(db[:-3], 'c')
+            d.close()
+            os.chmod(db, 511)
 
 def same_bic(d, biban, siban):
     "_"
@@ -188,17 +263,17 @@ def daylist(d, msg, day, iban, sig):
                 for t in d[cc].decode('ascii').split('/'):
                     o += '%s/%s\n' % (t, d['%s/%s' % (t, ee)].decode('ascii'))
         #smail (pb[_MAIL_], 'THIS IS A LIST \n %s' % o)
-        smail (pb[_MAIL_], 'THIS IS A \nSIMPLE MAIL TEST \n')
+        #smail (pb[_MAIL_], 'THIS IS A \nSIMPLE MAIL TEST \n')
         #o = 'mail send! to %s' % pb[_MAIL_]
     else:
         o = 'Error:Bad signature'
     return o
 
 def smail(dest, content):
-    s = smtplib.SMTP('pi')
+    s = smtplib.SMTP('cup')
     print (dest)
     #s.sendmail ('contact@pingpongcash.net', [dest], content)
-    s.sendmail ('ct@àà.eu', [dest], content)
+    s.sendmail (b'contact@pingpongcash.net', [dest], content)
     s.quit()
 
 def transaction (d, msg, epoch, s_biban, s_siban, val, s_sig):
@@ -255,22 +330,62 @@ def transaction (d, msg, epoch, s_biban, s_siban, val, s_sig):
         o += 'BUYER NOT KNOWN'
     return o
 
+_PAT_LOGIN_ = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\w{4,30})$'
+_PAT_LOST_  = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
+_PAT_REGISTER_ = r'first=([^&/]{3,80})&last=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]*)&name=([^&/]{1,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
+
 def application(environ, start_response):
     "wsgi server app"
     mime, o, db, now, fname = 'text/plain; charset=utf8', 'Error:', '/cup/%s/trx.db' % __app__, '%s' % datetime.datetime.now(), 'default.txt'
     init_db(db)
+    dbs = ('ags', 'bic', 'usr')
+    init_dbs(dbs)
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base = environ['PATH_INFO'][1:]
     d = dbm.open(db[:-3], 'c')
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
-        if reg(re.match(r'^name=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})$', arg)):
+        if reg(re.match(_PAT_LOGIN_, arg)):
+            #smail ('pelinquin@gmail.com', 'LOGIN OK \n')
+            mail = reg.v.group(1)
+            dusr = dbm.open('/cup/pp/usr', 'c')
+            if mail.encode('ascii') in dusr.keys():
+                tab = dusr[mail].decode('utf8').split('/')
+                if h10(reg.v.group(2)).encode('utf8').decode('ascii') == tab[5]:
+                    o, mime = front_html(mail, tab), 'text/html; charset=utf8'
+                else:
+                    o += 'bad password'
+            dusr.close()
+            #o = 'enter OK! %s' % reg.v.group(1)
+        elif reg(re.match(_PAT_LOST_, arg)):
+            o = 'pw resent!'
+        elif reg(re.match(_PAT_REGISTER_, arg)):
+            dusr = dbm.open('/cup/pp/usr', 'c')
+            mail = reg.v.group(3)
+            if reg.v.group(8) == reg.v.group(9):
+                if mail.encode('ascii') in dusr.keys():
+                    o += 'already registered'
+                else:
+                    while True:
+                        epoch = '%s' % time.mktime(time.gmtime())
+                        cid = compact(reg.v.group(4))
+                        k = h6(cid + '/' + epoch[:-2])
+                        if k not in dusr.keys(): break
+                    dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
+                    dusr[mail] = '/'.join([k, epoch[:-2], reg.v.group(1).title(), reg.v.group(2).title(), reg.v.group(6), h10(reg.v.group(8))])
+                    dusr[k] = '/'.join([mail, reg.v.group(7), compact(reg.v.group(4)), reg.v.group(5)])
+                    o = 'register OK'
+            else:
+                o += 'not the same password!'                
+            dusr.close()
+            # check valid IBAN, IBAN == BIC, valid email, valid ssid, pw=pw2
+        elif reg(re.match(r'^name=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})$', arg)):
             cc = compact(reg.v.group(3))
             bic, anb = cc.split('/') # verifier
             d[bic] = d[bic] + anb if bic in d.keys() else anb # verifier 
             d[hiban(cc)] = 'X/%s/%s/%s///' % (cc, reg.v.group(1), reg.v.group(2))
             o = 'web register OK %s' % cc
-            smail ('pelinquin@gmail.com', 'THIS IS A \nSIMPLE MAIL TEST \n')
+            #smail ('pelinquin@gmail.com', 'THIS IS A \nSIMPLE MAIL TEST \n')
         elif reg(re.match(r'^name=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&pw=(.{2,20})$', arg)):
             x = hiban(compact(reg.v.group(3)))
             if x.encode('ascii') in d.keys(): 
@@ -290,12 +405,18 @@ def application(environ, start_response):
         else:
             o += 'not valid args %s' % arg
     else:
-        if base == '':
-            o, mime = front_html(), 'text/html; charset=utf8'
-        elif raw.lower() == 'update':
+        if raw.lower() == '_update':
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
+        elif base == '':
+            o, mime = front_html(), 'text/html; charset=utf8'
         else:
-            o = 'OK1'
+            dusr = dbm.open('/cup/pp/usr', 'c')
+            if base.encode('ascii') in dusr.keys():
+                tab = dusr[base].decode('utf8').split('/')
+                o = 'code %s \nThis IBAN is well registered.\n Using it will pay to "%s"' % (base, tab[1])
+            else:
+                o += 'IBAN NOT registered'                
+            dusr.close()
     d.close()
     start_response('200 OK', [('Content-type', mime), ('Content-Disposition', 'filename={}'.format(fname))])
     return [o if mime == 'application/pdf' else o.encode('utf8')] 
@@ -449,25 +570,30 @@ def print_db():
             d = dbm.open(m.group(1))
             nt = 0
             for x in d.keys():
-                tv, tk = d[x].decode('utf-8').split('/'), x.decode('utf-8').split('/')
+                tv, tk = d[x].decode('utf8').split('/'), x.decode('utf8').split('/')
                 if reg(re.match(r'^\d{10,16}/[^/]{%s}$' % ID_SIZE, x.decode('ascii'))):
                     nt += 1
                     trx = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(tk[0])))
                     o += '>%s %s %s %s\n' % (trx, tk[1], tv[0], tv[1])
                 elif reg(re.match(r'^.{%s}$' % ID_SIZE, x.decode('ascii'))):
-                    o += 'USER %s -> %s "%s" %s %s\n'  % (x.decode('utf-8') , tv[0], tv[3], tv[4], tv[5])
+                    o += 'USER %s -> %s "%s" %s %s\n'  % (x.decode('utf8') , tv[0], tv[3], tv[4], tv[5])
                 elif reg(re.match(r'^[\d\-]{10}/.{%s}$' % ID_SIZE, x.decode('ascii'))):
-                    o += 'NB_TR %s -> %s\n'  % (x.decode('utf-8') , len(tv))
+                    o += 'NB_TR %s -> %s\n'  % (x.decode('utf8') , len(tv))
                 elif reg(re.match(r'^\w{5,10}$', x.decode('ascii'))):
-                    o += 'AGENCY %s -> %s\n'  % (x.decode('utf-8') , len(tv))
+                    o += 'AGENCY %s -> %s\n'  % (x.decode('utf8') , len(tv))
                 else:
-                    o += '%s -> %s\n'  % (x.decode('utf-8') , d[x].decode('utf-8'))
+                    o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
             o += 'NB_TRANSACTIONS: %s\n' % nt 
             d.close()
     return o
+#################### QR CODE ################
+
+
+############################################
 
 if __name__ == '__main__':
     #test()
-    print (print_db())
+    #print (print_db())
+    test2()
     sys.exit()
 # End ⊔net!
