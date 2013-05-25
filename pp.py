@@ -27,7 +27,13 @@ Status:
 'B' Banker (at least one per agency)
 'C' Validated by banquer and payed to admin
 
-# blocked 
+mail -> codeM/dateEnr/Prenom/Nom/Secu/pw 
+codeM -> email/affiche/bank/iban/bic /status/bloque
+
+lfournier@free.fr -> rdJwjE/1369399820/Laurent/Fournier/167071927202809/0s1BeDEvqU
+rdJwjE -> lfournier@free.fr/pelinquin sur Drémil/frhvbqi6i/eOYqzQ/AAAAAAAA
+frhvbqi6i/eOYqzQ -> rdJwjE
+
 
 # status/bic/account/name/email/date/passwd/pubkey
 #   0     1     2     3    4     5     6      7
@@ -116,12 +122,13 @@ def front_html(login='', tab = []):
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<html>\n' + favicon()
-    o += '<style type="text/css">h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:330}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div{position:absolute;top:150;left:350;margin:20}h6{text-align:right;color:#AAA;}</style>\n'
-    if tab:
-        o += '<h6>Bonjour %s %s !</h6>' % (tab[2], tab[3])
+    o += '<style type="text/css">h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:330}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:350;margin:20}div.qr{position:absolute;top:0;right:110;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.red{color:red;}</style>\n'
     
     o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
-    o += '<img title="...notre QRcode \'%s\'" src="data:image/png;base64,%s"/>\n' % (hiban('frhvbqi6i/eOYqzQ'), qr_admin())    
+    #o += '<img title="...notre QRcode \'%s\'" src="data:image/png;base64,%s"/>\n' % (hiban('frhvbqi6i/eOYqzQ'), qr_admin())    
+
+    data = tab[0] if tab else 'hvbqi6i/eOYqzQ'
+    o += '<div class="qr" title="...votre code marchand \'%s\' en QRcode">%s</div>\n' % (data, QRCode(data=data).svg(10, 10, 4))    
 
     if login == '':
         o += '<form method="post">\n'
@@ -145,18 +152,21 @@ def front_html(login='', tab = []):
         o += '<input class="sh" type="submit" value="S\'enregistrer"/>\n'
         o += '</form>\n'
 
-        o += '<div>'
+        o += '<div class="col">'
         o += help_register()
 
     else:
-        o += '<p>Identifiant: %s</p>' % login
-        o += '<p>Status: %s</p>' % 'Récection: Valide | Achât: en attente de validation par le banquier'
+        o += '<h6 class="login">Bonjour %s %s !</h6>' % (tab[2], tab[3])
+        o += '<p>Identifiant: <b class="green">%s</b></p>' % login
+        o += '<p>Status crédit: <b class="green">%s</b></p>' % 'valide'
+        o += '<p>Status débit: <b class="red">%s</b></p>' % 'en attente de validation par le banquier'
+        o += '<p title="Identité Numérique Citoyenne">Status INC: <b class="red">%s</b></p>' % 'en attente de validation par une adminnistration'
         o += '<p>Seuils d\'achâts : %d€/jour maximum %d€</p>' % (100, 3000) 
         today = '%s' % datetime.datetime.now()
         o += '<p>Montant autorisé le %s : %d€</p>' % (today[:10],0) 
-        o += '<p>Code marchand: <b>%s</b></p>' % tab[0]
+        o += '<p>Code marchand: <b class="green">%s</b></p>' % tab[0]
         #o += '<p>Nom affiché de marchand: <b>%s</b></p>' % tab1[1]
-        o += '<p>Date d\'enregistrement: %s</p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(tab[1])))
+        o += '<p>Date d\'enregistrement: <b class="green">%s</b></p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(tab[1])))
               
         o += '<form method="post">\n'
         o += '<input class="txt" type="password" name="pw" placeholder="Nouveau mot de passe" required="yes"/><br/>'
@@ -169,7 +179,7 @@ def front_html(login='', tab = []):
         o += '<input class="sh" type="submit" name="lock" value="Bloquer tout achât" %s/>\n' % 'disabled="yes"'
         o += '</form>\n'
 
-        o += '<div>'
+        o += '<div class="col">'
         o += "<p>Attention: le bloquage du compte doit être utilisé si vous perdez ou vous faites voler votre <i>iPhone</i> et il n'a de sens que si vous avez autorisation d'achât délivrée par votre banquier.</p>"
         o += "<p>Nous n'avons pas accès au solde de votre compte. La limite des montants d'achât est encadrée par les deux valeurs de seuils fournies par votre banquier. Vous pouvez le contacter votre négocier des valeur différentes.</p>"
     o += '<h6>Contact: <a href="mailto:contact@pingpongcash.net">contact@pingpongcash.net</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025<br/></h6>'
@@ -586,14 +596,534 @@ def print_db():
             o += 'NB_TRANSACTIONS: %s\n' % nt 
             d.close()
     return o
+
 #################### QR CODE ################
 
+ERR_COR_L = 1
+ERR_COR_M = 0
+ERR_COR_Q = 3
+ERR_COR_H = 2
+
+MODE_NUMBER    = 1 << 0
+MODE_ALPHA_NUM = 1 << 1
+MODE_8BIT_BYTE = 1 << 2
+MODE_KANJI     = 1 << 3
+
+MODE_SIZE_SMALL  = { MODE_NUMBER: 10, MODE_ALPHA_NUM: 9,  MODE_8BIT_BYTE: 8,  MODE_KANJI: 8,}
+MODE_SIZE_MEDIUM = { MODE_NUMBER: 12, MODE_ALPHA_NUM: 11, MODE_8BIT_BYTE: 16, MODE_KANJI: 10,}
+MODE_SIZE_LARGE  = { MODE_NUMBER: 14, MODE_ALPHA_NUM: 13, MODE_8BIT_BYTE: 16, MODE_KANJI: 12,}
+
+ALPHA_NUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:'
+EXP_TABLE = list(range(256))
+LOG_TABLE = list(range(256))
+for i in range(8): EXP_TABLE[i] = 1 << i
+for i in range(8, 256): EXP_TABLE[i] = (EXP_TABLE[i - 4] ^ EXP_TABLE[i - 5] ^ EXP_TABLE[i - 6] ^ EXP_TABLE[i - 8])
+for i in range(255): LOG_TABLE[EXP_TABLE[i]] = i
+
+NUMBER_LENGTH = {3: 10, 2: 7, 1: 4}
+
+RS_BLOCK_OFFSET = { ERR_COR_L: 0, ERR_COR_M: 1, ERR_COR_Q: 2, ERR_COR_H: 3 }
+RS_BLOCK_TABLE = [ # L M Q H
+    [1, 26, 19], [1, 26, 16], [1, 26, 13], [1, 26, 9],
+    [1, 44, 34], [1, 44, 28], [1, 44, 22], [1, 44, 16],
+    [1, 70, 55], [1, 70, 44], [2, 35, 17], [2, 35, 13],
+    [1, 100, 80],[2, 50, 32], [2, 50, 24], [4, 25, 9],
+    [1, 134, 108], [2, 67, 43], [2, 33, 15, 2, 34, 16], [2, 33, 11, 2, 34, 12], 
+    [2, 86, 68], [4, 43, 27], [4, 43, 19], [4, 43, 15], 
+    [2, 98, 78], [4, 49, 31], [2, 32, 14, 4, 33, 15], [4, 39, 13, 1, 40, 14], 
+    [2, 121, 97], [2, 60, 38, 2, 61, 39], [4, 40, 18, 2, 41, 19], [4, 40, 14, 2, 41, 15], 
+    [2, 146, 116], [3, 58, 36, 2, 59, 37], [4, 36, 16, 4, 37, 17], [4, 36, 12, 4, 37, 13], 
+    [2, 86, 68, 2, 87, 69], [4, 69, 43, 1, 70, 44], [6, 43, 19, 2, 44, 20], [6, 43, 15, 2, 44, 16], 
+    [4, 101, 81], [1, 80, 50, 4, 81, 51], [4, 50, 22, 4, 51, 23], [3, 36, 12, 8, 37, 13], 
+    [2, 116, 92, 2, 117, 93], [6, 58, 36, 2, 59, 37], [4, 46, 20, 6, 47, 21], [7, 42, 14, 4, 43, 15], 
+    [4, 133, 107], [8, 59, 37, 1, 60, 38], [8, 44, 20, 4, 45, 21], [12, 33, 11, 4, 34, 12], 
+    [3, 145, 115, 1, 146, 116], [4, 64, 40, 5, 65, 41], [11, 36, 16, 5, 37, 17], [11, 36, 12, 5, 37, 13], 
+    [5, 109, 87, 1, 110, 88], [5, 65, 41, 5, 66, 42], [5, 54, 24, 7, 55, 25], [11, 36, 12], 
+    [5, 122, 98, 1, 123, 99], [7, 73, 45, 3, 74, 46], [15, 43, 19, 2, 44, 20], [3, 45, 15, 13, 46, 16], 
+    [1, 135, 107, 5, 136, 108], [10, 74, 46, 1, 75, 47], [1, 50, 22, 15, 51, 23], [2, 42, 14, 17, 43, 15], 
+    [5, 150, 120, 1, 151, 121], [9, 69, 43, 4, 70, 44], [17, 50, 22, 1, 51, 23], [2, 42, 14, 19, 43, 15], 
+    [3, 141, 113, 4, 142, 114], [3, 70, 44, 11, 71, 45], [17, 47, 21, 4, 48, 22], [9, 39, 13, 16, 40, 14], 
+    [3, 135, 107, 5, 136, 108], [3, 67, 41, 13, 68, 42], [15, 54, 24, 5, 55, 25], [15, 43, 15, 10, 44, 16], 
+    [4, 144, 116, 4, 145, 117], [17, 68, 42], [17, 50, 22, 6, 51, 23], [19, 46, 16, 6, 47, 17], 
+    [2, 139, 111, 7, 140, 112], [17, 74, 46], [7, 54, 24, 16, 55, 25], [34, 37, 13], 
+    [4, 151, 121, 5, 152, 122], [4, 75, 47, 14, 76, 48], [11, 54, 24, 14, 55, 25], [16, 45, 15, 14, 46, 16], 
+    [6, 147, 117, 4, 148, 118], [6, 73, 45, 14, 74, 46], [11, 54, 24, 16, 55, 25], [30, 46, 16, 2, 47, 17], 
+    [8, 132, 106, 4, 133, 107], [8, 75, 47, 13, 76, 48], [7, 54, 24, 22, 55, 25], [22, 45, 15, 13, 46, 16], 
+    [10, 142, 114, 2, 143, 115], [19, 74, 46, 4, 75, 47], [28, 50, 22, 6, 51, 23], [33, 46, 16, 4, 47, 17], 
+    [8, 152, 122, 4, 153, 123], [22, 73, 45, 3, 74, 46], [8, 53, 23, 26, 54, 24], [12, 45, 15, 28, 46, 16], 
+    [3, 147, 117, 10, 148, 118], [3, 73, 45, 23, 74, 46], [4, 54, 24, 31, 55, 25], [11, 45, 15, 31, 46, 16], 
+    [7, 146, 116, 7, 147, 117], [21, 73, 45, 7, 74, 46], [1, 53, 23, 37, 54, 24], [19, 45, 15, 26, 46, 16], 
+    [5, 145, 115, 10, 146, 116], [19, 75, 47, 10, 76, 48], [15, 54, 24, 25, 55, 25], [23, 45, 15, 25, 46, 16], 
+    [13, 145, 115, 3, 146, 116], [2, 74, 46, 29, 75, 47], [42, 54, 24, 1, 55, 25], [23, 45, 15, 28, 46, 16], 
+    [17, 145, 115], [10, 74, 46, 23, 75, 47], [10, 54, 24, 35, 55, 25], [19, 45, 15, 35, 46, 16], 
+    [17, 145, 115, 1, 146, 116], [14, 74, 46, 21, 75, 47], [29, 54, 24, 19, 55, 25], [11, 45, 15, 46, 46, 16], 
+    [13, 145, 115, 6, 146, 116], [14, 74, 46, 23, 75, 47], [44, 54, 24, 7, 55, 25], [59, 46, 16, 1, 47, 17], 
+    [12, 151, 121, 7, 152, 122], [12, 75, 47, 26, 76, 48], [39, 54, 24, 14, 55, 25], [22, 45, 15, 41, 46, 16], 
+    [6, 151, 121, 14, 152, 122], [6, 75, 47, 34, 76, 48], [46, 54, 24, 10, 55, 25], [2, 45, 15, 64, 46, 16],
+    [17, 152, 122, 4, 153, 123], [29, 74, 46, 14, 75, 47], [49, 54, 24, 10, 55, 25], [24, 45, 15, 46, 46, 16],
+    [4, 152, 122, 18, 153, 123], [13, 74, 46, 32, 75, 47], [48, 54, 24, 14, 55, 25], [42, 45, 15, 32, 46, 16],
+    [20, 147, 117, 4, 148, 118], [40, 75, 47, 7, 76, 48], [43, 54, 24, 22, 55, 25], [10, 45, 15, 67, 46, 16],
+    [19, 148, 118, 6, 149, 119], [18, 75, 47, 31, 76, 48], [34, 54, 24, 34, 55, 25], [20, 45, 15, 61, 46, 16]
+]
+
+PATTERN_POSITION_TABLE = [
+    [],
+    [6, 18],
+    [6, 22],
+    [6, 26],
+    [6, 30],
+    [6, 34],
+    [6, 22, 38],
+    [6, 24, 42],
+    [6, 26, 46],
+    [6, 28, 50],
+    [6, 30, 54],
+    [6, 32, 58],
+    [6, 34, 62],
+    [6, 26, 46, 66],
+    [6, 26, 48, 70],
+    [6, 26, 50, 74],
+    [6, 30, 54, 78],
+    [6, 30, 56, 82],
+    [6, 30, 58, 86],
+    [6, 34, 62, 90],
+    [6, 28, 50, 72, 94],
+    [6, 26, 50, 74, 98],
+    [6, 30, 54, 78, 102],
+    [6, 28, 54, 80, 106],
+    [6, 32, 58, 84, 110],
+    [6, 30, 58, 86, 114],
+    [6, 34, 62, 90, 118],
+    [6, 26, 50, 74, 98, 122],
+    [6, 30, 54, 78, 102, 126],
+    [6, 26, 52, 78, 104, 130],
+    [6, 30, 56, 82, 108, 134],
+    [6, 34, 60, 86, 112, 138],
+    [6, 30, 58, 86, 114, 142],
+    [6, 34, 62, 90, 118, 146],
+    [6, 30, 54, 78, 102, 126, 150],
+    [6, 24, 50, 76, 102, 128, 154],
+    [6, 28, 54, 80, 106, 132, 158],
+    [6, 32, 58, 84, 110, 136, 162],
+    [6, 26, 54, 82, 110, 138, 166],
+    [6, 30, 58, 86, 114, 142, 170]
+]
+
+G15 = ((1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0))
+G18 = ((1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0))
+G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1)
+
+def BCH_type_info(data):
+    d = data << 10
+    while BCH_digit(d) - BCH_digit(G15) >= 0: d ^= (G15 << (BCH_digit(d) - BCH_digit(G15)))
+    return ((data << 10) | d) ^ G15_MASK
+
+def BCH_type_number(data):
+    d = data << 12
+    while BCH_digit(d) - BCH_digit(G18) >= 0: d ^= (G18 << (BCH_digit(d) - BCH_digit(G18)))
+    return (data << 12) | d
+
+def BCH_digit(data):
+    digit = 0
+    while data != 0:
+        digit += 1
+        data >>= 1
+    return digit
+
+def pattern_position(version):
+    return PATTERN_POSITION_TABLE[version - 1]
+
+def mask_func(pattern):
+    "_"
+    if pattern == 0: return lambda i, j: (i + j) % 2 == 0 
+    if pattern == 1: return lambda i, j: i % 2 == 0 
+    if pattern == 2: return lambda i, j: j % 3 == 0
+    if pattern == 3: return lambda i, j: (i + j) % 3 == 0
+    if pattern == 4: return lambda i, j: (int(i / 2) + int(j / 3)) % 2 == 0
+    if pattern == 5: return lambda i, j: (i * j) % 2 + (i * j) % 3 == 0
+    if pattern == 6: return lambda i, j: ((i * j) % 2 + (i * j) % 3) % 2 == 0
+    if pattern == 7: return lambda i, j: ((i * j) % 3 + (i + j) % 2) % 2 == 0
+    raise TypeError("Bad mask pattern: " + pattern)
+
+def length_in_bits(mode, version):
+    if mode not in (MODE_NUMBER, MODE_ALPHA_NUM, MODE_8BIT_BYTE, MODE_KANJI):
+        raise TypeError("Invalid mode (%s)" % mode)
+    if version < 1 or version > 40:
+        raise ValueError("Invalid version (was %s, expected 1 to 40)" % version)
+    if version < 10: mode_size = MODE_SIZE_SMALL
+    elif version < 27: mode_size = MODE_SIZE_MEDIUM
+    else: mode_size = MODE_SIZE_LARGE
+    return mode_size[mode]
+
+def lost_point1(modules):
+    modules_count = len(modules)
+    lost_point = 0
+    # LEVEL1
+    for row in range(modules_count):
+        for col in range(modules_count):
+            sameCount = 0
+            dark = modules[row][col]
+            for r in range(-1, 2):
+                if row + r < 0 or modules_count <= row + r: continue
+                for c in range(-1, 2):
+                    if col + c < 0 or modules_count <= col + c: continue
+                    if r == 0 and c == 0: continue
+                    if dark == modules[row + r][col + c]: sameCount += 1
+            if sameCount > 5:
+                lost_point += (3 + sameCount - 5)
+    # LEVEL2
+    for row in range(modules_count - 1):
+        for col in range(modules_count - 1):
+            count = 0
+            if modules[row][col]: count += 1
+            if modules[row + 1][col]: count += 1
+            if modules[row][col + 1]: count += 1
+            if modules[row + 1][col + 1]: count += 1
+            if count == 0 or count == 4: lost_point += 3
+    # LEVEL3
+    for row in range(modules_count):
+        for col in range(modules_count - 6):
+            if (modules[row][col]
+                    and not modules[row][col + 1]
+                    and modules[row][col + 2]
+                    and modules[row][col + 3]
+                    and modules[row][col + 4]
+                    and not modules[row][col + 5]
+                    and modules[row][col + 6]):
+                lost_point += 40
+    for col in range(modules_count):
+        for row in range(modules_count - 6):
+            if (modules[row][col]
+                    and not modules[row + 1][col]
+                    and modules[row + 2][col]
+                    and modules[row + 3][col]
+                    and modules[row + 4][col]
+                    and not modules[row + 5][col]
+                    and modules[row + 6][col]):
+                lost_point += 40
+    # LEVEL4
+    darkCount = 0
+    for col in range(modules_count):
+        for row in range(modules_count):
+            if modules[row][col]: darkCount += 1
+    ratio = abs(100 * darkCount / modules_count / modules_count - 50) / 5
+    lost_point += ratio * 10
+    return lost_point
+
+class QRData:
+    """ Data held in a QR compatible format. """
+    def __init__(self, data, mode=None):
+        """ If ``mode`` isn't provided, the most compact QR data type possible is chosen. """
+        if data.isdigit(): auto_mode = MODE_NUMBER
+        elif re.match('^[%s]*$' % re.escape(ALPHA_NUM), data): auto_mode = MODE_ALPHA_NUM
+        else: auto_mode = MODE_8BIT_BYTE
+        if mode is None:
+            self.mode = auto_mode
+        else:
+            if mode not in (MODE_NUMBER, MODE_ALPHA_NUM, MODE_8BIT_BYTE):
+                raise TypeError("Invalid mode (%s)" % mode)
+            if mode < auto_mode:
+                raise ValueError("Provided data can not be represented in mode %s" % mode)
+            self.mode = mode
+        self.data = data
+
+    def __len__(self):
+        return len(self.data)
+
+    def write(self, buffer):
+        if self.mode == MODE_NUMBER:
+            for i in range(0, len(self.data), 3):
+                chars = self.data[i:i + 3]
+                bit_length = NUMBER_LENGTH[len(chars)]
+                buffer.put(int(chars), bit_length)
+        elif self.mode == MODE_ALPHA_NUM:
+            for i in range(0, len(self.data), 2):
+                chars = self.data[i:i + 2]
+                if len(chars) > 1:
+                    buffer.put(ALPHA_NUM.find(chars[0]) * 45 + ALPHA_NUM.find(chars[1]), 11)
+                else:
+                    buffer.put(ALPHA_NUM.find(chars), 6)
+        else:
+            for c in self.data:
+                buffer.put(ord(c), 8)
+
+class BitBuffer:
+    def __init__(self):
+        self.buffer, self.length = [], 0
+
+    def get(self, index):
+        buf_index = int(index/8)
+        return ((self.buffer[buf_index] >> (7 - index % 8)) & 1) == 1
+
+    def put(self, num, length):
+        for i in range(length): self.put_bit(((num >> (length - i - 1)) & 1) == 1)
+
+    def __len__(self):
+        return self.length
+
+    def put_bit(self, bit):
+        buf_index = self.length // 8
+        if len(self.buffer) <= buf_index: self.buffer.append(0)
+        if bit: self.buffer[buf_index] |= (0x80 >> (self.length % 8))
+        self.length += 1
+
+def create_bytes(buffer, rs_b):
+    offset, maxDcCount, maxEcCount = 0, 0, 0
+    dcdata, ecdata = [0] * len(rs_b), [0] * len(rs_b)
+    for r in range(len(rs_b)):
+        dcCount = rs_b[r].data_count
+        ecCount = rs_b[r].total_count - dcCount
+        maxDcCount, maxEcCount = max(maxDcCount, dcCount), max(maxEcCount, ecCount)
+        dcdata[r] = [0] * dcCount
+        for i in range(len(dcdata[r])): dcdata[r][i] = 0xff & buffer.buffer[i + offset]
+        offset += dcCount
+        rsPoly = Poly([1], 0) # Get error correction polynomial.
+        for i in range(ecCount): rsPoly = rsPoly * Poly([1, gexp(i)], 0)
+        rawPoly = Poly(dcdata[r], len(rsPoly) - 1)
+        modPoly = rawPoly % rsPoly
+        ecdata[r] = [0] * (len(rsPoly) - 1)
+        for i in range(len(ecdata[r])):
+            modIndex = i + len(modPoly) - len(ecdata[r])
+            ecdata[r][i] = modPoly[modIndex] if (modIndex >= 0) else 0
+    totalCodeCount = 0
+    for b in rs_b: totalCodeCount += b.total_count
+    data, index = [None] * totalCodeCount, 0
+    for i in range(maxDcCount):
+        for r in range(len(rs_b)):
+            if i < len(dcdata[r]):
+                data[index] = dcdata[r][i]
+                index += 1
+    for i in range(maxEcCount):
+        for r in range(len(rs_b)):
+            if i < len(ecdata[r]):
+                data[index] = ecdata[r][i]
+                index += 1
+    return data
+
+class DataOverflowError(Exception):
+    pass
+
+def create_data(version, error_correction, data_list):
+    rs_b = rs_blocks(version, error_correction)
+    buffer = BitBuffer()
+    for data in data_list:
+        buffer.put(data.mode, 4)
+        buffer.put(len(data),
+            length_in_bits(data.mode, version))
+        data.write(buffer)
+    # calc num max data.
+    total_data_count = 0
+    for block in rs_b:
+        total_data_count += block.data_count
+    if len(buffer) > total_data_count * 8:
+        raise DataOverflowError("Code length overflow. Data size (%s) > size available (%s)" % (len(buffer), total_data_count * 8))
+    # end code
+    if len(buffer) + 4 <= total_data_count * 8: buffer.put(0, 4)
+    # padding
+    while len(buffer) % 8: buffer.put_bit(False)
+    # padding
+    PAD0, PAD1 = 0xEC, 0x11
+    while True:
+        if len(buffer) >= total_data_count * 8:
+            break
+        buffer.put(PAD0, 8)
+        if len(buffer) >= total_data_count * 8:
+            break
+        buffer.put(PAD1, 8)
+    return create_bytes(buffer, rs_b)
+
+def glog(n):
+    return LOG_TABLE[n]
+
+def gexp(n):
+    return EXP_TABLE[n % 255]
+
+class Poly:
+    def __init__(self, num, shift):
+        offset = 0
+        while offset < len(num) and num[offset] == 0: offset += 1
+        self.num = [0] * (len(num) - offset + shift)
+        for i in range(len(num) - offset):
+            self.num[i] = num[i + offset]
+
+    def __getitem__(self, index):
+        return self.num[index]
+
+    def __len__(self):
+        return len(self.num)
+
+    def __mul__(self, e):
+        num = [0] * (len(self) + len(e) - 1)
+        for i in range(len(self)):
+            for j in range(len(e)):
+                num[i + j] ^= gexp(glog(self[i]) + glog(e[j]))
+        return Poly(num, 0)
+
+    def __mod__(self, e):
+        if len(self) - len(e) < 0: return self
+        ratio = glog(self[0]) - glog(e[0])
+        num = [0] * len(self)
+        for i in range(len(self)):
+            num[i] = self[i]
+        for i in range(len(e)):
+            num[i] ^= gexp(glog(e[i]) + ratio)
+        return Poly(num, 0) % e
+
+class RSBlock:
+    def __init__(self, total_count, data_count):
+        self.total_count, self.data_count = total_count, data_count
+
+def rs_blocks(version, error_correction):
+    if error_correction not in RS_BLOCK_OFFSET:
+        raise Exception("bad rs block @ version: %s / error_correction: %s" % (version, error_correction))
+    offset = RS_BLOCK_OFFSET[error_correction]
+    rs_b, blocks = RS_BLOCK_TABLE[(version - 1) * 4 + offset], []
+    for i in range(0, len(rs_b), 3):
+        count, total_count, data_count = rs_b[i:i + 3]
+        for j in range(count): blocks.append(RSBlock(total_count, data_count))
+    return blocks
+
+class QRCode:
+    def __init__(self, version=None, error_correction=ERR_COR_M, data="hello"):
+        self.version = version and int(version)
+        self.error_correction = int(error_correction)
+        self.m, self.m_count = None, 0
+        self.data_cache, self.data_list = None, []
+        self.data_list.append(QRData(data))
+        self.best_fit(start=self.version)
+        self.makeImpl(False, self.best_mask_pattern())
+
+    def makeImpl(self, test, mask_pattern):
+        self.m_count = self.version * 4 + 17
+        self.m = [None] * self.m_count
+        for row in range(self.m_count):
+            self.m[row] = [None] * self.m_count
+            for col in range(self.m_count): self.m[row][col] = None   # (col + row) % 3
+        self.setup_position_probe_pattern(0, 0)
+        self.setup_position_probe_pattern(self.m_count - 7, 0)
+        self.setup_position_probe_pattern(0, self.m_count - 7)
+        self.sutup_position_adjust_pattern()
+        self.setup_timing_pattern()
+        self.setup_type_info(test, mask_pattern)
+        if self.version >= 7: self.setup_type_number(test)
+        if self.data_cache is None: self.data_cache = create_data(self.version, self.error_correction, self.data_list)
+        self.map_data(self.data_cache, mask_pattern)
+
+    def setup_position_probe_pattern(self, row, col):
+        for r in range(-1, 8):
+            if row + r <= -1 or self.m_count <= row + r: continue
+            for c in range(-1, 8):
+                if col + c <= -1 or self.m_count <= col + c: continue
+                self.m[row + r][col + c] = True if (0 <= r and r <= 6 and (c == 0 or c == 6) or (0 <= c and c <= 6 and (r == 0 or r == 6)) or (2 <= r and r <= 4 and 2 <= c and c <= 4)) else False
+
+    def best_fit(self, start=None):
+        """ Find the minimum size required to fit in the data. """
+        size = start or 1
+        while True:
+            try:
+                self.data_cache = create_data(size, self.error_correction, self.data_list)
+            except DataOverflowError:
+                size += 1
+            else:
+                self.version = size
+                return size
+
+    def best_mask_pattern(self):
+        """ Find the most efficient mask pattern. """
+        min_lost_point, pattern = 0, 0
+        for i in range(8):
+            self.makeImpl(True, i)
+            lost_point = lost_point1(self.m)
+            if i == 0 or min_lost_point > lost_point: min_lost_point, pattern = lost_point, i
+        return pattern
+
+    def svg(self, ox=0, oy=0, d=10):
+        "_"
+        o, mc = '<svg %s>\n' % _SVGNS, self.m_count
+        for r in range(mc):
+            k = 0
+            for c in range(mc):
+                if self.m[r][c]: k += 1
+                elif k>0:
+                    o += '<rect x="%d" y="%d" width="%d" height="%d"/>\n' % (ox+(c-k)*d, oy+r*d, k*d, d)
+                    k = 0
+            if k>0: o += '<rect x="%d" y="%d" width="%d" height="%d"/>\n' % (ox+(mc-k)*d, oy+r*d, k*d, d)
+        return o + '</svg>\n'
+
+    def setup_timing_pattern(self):
+        for r in range(8, self.m_count - 8):
+            if self.m[r][6] != None: continue
+            self.m[r][6] = (r % 2 == 0)
+        for c in range(8, self.m_count - 8):
+            if self.m[6][c] != None: continue
+            self.m[6][c] = (c % 2 == 0)
+
+    def sutup_position_adjust_pattern(self):
+        pos = pattern_position(self.version)
+        for i in range(len(pos)):
+            for j in range(len(pos)):
+                row = pos[i]
+                col = pos[j]
+                if self.m[row][col] != None: continue
+                for r in range(-2, 3):
+                    for c in range(-2, 3):
+                        self.m[row + r][col + c] = True if (r == -2 or r == 2 or c == -2 or c == 2 or (r == 0 and c == 0)) else False
+
+    def setup_type_number(self, test):
+        bits = BCH_type_number(self.version)
+        for i in range(18):
+            mod = (not test and ((bits >> i) & 1) == 1)
+            self.m[i // 3][i % 3 + self.m_count - 8 - 3] = mod
+        for i in range(18):
+            mod = (not test and ((bits >> i) & 1) == 1)
+            self.m[i % 3 + self.m_count - 8 - 3][i // 3] = mod
+
+    def setup_type_info(self, test, mask_pattern):
+        data = (self.error_correction << 3) | mask_pattern
+        bits = BCH_type_info(data)
+        for i in range(15): # vertical
+            mod = (not test and ((bits >> i) & 1) == 1)
+            if i < 6: self.m[i][8] = mod
+            elif i < 8: self.m[i + 1][8] = mod
+            else: self.m[self.m_count - 15 + i][8] = mod
+        for i in range(15): # horizontal
+            mod = (not test and ((bits >> i) & 1) == 1)
+            if i < 8: self.m[8][self.m_count - i - 1] = mod
+            elif i < 9: self.m[8][15 - i - 1 + 1] = mod
+            else: self.m[8][15 - i - 1] = mod
+        self.m[self.m_count - 8][8] = (not test) # fixed module
+
+    def map_data(self, data, mask_pattern):
+        inc = -1
+        row = self.m_count - 1
+        bitIndex, byteIndex = 7, 0
+        mask_func1 = mask_func(mask_pattern)
+        for col in range(self.m_count - 1, 0, -2):
+            if col == 6: col -= 1
+            while True:
+                for c in range(2):
+                    if self.m[row][col - c] == None:
+                        dark = False
+                        if byteIndex < len(data): dark = (((data[byteIndex] >> bitIndex) & 1) == 1)
+                        if mask_func1(row, col - c): dark = not dark
+                        self.m[row][col - c] = dark
+                        bitIndex -= 1
+                        if bitIndex == -1:
+                            byteIndex += 1
+                            bitIndex = 7
+                row += inc
+                if row < 0 or self.m_count <= row:
+                    row -= inc
+                    inc = -inc
+                    break
 
 ############################################
 
 if __name__ == '__main__':
     #test()
     #print (print_db())
-    test2()
+    #test2()
+    qr = QRCode(data='hvbqi6i/eOYqzQ')
+    print (qr.svg(50,50,3))
     sys.exit()
 # End ⊔net!
