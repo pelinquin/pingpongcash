@@ -340,7 +340,7 @@ def transaction (d, msg, epoch, s_biban, s_siban, val, s_sig):
         o += 'BUYER NOT KNOWN'
     return o
 
-_PAT_LOGIN_ = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\w{4,30})$'
+_PAT_LOGIN_ = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})$'
 _PAT_LOST_  = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
 _PAT_REGISTER_ = r'first=([^&/]{3,80})&last=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]*)&name=([^&/]{1,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 
