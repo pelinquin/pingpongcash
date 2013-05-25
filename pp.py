@@ -118,43 +118,45 @@ def help_register():
     return o
 
 
-def front_html(login='', tab = []):
+def front_html(login='', tab=[], pub=False):
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<html>\n' + favicon()
-    o += '<style type="text/css">h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:330}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:350;margin:20}div.qr{position:absolute;top:0;right:110;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.red{color:red;}</style>\n'
+    o += '<style type="text/css">h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:330}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:350;margin:20}div.qr{position:absolute;top:0;right:110;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:20;color:green;}b.red{color:red;}</style>\n'
     
     o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
     #o += '<img title="...notre QRcode \'%s\'" src="data:image/png;base64,%s"/>\n' % (hiban('frhvbqi6i/eOYqzQ'), qr_admin())    
 
     data = tab[0] if tab else 'hvbqi6i/eOYqzQ'
-    o += '<div class="qr" title="...votre code marchand \'%s\' en QRcode">%s</div>\n' % (data, QRCode(data=data).svg(10, 10, 4))    
+    o += '<div class="qr" title="...code marchand \'%s\' en QRcode">%s</div>\n' % (data, QRCode(data=data).svg(10, 10, 4))    
 
     if login == '':
-        o += '<form method="post">\n'
-        o += '<input class="txt" type="text" name="mail" placeholder="E-mail" required="yes"/><br/>'
-        o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe"/><br/>'
-        o += '<input class="sh" type="submit" value="Se connecter"/> '
-        o += '<input class="sh" type="submit" name="lost" value="Mot de passe oublié"/>\n'
-        o += '</form>\n'
+        if pub:
+            o += '<p>Nom affiché de marchand: <b class="biggreen">%s</b></p>' % tab[7]
+            o += '<div class="col">'
+        else:
+            o += '<form method="post">\n'
+            o += '<input class="txt" type="text" name="mail" placeholder="E-mail" required="yes"/><br/>'
+            o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe"/><br/>'
+            o += '<input class="sh" type="submit" value="Se connecter"/> '
+            o += '<input class="sh" type="submit" name="lost" value="Mot de passe oublié"/>\n'
+            o += '</form>\n'
  
-        o += '<form method="post">\n'
-        o += '<input class="txt" type="text" name="first" placeholder="Prénom(s)" title="liste complète" required="yes"/><br/>'
-        o += '<input class="txt" type="text" name="last" placeholder="Nom de famille" required="yes"/><br/>'
-        o += '<input class="txt" type="text" name="mail" placeholder="E-mail" title="n\'est pas communiqué" required="yes"/><br/>'
-        o += '<input class="txt" type="text" name="iban" placeholder="IBAN" required="yes"/><br/>'
-        o += '<input class="txt" type="text" name="bic" placeholder="Code BIC" pattern="[A-Z0-9]{8,11}" title="pour vérification" required="yes"/><br/>'
-        o += '<input class="txt" type="text" name="ssid" placeholder="[Optionel] Numéro de sécurité sociale"/><br/>'
-        o += '<input class="txt" type="text" name="name" placeholder="[Optionel] Nom affiché de marchand"/><br/>'
-        o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" title="de plus de 4 caractères" required="yes"/><br/>'
-        o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
-        o += '<input class="txt" type="checkbox" name="read" title="j\'ai lu les avertissements ci contre" required="yes"/>'
-        o += '<input class="sh" type="submit" value="S\'enregistrer"/>\n'
-        o += '</form>\n'
-
-        o += '<div class="col">'
-        o += help_register()
-
+            o += '<form method="post">\n'
+            o += '<input class="txt" type="text" name="first" placeholder="Prénom(s)" title="liste complète" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="last" placeholder="Nom de famille" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="mail" placeholder="E-mail" title="n\'est pas communiqué" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="iban" placeholder="IBAN" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="bic" placeholder="Code BIC" pattern="[A-Z0-9]{8,11}" title="pour vérification" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="ssid" placeholder="[Optionel] Numéro de sécurité sociale"/><br/>'
+            o += '<input class="txt" type="text" name="name" placeholder="[Optionel] Nom affiché de marchand"/><br/>'
+            o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" title="de plus de 4 caractères" required="yes"/><br/>'
+            o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
+            o += '<input class="txt" type="checkbox" name="read" title="j\'ai lu les avertissements ci contre" required="yes"/>'
+            o += '<input class="sh" type="submit" value="S\'enregistrer"/>\n'
+            o += '</form>\n'
+            o += '<div class="col">'
+            o += help_register()
     else:
         o += '<h6 class="login">Bonjour %s %s !</h6>' % (tab[2], tab[3])
         o += '<p>Identifiant: <b class="green">%s</b></p>' % login
@@ -365,6 +367,8 @@ def application(environ, start_response):
                     o, mime = front_html(mail, tab), 'text/html; charset=utf8'
                 else:
                     o += 'bad password'
+            else:
+                o += 'does not exists'
             dusr.close()
             #o = 'enter OK! %s' % reg.v.group(1)
         elif reg(re.match(_PAT_LOST_, arg)):
@@ -423,7 +427,8 @@ def application(environ, start_response):
             dusr = dbm.open('/cup/pp/usr', 'c')
             if base.encode('ascii') in dusr.keys():
                 tab = dusr[base].decode('utf8').split('/')
-                o = 'code %s \nThis IBAN is well registered.\n Using it will pay to "%s"' % (base, tab[1])
+                tab0 =  dusr[tab[0]].decode('utf8').split('/')
+                o, mime = front_html('', tab0+tab, True), 'text/html; charset=utf8'
             else:
                 o += 'IBAN NOT registered'                
             dusr.close()
