@@ -122,16 +122,15 @@ def front_html(login='', tab=[], pub=False):
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<html>\n' + favicon()
-    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:330}input[type=checkbox]{width=50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:350;margin:20}div.qr{position:absolute;top:0;right:110;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:20;color:green;}b.red{color:red;}text.alpha{font-size:24pt;font-family:Schoolbell;fill:#F87217;text-anchor:middle}</style>\n'
+    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:330}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:350;margin:20}div.qr{position:absolute;top:0;right:110;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:20;color:green;}b.red{color:red;}p.alpha{font-size:20;position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217}</style>\n'
     
     o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
     #o += '<img title="...notre QRcode \'%s\'" src="data:image/png;base64,%s"/>\n' % (hiban('frhvbqi6i/eOYqzQ'), qr_admin())    
 
-    o += '<svg %s><text class="alpha" font-size="16pt" x="29"  y="25" title="still in security test phase!" transform="rotate(-30 92,25)">Beta</text></svg>\n' % _SVGNS
-
+    o += '<p class="alpha" font-size="16pt" x="29"  y="25" title="still in security test phase!">Beta</p>\n'
 
     data = tab[0] if tab else 'hvbqi6i/eOYqzQ'
-    o += '<div class="qr" title="...code marchand \'%s\' en QRcode">%s</div>\n' % (data, QRCode(data=data).svg(10, 10, 4))    
+    o += '<div class="qr" title="...code marchand \'%s\' en QRcode">%s</div>\n' % (data, QRCode(data=data).svg(0, 0, 4))    
 
     if login == '':
         if pub:
@@ -1047,7 +1046,7 @@ class QRCode:
 
     def svg(self, ox=0, oy=0, d=10):
         "_"
-        o, mc = '<svg %s>\n' % _SVGNS, self.m_count
+        o, mc = '<svg %s width="100" height="100">\n' % _SVGNS, self.m_count
         for r in range(mc):
             k = 0
             for c in range(mc):
