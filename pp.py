@@ -27,18 +27,29 @@ Status:
 'B' Banker (at least one per agency)
 'C' Validated by banquer and payed to admin
 
-mail -> codeM/dateEnr/Prenom/Nom/Secu/pw 
-codeM -> email/affiche/bank/iban/bic /status/bloque
-
-lfournier@free.fr -> rdJwjE/1369399820/Laurent/Fournier/167071927202809/0s1BeDEvqU
-rdJwjE -> lfournier@free.fr/pelinquin sur Drémil/frhvbqi6i/eOYqzQ/AAAAAAAA
-frhvbqi6i/eOYqzQ -> rdJwjE
-
-
-# status/bic/account/name/email/date/passwd/pubkey
-#   0     1     2     3    4     5     6      7
+codeM -> mail/status/lock/regDate/FirstName/LastName/DisplayName/Secu/numbank/iban/bic/Threhold1/Threhold2/balance/expiredate/pw/pubkey
+          0     1      2     3       4         5           6      7      8     9    10    11        12       13       14      15   16
 """
 
+_MAIL = 0
+_STAT = 1
+_LOCK = 2
+_DREG = 3
+_FRST = 4
+_LAST = 5
+_PUBN = 6
+_SECU = 7
+_NBNK = 8
+_IBAN = 9
+_CBIC = 10
+_THR1 = 11
+_THR2 = 12
+_BALA = 13
+_DEXP = 14
+_PAWD = 15
+_PUBK = 16
+
+# old TO REMOVE !
 _ST_   = 0
 _BIC_  = 1
 _ACNB_ = 2
@@ -106,6 +117,15 @@ def get_image(img):
     here = os.path.dirname(os.path.abspath(__file__))
     return 'data:image/png;base64,%s' % base64.b64encode(open('%s/%s' % (here, img), 'rb').read()).decode('ascii')
 
+def help_private(cm):
+    "_"
+    o = "<p>Cette page est votre page privée. Elle contient des informations qui ne sont pas divulguées aux personnes ou commerçants avec qui vous faites des transactions financières <a class=\"ppc\">Ping-Pong&nbsp;</a>.</p>"
+    o += "<p>Votre page puplique est <a href=\"http://àà.eu/pp/%s\">ici</a>. Elle est accessible directement depuis le code marchand en QRcode. Diffusez cette page publique ou ce QRcode à toute personne susceptible de vous verser de l'argent.</p>" % cm
+    o += '<p></p>'
+    o += "<p>Attention: le bloquage du compte doit être utilisé si vous perdez ou vous faites voler votre <i>iPhone</i> et il n'a de sens que si vous avez autorisation d'achât délivrée par votre banquier.</p>"
+    o += "<p>Nous n'avons pas accès au solde de votre compte. La limite des montants d'achât est encadrée par les deux valeurs de seuils fournies par votre banquier. Vous pouvez le contacter votre négocier des valeur différentes.</p>"
+    return o
+
 def help_register():
     "_"
     o = "<p>Le mot de passe choisi ne permet que d'accéder au statut de votre compte et éventuellement de bloquer l'autorisation de dépenser de l'argent si vous perdez votre <i>iPhone</i>, mais en aucun cas ce mot de passe permet de faire des achâts. Pour donner de l'argent à autre personne, il vous faut obligatoirement utiliser le code <b>alpha-pin</b> de votre <i>iPhone</i>, après création d'un jeux de clés cryptographiques, uniquement sur téléphone, déconnecté de l'Internet et enfin après acquisition du certificat de votre banquier qui confirmera le lien avec votre compte bancaire. Personne (ni l'opérateur téléphonique, ni le banquier, ni nos administrateurs informatique, ni l'Etat et aucun hacker) à part vous ne connaît ou ne doit connaître votre code <b>alpha-pin</b>, et si vous le perdez ou vi vous changez de téléphone, vous devrez simplement re-suivre la procédure d'enregistrement. Vous récupérez bien entendu le délai de cotisation de votre ancien compte.</p>"
@@ -118,23 +138,24 @@ def help_register():
     return o
 
 
-def front_html(login='', tab=[], pub=False):
+def front_html(cm='', t=[], pub=False):
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<html>\n' + favicon()
-    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:330}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:350;margin:20}div.qr{position:absolute;top:0;right:110;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:20;color:green;}b.red{color:red;}p.alpha{font-size:20;position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217} a.ppc{color:RoyalBlue;font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash";}</style>\n'
+    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:330}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:350;margin:20}div.qr{position:absolute;top:0;right:50;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:32;color:green;}b.red{color:red;}p.alpha{font-size:20;position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217} a.ppc{color:RoyalBlue;font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash";}</style>\n'
     
     o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
     #o += '<img title="...notre QRcode \'%s\'" src="data:image/png;base64,%s"/>\n' % (hiban('frhvbqi6i/eOYqzQ'), qr_admin())    
 
     o += '<p class="alpha" font-size="16pt" x="29"  y="25" title="still in security test phase!">Beta</p>\n'
 
-    data = tab[0] if tab else 'hvbqi6i/eOYqzQ'
-    o += '<div class="qr" title="...code marchand \'%s\' en QRcode">%s</div>\n' % (data, QRCode(data=data).svg(0, 0, 4))    
+    data = 'hvbqi6i/eOYqzQ'
+    o += '<div class="qr" title="...notre code marchand \'%s\' en QRcode">%s</div>\n' % (data, QRCode(data=data).svg(10, 10, 4))    
 
-    if login == '':
+    if cm == '':
         if pub:
-            o += '<p>Nom affiché de marchand: <b class="biggreen">%s</b></p>' % tab[7]
+            o += '<p>Nom affiché de marchand: <b class="biggreen">\"%s\"</b></p>' % t[7]
+            o += '<p class="toto" title="...code marchand \'%s\' en QRcode">%s</p>\n' % (t[0], QRCode(data=t[0]).svg(100, 50, 12))    
             o += '<div class="col">'
         else:
             o += '<form method="post">\n'
@@ -160,17 +181,17 @@ def front_html(login='', tab=[], pub=False):
             o += '<div class="col">'
             o += help_register()
     else:
-        o += '<h6 class="login">Bonjour %s %s !</h6>' % (tab[2], tab[3])
-        o += '<p>Identifiant: <b class="green">%s</b></p>' % login
+        o += '<h6 class="login">Bonjour %s %s !</h6>' % (t[_FRST], t[_LAST])
+        o += '<p>Identifiant: <b class="green">%s</b></p>' % t[_MAIL]
         o += '<p>Status crédit: <b class="green">%s</b></p>' % 'valide'
         o += '<p>Status débit: <b class="red">%s</b></p>' % 'en attente de validation par le banquier'
         o += '<p title="Identité Numérique Citoyenne">Status INC: <b class="red">%s</b></p>' % 'en attente de validation par une adminnistration'
-        o += '<p>Seuils d\'achâts : <b class="green">%d€/jour</b> maximum <b class="green">%d€</b></p>' % (100, 3000) 
+        o += '<p>Seuils d\'achâts : <b class="green">%d€/jour</b> maximum <b class="green">%d€</b></p>' % (int(t[_THR1]), int(t[_THR2])) 
         today = '%s' % datetime.datetime.now()
         o += '<p>Montant autorisé le <b class="green">%s</b> : <b class="green">%d€</b></p>' % (today[:10],0) 
-        o += '<p>Code marchand: <b class="green">%s</b></p>' % tab[0]
-        #o += '<p>Nom affiché de marchand: <b>%s</b></p>' % tab1[1]
-        o += '<p>Date d\'enregistrement: <b class="green">%s</b></p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(tab[1])))
+        o += '<p>Code marchand: <b class="green">%s</b></p>' % cm
+        o += '<p>Nom affiché de marchand: <b class="green">%s</b></p>' % t[_PUBN]
+        o += '<p>Date d\'enregistrement: <b class="green">%s</b></p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(t[_DREG])))
               
         o += '<form method="post">\n'
         o += '<input class="txt" type="password" name="pw" placeholder="Nouveau mot de passe" required="yes"/><br/>'
@@ -183,12 +204,9 @@ def front_html(login='', tab=[], pub=False):
         o += '<input class="sh" type="submit" name="lock" value="Bloquer tout achât" %s/>\n' % 'disabled="yes"'
         o += '</form>\n'
 
-        o += '<div class="col">'
-        o += "<p>Cette page est votre page privée. Elle contient des informations qui ne sont pas divulguées aux personnes ou commerçants avec qui vous faites des transactions financières <a class=\"ppc\">Ping-Pong&nbsp;</a>.</p>"
-        o += "<p>Votre page puplique est <a href=\"http://àà.eu/pp/%s\">ici</a>. Elle est accessible directement depuis le code marchand en QRcode. Diffusez cette page publique ou ce QRcode à toute personne susceptible de vous verser de l'argent.</p>" % tab[0]
-        o += '<p></p>'
-        o += "<p>Attention: le bloquage du compte doit être utilisé si vous perdez ou vous faites voler votre <i>iPhone</i> et il n'a de sens que si vous avez autorisation d'achât délivrée par votre banquier.</p>"
-        o += "<p>Nous n'avons pas accès au solde de votre compte. La limite des montants d'achât est encadrée par les deux valeurs de seuils fournies par votre banquier. Vous pouvez le contacter votre négocier des valeur différentes.</p>"
+        o += '<div class="col">%s' % help_private(cm)
+
+    o += '</div>\n'
     o += '<h6>Contact: <a href="mailto:contact@pingpongcash.net">contact@pingpongcash.net</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025<br/></h6>'
     o += '</div>'
     return o + '</html>'
@@ -351,6 +369,10 @@ _PAT_LOGIN_ = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})$'
 _PAT_LOST_  = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
 _PAT_REGISTER_ = r'first=([^&/]{3,80})&last=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]*)&name=([^&/]{1,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 
+def register(environ):
+    "_"
+    pass # todo!
+
 def application(environ, start_response):
     "wsgi server app"
     mime, o, db, now, fname = 'text/plain; charset=utf8', 'Error:', '/cup/%s/trx.db' % __app__, '%s' % datetime.datetime.now(), 'default.txt'
@@ -367,9 +389,10 @@ def application(environ, start_response):
             mail = reg.v.group(1)
             dusr = dbm.open('/cup/pp/usr', 'c')
             if mail.encode('ascii') in dusr.keys():
-                tab = dusr[mail].decode('utf8').split('/')
-                if h10(reg.v.group(2)).encode('utf8').decode('ascii') == tab[5]:
-                    o, mime = front_html(mail, tab), 'text/html; charset=utf8'
+                cm = dusr[mail]
+                t = dusr[cm].decode('utf8').split('/')
+                if h10(reg.v.group(2)).encode('utf8').decode('ascii') == t[_PAWD]:
+                    o, mime = front_html(cm.decode('ascii'), t), 'text/html; charset=utf8'
                 else:
                     o += 'bad password'
             else:
@@ -390,9 +413,28 @@ def application(environ, start_response):
                         cid = compact(reg.v.group(4))
                         k = h6(cid + '/' + epoch[:-2])
                         if k not in dusr.keys(): break
+                    dusr[mail] = k
+                    dusr[k] = '/'.join([  #_MAIL_STAT_LOCK_DREG_FRST_LAST_PUBN_SECU_NBNK_IBAN_CBIC_THR1_THR2_BALA_DEXP_PAWD_PUBK
+                            mail,                    #_MAIL 
+                            'X',                     #_STAT
+                            '',                      #_LOCK
+                            epoch[:-2],              #_DREG
+                            reg.v.group(1).title(),  #FRST 
+                            reg.v.group(2).title(),  #LSAT
+                            reg.v.group(7),          #_PUBN
+                            reg.v.group(6),          #_SECU
+                            compact(reg.v.group(4)), #_NBNK_IBAN 
+                            reg.v.group(5),          # CBIC
+                            '100',                   #THR1
+                            '3000',                  #THR2
+                            '0',                     # BALA
+                            '',                      # DEXP
+                            h10(reg.v.group(8)),     #_PAWD
+                            '',                      #_PUBK
+                            ])
+                    #dusr[mail] = '/'.join([k, epoch[:-2], reg.v.group(1).title(), reg.v.group(2).title(), reg.v.group(6), h10(reg.v.group(8))])
+                    #dusr[k] = '/'.join([mail, reg.v.group(7), compact(reg.v.group(4)), reg.v.group(5)])
                     dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
-                    dusr[mail] = '/'.join([k, epoch[:-2], reg.v.group(1).title(), reg.v.group(2).title(), reg.v.group(6), h10(reg.v.group(8))])
-                    dusr[k] = '/'.join([mail, reg.v.group(7), compact(reg.v.group(4)), reg.v.group(5)])
                     o = 'register OK'
             else:
                 o += 'not the same password!'                
@@ -426,6 +468,8 @@ def application(environ, start_response):
     else:
         if raw.lower() == '_update':
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
+        elif raw.lower() == '_log':
+            o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
         elif base == '':
             o, mime = front_html(), 'text/html; charset=utf8'
         else:
@@ -1049,7 +1093,7 @@ class QRCode:
 
     def svg(self, ox=0, oy=0, d=10):
         "_"
-        o, mc = '<svg %s width="100" height="100">\n' % _SVGNS, self.m_count
+        o, mc = '<svg %s width="%s" height="%s">\n' % (_SVGNS, ox+d*25, oy+d*25), self.m_count
         for r in range(mc):
             k = 0
             for c in range(mc):
