@@ -155,6 +155,7 @@ def front_html(cm='', t=[], pub=False):
     if cm == '':
         if pub:
             o += '<p>Nom affiché de marchand: <b class="biggreen">\"%s\"</b></p>' % t[7]
+            o += '<p>Code marchand: <b class="biggreen">\"%s\"</b></p>' % t[0]
             o += '<p class="toto" title="...code marchand \'%s\' en QRcode">%s</p>\n' % (t[0], QRCode(data=t[0]).svg(100, 50, 12))    
             o += '<div class="col">'
         else:
@@ -365,13 +366,64 @@ def transaction (d, msg, epoch, s_biban, s_siban, val, s_sig):
         o += 'BUYER NOT KNOWN'
     return o
 
+def log(s, ip=''):
+    "Append to head log file"
+    logf, now = '/cup/%s/log' % __app__, '%s' % datetime.datetime.now()
+    if not os.path.isfile(logf): open(logf, 'w', encoding='utf8').write('%s|%s Logfile Creation\n' % (now[:-7], ip) )     
+    cont = open(logf, 'r', encoding='utf8').read()
+    open(logf, 'w', encoding='utf8').write('%s|%s|%s\n%s' % (now[:-7], ip, s, cont))
+
 _PAT_LOGIN_ = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})$'
 _PAT_LOST_  = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
 _PAT_REGISTER_ = r'first=([^&/]{3,80})&last=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]*)&name=([^&/]{1,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 
-def register(environ):
+def register_match(dusr, gr):
     "_"
-    pass # todo!
+    k, o = None, ''
+    mail = gr[2]
+    if gr[7] == gr[8]:
+        if mail.encode('ascii') in dusr.keys(): o = 'this e-mail is already registered!'
+        else:
+            while True:
+                epoch = '%s' % time.mktime(time.gmtime())
+                cid = compact(gr[3])
+                k = h6(cid + '/' + epoch[:-2])
+                if k not in dusr.keys(): break
+            dusr[mail] = k
+            dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
+            dusr[k] = '/'.join([  
+                    mail,           #_MAIL 
+                    'X',            #_STAT
+                    '',             #_LOCK
+                    epoch[:-2],     #_DREG
+                    gr[0].title(),  #_FRST 
+                    gr[1].title(),  #_LSAT
+                    gr[6],          #_PUBN
+                    gr[5],          #_SECU
+                    compact(gr[3]), #_NBNK_IBAN 
+                    gr[4],          # CBIC
+                    '100',          #_THR1
+                    '3000',         #_THR2
+                    '0',            #_BALA
+                    '',             #_DEXP
+                    h10(gr[7]),     #_PAWD
+                    ''])            #_PUBK
+    else:
+        o = 'not the same password!'
+    # check valid IBAN, IBAN == BIC, valid email, valid ssid, pw=pw2                
+    return k, o
+
+def login_match(dusr, gr):
+    "_"
+    cm, o = None, ''
+    mail = gr[0]
+    if mail.encode('ascii') in dusr.keys():
+        cm = dusr[mail]
+        t = dusr[cm].decode('utf8').split('/')
+        if not h10(gr[1]).encode('utf8').decode('ascii') == t[_PAWD]: o = 'bad password'
+    else:
+        o = 'this e-mail is not registered! %s' % mail
+    return cm, o
 
 def application(environ, start_response):
     "wsgi server app"
@@ -385,61 +437,27 @@ def application(environ, start_response):
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
         if reg(re.match(_PAT_LOGIN_, arg)):
-            #smail ('pelinquin@gmail.com', 'LOGIN OK \n')
-            mail = reg.v.group(1)
             dusr = dbm.open('/cup/pp/usr', 'c')
-            if mail.encode('ascii') in dusr.keys():
-                cm = dusr[mail]
+            #smail ('pelinquin@gmail.com', 'LOGIN OK \n')
+            cm, res = login_match(dusr, reg.v.groups())
+            if cm:
                 t = dusr[cm].decode('utf8').split('/')
-                if h10(reg.v.group(2)).encode('utf8').decode('ascii') == t[_PAWD]:
-                    o, mime = front_html(cm.decode('ascii'), t), 'text/html; charset=utf8'
-                else:
-                    o += 'bad password'
+                o, mime = front_html(cm.decode('ascii'), t), 'text/html; charset=utf8'
             else:
-                o += 'does not exists'
+                o += res
             dusr.close()
             #o = 'enter OK! %s' % reg.v.group(1)
         elif reg(re.match(_PAT_LOST_, arg)):
             o = 'pw resent!'
         elif reg(re.match(_PAT_REGISTER_, arg)):
             dusr = dbm.open('/cup/pp/usr', 'c')
-            mail = reg.v.group(3)
-            if reg.v.group(8) == reg.v.group(9):
-                if mail.encode('ascii') in dusr.keys():
-                    o += 'already registered'
-                else:
-                    while True:
-                        epoch = '%s' % time.mktime(time.gmtime())
-                        cid = compact(reg.v.group(4))
-                        k = h6(cid + '/' + epoch[:-2])
-                        if k not in dusr.keys(): break
-                    dusr[mail] = k
-                    dusr[k] = '/'.join([  #_MAIL_STAT_LOCK_DREG_FRST_LAST_PUBN_SECU_NBNK_IBAN_CBIC_THR1_THR2_BALA_DEXP_PAWD_PUBK
-                            mail,                    #_MAIL 
-                            'X',                     #_STAT
-                            '',                      #_LOCK
-                            epoch[:-2],              #_DREG
-                            reg.v.group(1).title(),  #FRST 
-                            reg.v.group(2).title(),  #LSAT
-                            reg.v.group(7),          #_PUBN
-                            reg.v.group(6),          #_SECU
-                            compact(reg.v.group(4)), #_NBNK_IBAN 
-                            reg.v.group(5),          # CBIC
-                            '100',                   #THR1
-                            '3000',                  #THR2
-                            '0',                     # BALA
-                            '',                      # DEXP
-                            h10(reg.v.group(8)),     #_PAWD
-                            '',                      #_PUBK
-                            ])
-                    #dusr[mail] = '/'.join([k, epoch[:-2], reg.v.group(1).title(), reg.v.group(2).title(), reg.v.group(6), h10(reg.v.group(8))])
-                    #dusr[k] = '/'.join([mail, reg.v.group(7), compact(reg.v.group(4)), reg.v.group(5)])
-                    dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
-                    o = 'register OK'
+            k, res = register_match(dusr, reg.v.groups())
+            if k:
+                t = dusr[k].decode('utf8').split('/')
+                o, mime = front_html(k, t), 'text/html; charset=utf8'
             else:
-                o += 'not the same password!'                
+                o += res
             dusr.close()
-            # check valid IBAN, IBAN == BIC, valid email, valid ssid, pw=pw2
         elif reg(re.match(r'^name=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})$', arg)):
             cc = compact(reg.v.group(3))
             bic, anb = cc.split('/') # verifier
@@ -466,6 +484,7 @@ def application(environ, start_response):
         else:
             o += 'not valid args %s' % arg
     else:
+        log(raw, environ['REMOTE_ADDR'])
         if raw.lower() == '_update':
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif raw.lower() == '_log':
