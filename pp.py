@@ -142,15 +142,15 @@ def front_html(cm='', t=[], pub=False):
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<html>\n' + favicon()
-    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:330}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:350;margin:20}div.qr{position:absolute;top:0;right:50;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:32;color:green;}b.red{color:red;}p.alpha{font-size:20;position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217} a.ppc{color:RoyalBlue;font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash";}</style>\n'
+    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:350}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:360;margin:20}a.qr{position:absolute;top:0;right:50;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:32;color:green;}b.red{color:red;}p.alpha{font-size:20;position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217} a.ppc{color:RoyalBlue;font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash";}</style>\n'
     
     o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
     #o += '<img title="...notre QRcode \'%s\'" src="data:image/png;base64,%s"/>\n' % (hiban('frhvbqi6i/eOYqzQ'), qr_admin())    
 
     o += '<p class="alpha" font-size="16pt" x="29"  y="25" title="still in security test phase!">Beta</p>\n'
 
-    data = 'hvbqi6i/eOYqzQ'
-    o += '<div class="qr" title="...notre code marchand \'%s\' en QRcode">%s</div>\n' % (data, QRCode(data=data).svg(10, 10, 4))    
+    data = 'àà.eu/zgnZQW' # give the real one!
+    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
 
     if cm == '':
         if pub:
@@ -246,15 +246,9 @@ def gbic (code):
     "_"
     return code.split('/')[0]
 
-def init_db(db):
-    "_"
-    di = '/cup/%s' % __app__
-    if not os.path.exists(di): os.makedirs(di)
-    if not os.path.isfile(db):
-        d = dbm.open(db[:-3], 'c')
-        d['He8Tx-d'] = 'A/frhvbqi6i/eOYqzQ/Laurent Fournier/pelinquin@gmail.com//nopw/uGhhu3XsnKNDfCOW0cISKmsx_ML_jN5bA7A5ViSm7AhMm-Upu-S24UfH8hznnWpDKuEswnZsI96_TfBVQDkkn4DlhhnUR1fPm2pYs5if5Q51RWua5k8M7sPnWzsrbF3NPkcc_-XtHo6YhRlGrvFj1I9ogYO3Ha0ooVjNQN-Ca3c' 
-        d.close()
-        os.chmod(db, 511)
+
+#d['He8Tx-d'] = 'A/frhvbqi6i/eOYqzQ/Laurent Fournier/pelinquin@gmail.com//nopw/uGhhu3XsnKNDfCOW0cISKmsx_ML_jN5bA7A5ViSm7AhMm-Upu-S24UfH8hznnWpDKuEswnZsI96_TfBVQDkkn4DlhhnUR1fPm2pYs5if5Q51RWua5k8M7sPnWzsrbF3NPkcc_-XtHo6YhRlGrvFj1I9ogYO3Ha0ooVjNQN-Ca3c' 
+# BIC CMCIFR2A
 
 def init_dbs(dbs):
     "_"
@@ -375,7 +369,7 @@ def log(s, ip=''):
 
 _PAT_LOGIN_ = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})$'
 _PAT_LOST_  = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
-_PAT_REGISTER_ = r'first=([^&/]{3,80})&last=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]*)&name=([^&/]{1,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
+_PAT_REGISTER_ = r'first=([^&/]{3,80})&last=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&name=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 
 def register_match(dusr, gr):
     "_"
@@ -388,7 +382,7 @@ def register_match(dusr, gr):
                 epoch = '%s' % time.mktime(time.gmtime())
                 cid = compact(gr[3])
                 k = h6(cid + '/' + epoch[:-2])
-                if k not in dusr.keys(): break
+                #if k not in dusr.keys(): break
             dusr[mail] = k
             dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
             dusr[k] = '/'.join([  
@@ -428,9 +422,7 @@ def login_match(dusr, gr):
 def application(environ, start_response):
     "wsgi server app"
     mime, o, db, now, fname = 'text/plain; charset=utf8', 'Error:', '/cup/%s/trx.db' % __app__, '%s' % datetime.datetime.now(), 'default.txt'
-    init_db(db)
-    dbs = ('ags', 'bic', 'usr')
-    init_dbs(dbs)
+    init_dbs(('trx', 'ags', 'bic', 'usr'))
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base = environ['PATH_INFO'][1:]
     d = dbm.open(db[:-3], 'c')
@@ -446,9 +438,9 @@ def application(environ, start_response):
             else:
                 o += res
             dusr.close()
-            #o = 'enter OK! %s' % reg.v.group(1)
         elif reg(re.match(_PAT_LOST_, arg)):
-            o = 'pw resent!'
+            o = 'you will receive an e-mail to reset your password !'
+            #smail ('pelinquin@gmail.com', 'THIS IS A \nSIMPLE MAIL TEST \n')
         elif reg(re.match(_PAT_REGISTER_, arg)):
             dusr = dbm.open('/cup/pp/usr', 'c')
             k, res = register_match(dusr, reg.v.groups())
@@ -464,7 +456,6 @@ def application(environ, start_response):
             d[bic] = d[bic] + anb if bic in d.keys() else anb # verifier 
             d[hiban(cc)] = 'X/%s/%s/%s///' % (cc, reg.v.group(1), reg.v.group(2))
             o = 'web register OK %s' % cc
-            #smail ('pelinquin@gmail.com', 'THIS IS A \nSIMPLE MAIL TEST \n')
         elif reg(re.match(r'^name=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&pw=(.{2,20})$', arg)):
             x = hiban(compact(reg.v.group(3)))
             if x.encode('ascii') in d.keys(): 
@@ -489,14 +480,18 @@ def application(environ, start_response):
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif raw.lower() == '_log':
             o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
+        elif raw.lower() == '_db':
+            d = dbm.open('/cup/pp/usr')
+            o = ''
+            for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
+            d.close()
         elif base == '':
             o, mime = front_html(), 'text/html; charset=utf8'
         else:
             dusr = dbm.open('/cup/pp/usr', 'c')
             if base.encode('ascii') in dusr.keys():
-                tab = dusr[base].decode('utf8').split('/')
-                tab0 =  dusr[tab[0]].decode('utf8').split('/')
-                o, mime = front_html('', tab0+tab, True), 'text/html; charset=utf8'
+                t = dusr[base].decode('utf8').split('/')
+                o, mime = front_html('', t, True), 'text/html; charset=utf8'
             else:
                 o += 'IBAN NOT registered'                
             dusr.close()
