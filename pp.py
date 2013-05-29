@@ -139,20 +139,99 @@ def help_register():
     return o
 
 
-def front_html(nusers, cm='', t=[], pub=False):
+def front_html(nusers, cm='', t=[], pub=False, msg=''):
+    "_"
+    today = '%s' % datetime.datetime.now()
+    o = '<?xml version="1.0" encoding="utf8"?>\n' 
+    o += '<html>\n<link rel="shortcut icon" type="www/image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAIAAAABc2X6AAAABmJLR0QA/wD/AP+gvaeTAAAAoklEQVR4nO3csQ0CMRAAQR6R0wk1URo1UYnpgA4M0iNA65n0kltdankbYxxWcvz1At8muE5wneA6wXWn+fhyO0+m9+vjo8u8a89Wy11YcJ3gOsF1gusE1wmuE1wnuE5wneA6wXWC6wTXCa4TXCe4TnCd4DrBdYLrBNcJrhNcJ7juxYv4ufnL9P+03IUF1wmuE1wnuG7zy0Oc4DrBdYLrBNc9AUj0DSD4QMJ7AAAAAElFTkSuQmCC"/>'
+    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);p,li,i,b,a,div,input {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:24pt;position:absolute;top:100;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:100;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}#wrap{overflow:hidden;}#lcol{float:left; width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10; padding:4}</style>'
+    o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
+    o += '<p class="alpha" title="still in security test phase!">Beta</p>'
+    data = 'àà.eu/zgnZQW' # give the real one!
+    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
+
+    dmsg = '| %s' % msg if msg else ''
+    if t and not pub:
+        dmsg += '| Bonjour %s %s !' % (t[_FRST], t[_LAST])
+    o += '<p class="msg">%s inscrits %s</p>' % (nusers.decode('ascii'), dmsg)
+
+    o += '<div id="wrap">'
+    if cm == '':
+        if not pub:
+            o += '<div id="lcol">'
+            o += '<form method="post">\n'
+            o += '<input class="txt" type="text" name="name" placeholder="E-mail" required="yes"/><br/>'
+            o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe"/><br/>'
+            o += '<input class="sh" type="submit" value="Se connecter"/> '
+            o += '<input class="sh" type="submit" name="lost" value="Mot de passe oublié"/>\n'
+            o += '</form>\n'
+            o += '<form method="post">\n'
+            o += '<input class="txt" type="text" name="first" placeholder="Prénom(s)" title="liste complète" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="last" placeholder="Nom de famille" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="name" placeholder="E-mail" title="n\'est pas communiqué" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="iban" placeholder="IBAN" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="bic" placeholder="Code BIC" pattern="[A-Z0-9]{8,11}" title="pour vérification" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="ssid" placeholder="[Optionel] Numéro de sécurité sociale"/><br/>'
+            o += '<input class="txt" type="text" name="dname" placeholder="[Optionel] Nom affiché de marchand"/><br/>'
+            o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" title="de plus de 4 caractères" required="yes"/><br/>'
+            o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
+            o += '<input class="txt" type="checkbox" name="read" title="j\'ai lu les avertissements ci contre" required="yes"/>'
+            o += '<input class="sh" type="submit" value="S\'enregistrer"/>\n'
+            o += '</form>\n'
+            o += '</div>'
+            o += '<div id="rcol">%s</div>' % help_register()
+    else:
+        if pub:
+            o += '<div id="lcol">'
+            o += '<p>Nom affiché de marchand: <b class="biggreen">\"%s\"</b></p>' % t[_PUBN]
+            o += '<p>Code marchand: <b class="biggreen">\"%s\"</b></p>' % cm
+            o += '<p class="toto" title="...code marchand \'%s\' en QRcode">%s</p>\n' % (cm, QRCode(data=cm).svg(100, 50, 12))    
+            o += '</div>'
+            o += '<div id="rcol"></div>'
+        else:
+            o += '<div id="lcol">' 
+            o += '<p>Identifiant: <b class="green">%s</b></p>' % t[_MAIL]
+            o += '<p>Status crédit: <b class="green">%s</b></p>' % 'valide'
+            o += '<p>Status débit: <b class="red">%s</b></p>' % 'en attente de validation par le banquier'
+            o += '<p title="Identité Numérique Citoyenne">Status INC: <b class="red">%s</b></p>' % 'en attente de validation par une adminnistration'
+            o += '<p>Seuils d\'achâts : <b class="green">%d€/jour</b> maximum <b class="green">%d€</b></p>' % (int(t[_THR1]), int(t[_THR2])) 
+            o += '<p>Montant autorisé le <b class="green">%s</b> : <b class="green">%d€</b></p>' % (today[:10],0) 
+            o += '<p>Code marchand: <b class="green">%s</b></p>' % cm
+            o += '<p>Nom affiché de marchand: <b class="green">%s</b></p>' % t[_PUBN]
+            o += '<p>Date d\'enregistrement: <b class="green">%s</b></p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(t[_DREG])))
+            o += '<form method="post">\n'
+            o += '<input type="hidden" name="name" value="%s"/>' % t[_MAIL]
+            o += '<input class="txt" type="password" name="pw" placeholder="Nouveau mot de passe" required="yes"/><br/>'
+            o += '<input class="txt" type="password" name="pw1" placeholder="Nouveau mot de passe" required="yes"/><br/>'
+            o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
+            o += '<input class="sh" type="submit" name="new" value="Changer votre mot de passe"/> '
+            o += '</form>\n'        
+            o += '<form method="post">\n'
+            o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" required="yes"/><br/>'
+            o += '<input class="sh" type="submit" name="lock" value="Bloquer tout achât" %s/>\n' % 'disabled="yes"'
+            o += '</form>\n'
+            o += '</div>'
+            o += '<div id="rcol">%s</div>'% help_private(cm)
+
+    o += '</div>'
+    o += '<div id="footer">Contact: <a href="mailto:contact@pingpongcash.net">contact@pingpongcash.net</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>'
+    return o + '</html>'
+
+def front1_html(nusers, cm='', t=[], pub=False, msg=''):
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<html>\n' + favicon()
-    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:350}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:360;margin:20}a.qr{position:absolute;top:0;right:50;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:32;color:green;}b.red{color:red;}p.alpha{font-size:20;position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217} a.ppc{color:RoyalBlue;font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash";}</style>\n'
+    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:350}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:360;margin:20}a.qr{position:absolute;top:0;right:50;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:32;color:green;}b.red{color:red;}p.alpha{position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217} a.ppc{color:RoyalBlue;font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash";}</style>\n'
     
     o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
-
     o += '<p class="alpha" font-size="16pt" x="29"  y="25" title="still in security test phase!">Beta</p>\n'
 
     data = 'àà.eu/zgnZQW' # give the real one!
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
 
-    o += '<p><b class="green">%s</b> inscrits</p>' % nusers.decode('ascii')
+    dmsg = '|<b class="red">%s</b>' % msg if msg else ''
+    o += '<p><b class="green">%s</b> inscrits %s</p>' % (nusers.decode('ascii'), dmsg)
+
 
     if cm == '':
         if pub:
@@ -454,10 +533,9 @@ def application(environ, start_response):
             cm, res = login_match(dusr, reg.v.groups())
             if cm:
                 t = dusr[cm].decode('utf8').split('/')
-                o, mime = front_html(dusr['__N'], cm.decode('ascii'), t), 'text/html; charset=utf8'
+                o, mime = front_html(dusr['__N'], cm.decode('ascii'), t, 'Mot de passe changé!'), 'text/html; charset=utf8'
             else:
                 o += res
-                #o = 'your password  is changed!'
         elif reg(re.match(_PAT_REGISTER_, arg)):
             k, res = register_match(dusr, reg.v.groups())
             if k:
@@ -471,16 +549,6 @@ def application(environ, start_response):
             d[bic] = d[bic] + anb if bic in d.keys() else anb # verifier 
             d[hiban(cc)] = 'X/%s/%s/%s///' % (cc, reg.v.group(1), reg.v.group(2))
             o = 'web register OK %s' % cc
-        elif reg(re.match(r'^name=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&pw=(.{2,20})$', arg)):
-            x = hiban(compact(reg.v.group(3)))
-            if x.encode('ascii') in d.keys(): 
-                px = d[x].decode('utf8').split('/')
-                if px[_NAME_] == reg.v.group(1) and px[_MAIL_] == reg.v.group(2):
-                    o = 'BLOCAGE email or not found'
-                else:
-                    o = 'BLOCAGE account found'
-            else:
-                o = 'BLOCAGE account not found'
         elif reg(re.match(r'^R1/(([^/]{3,20})/([^/]{6,15})/([^/]{60,500}))/([^/]{150,200})$', arg)):
             o = register_pk(d, reg.v.group(1), reg.v.group(2), reg.v.group(3), reg.v.group(4), bytes(reg.v.group(5),'ascii'))
         elif reg(re.match(r'^T1/((\d{10,16})/([^/]{3,20})/([^/]{3,20})/(\d{3}\.\d{2}))/([^/]{150,200})$', arg)):
@@ -508,7 +576,7 @@ def application(environ, start_response):
         else:
             if base.encode('ascii') in dusr.keys():
                 t = dusr[base].decode('utf8').split('/')
-                o, mime = front_html(dusr['__N'], '', t, True), 'text/html; charset=utf8'
+                o, mime = front_html(dusr['__N'], base, t, True), 'text/html; charset=utf8'
             else:
                 o += 'IBAN NOT registered'                
     d.close()
@@ -763,115 +831,180 @@ def cmd(post, cd, host='localhost'):
         co.request('GET', serv + '?' + urllib.parse.quote(cd))
     return co.getresponse().read().decode('utf8')    
 
-def test():
-    "_"
-    lb = {
-        'BPU1': 'FR76 1780 7000 1445 3199 4029 836',
-        'BPUB': 'fr76 1780 7000 1445 6208 6047 866',        
-        'CRAG': 'FR7618206002105487266700217',
-        'POST': 'FR19 2004 1100 2000 5874 1005 T15',
-        'CRMT': 'FR76 1027 8022 3300 0202 8350 157',
-        'BELG': 'BEkkBBBCCCCCCCKK',
-        'ALLM': 'DEkk BBBB BBBB CCCC CCCC CC',
-        'MALT': 'MTkk BBBB SSSS SCCC CCCC CCCC CCCC CCC',
-        }
-    CRAG = compact(lb['CRAG'])
-    POST = compact(lb['POST'])
-    BPU1 = compact(lb['BPU1'])
-    BPUB = compact(lb['BPUB'])
-    CRMT = compact(lb['CRMT'])
-    d = dbm.open('/cup/ppc/keys')
-    kCRAG = [b64toi(x) for x in d[CRAG].split(b'/')[2:]]
-    kPOST = [b64toi(x) for x in d[POST].split(b'/')[2:]]
-    kBPU1 = [b64toi(x) for x in d[BPU1].split(b'/')[2:]]
-    kBPUB = [b64toi(x) for x in d[BPUB].split(b'/')[2:]]
-    kCRMT = [b64toi(x) for x in d[CRMT].split(b'/')[2:]]
-    d.close()
 
-    # 1/ register accounts on web site
-    msg = 'name=%s&mail=%s&iban=%s' % ('banker', 'contact@pingpongcash.net', lb['BPUB'])
-    print ('WEB REGISTER', cmd(True, msg))
-    msg = 'name=%s&mail=%s&iban=%s' % ('valérie', 'ttoto@gmail.com', lb['POST'])
-    print ('WEB REGISTER', cmd(True, msg))
-    msg = 'name=%s&mail=%s&iban=%s' % ('tata', 'tata@gmail.com', lb['CRAG'])
-    print ('WEB REGISTER', cmd(True, msg))
-    msg = 'name=%s&mail=%s&iban=%s' % ('main', 'user@gmail.com', lb['BPU1'])
-    print ('WEB REGISTER', cmd(True, msg))
+####### PDF #########
 
-    epoch, today = '%s' % time.mktime(time.gmtime()), '%s' % datetime.datetime.now()
+class updf:
+    def __init__(self, pagew, pageh, binary=True):
+        self.pw = pagew
+        self.ph = pageh
+        self.mx, self.my = 25, 25
+        self.binary = binary
+        self.i = 0
+        self.pos = []
+        self.o = b'%PDF-1.4\n%'
+        fpath = '/cup/fonts/'
+        self.afm = [AFM(open(fpath + '%s.afm' % f)) for f in __fonts__]
+        self.pfb = [open(fpath + '%s.pfb' % f, 'rb').read() for f in __embedded_fonts__]
+    
+    def add(self, line):
+        self.pos.append(len(self.o))
+        self.i += 1
+        self.o += bytes('%d 0 obj<<%s>>endobj\n' % (self.i, line), 'ascii')
+    
+    def addnull(self):
+        self.pos.append(len(self.o))
+        self.i += 1
+        self.o += bytes('%d 0 obj 0 endobj\n' % (self.i), 'ascii')
+    
+    def addarray(self, a):
+        self.pos.append(len(self.o))
+        self.i += 1
+        self.o += bytes('%d 0 obj [%s] endobj\n' % (self.i, ''.join(['%s '%i for i in a])), 'ascii')
+    
+    def adds(self, stream):
+        self.pos.append(len(self.o))
+        self.i += 1
+        if self.binary: stream = zlib.compress(stream) 
+        fil = '/Filter/FlateDecode' if self.binary else ''
+        self.o += bytes('%d 0 obj<</Length %d%s>>stream\n' % (self.i, len(stream), fil), 'ascii')
+        self.o += stream
+        self.o += b'endstream endobj\n'
 
-    # 2/Register PubKey
-    msg = '/'.join([hiban(BPUB), itob64(H('héro'))[:10].decode('utf8'), itob64(kBPUB[1]).decode('ascii')])    
-    print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kBPUB[0], kBPUB[1], msg).decode('ascii')])))
-    msg = '/'.join([hiban(BPU1), itob64(H('zéro'))[:10].decode('utf8'), itob64(kBPU1[1]).decode('ascii')])    
-    print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kBPU1[0], kBPU1[1], msg).decode('ascii')])))
-    msg = '/'.join([hiban(POST), itob64(H('toto'))[:10].decode('utf8'), itob64(kPOST[1]).decode('ascii')])    
-    print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kPOST[0], kPOST[1], msg).decode('ascii')])))
-    #msg = '/'.join([hiban(CRMT), itob64(H('&éçà'))[:10].decode('utf8'), itob64(kCRMT[1]).decode('ascii')])    
-    #print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kCRMT[0], kCRMT[1], msg).decode('ascii')])))
+    def adds3(self, stream):
+        self.pos.append(len(self.o))
+        self.i += 1
+        fil = '/Filter/FlateDecode' if self.binary else ''
+        len1, len2, len3 = 0, 0, 0
+        m = re.search(b'currentfile eexec', stream)
+        if m: len1 = m.start()+18
+        m = re.search(b'0000000000', stream)
+        if m: len2 = m.start() - len1
+        len3 = len(stream) - len1 - len2
+        if self.binary: stream = zlib.compress(stream) 
+        ltot = len(stream)
+        self.o += bytes('%d 0 obj<</Length1 %d/Length2 %d/Length3 %d/Length %d%s>>stream\n' % (self.i, len1, len2, len3, ltot, fil), 'ascii')
+        self.o += stream
+        self.o += b'endstream endobj\n'
 
-    # 2/ valid banker
-    msg = '/'.join([epoch[:-2], hiban(BPUB), hiban(CRMT), '000.00'])    
-    s = sign(kBPUB[0], kBPUB[1], msg)
-    print ('BANKER SHOW HOW TO SIGN TO ADMIN:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+    def kern(self, s, a):
+        ""
+        return ')-338('.join([a.k(l) for l in s.split()])
 
-    msg = '/'.join([epoch[:-2], hiban(CRMT), hiban(BPUB), '000.00'])    
-    s = sign(kCRMT[0], kCRMT[1], msg)
-    print ('ADMIN VALID BANKER:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+    def sgen(self, par):
+        "stream parser"
+        if par[3] == '⊔':
+            w, x, y = int(par[2].split('F')[0]), par[0]+self.mx, self.ph-par[1]-self.my
+            o = '.11 .35 1.0 rg %s %s %s %s re %s %s %s %s re %s %s %s %s re f 0 0 0 rg ' % (x, y, w, w/4, x, y, w/4, 1.5*w, x+w, y, w/4, 1.5*w)
+        else:
+            ff, other = par[2].split('F'), False
+            o = '1 0 0 1 %s %s Tm /F%s %s Tf %s TL ' % (par[0]+self.mx, self.ph-par[1]-self.my, ff[1], ff[0], 1.2*int(ff[0]))
+            for m in re.compile(r'([^\n]+)').finditer(par[3]):
+                o += '%s[(%s)]TJ ' % ('T* ' if other else '', self.kern(m.group(1), self.afm[int(ff[1])-1])) 
+                other = True
+        return o
 
-    msg = '/'.join([epoch[:-2], hiban(POST), hiban(BPUB), '000.00'])    
-    s = sign(kPOST[0], kPOST[1], msg)
-    print ('X SHOW HOW TO SIGN TO BANKER:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+    def qrcode(self, ox, oy, w, content="none"):
+        o = b'0 0 0 rg '
+        m = ['1111111010011000001111111', 
+             '1000001001110011101000001', 
+             '1011101000000101001011101', 
+             '1011101000001101101011101', 
+             '1011101000000100101011101', 
+             '1000001001110001001000001', 
+             '1111111010101010101111111', 
+             '0000000000101100100000000', 
+             '0111001110111101110000001', 
+             '0000010100101011000011110', 
+             '0000101001101001011010100', 
+             '0000010010000011101000110', 
+             '0100011110011010010110100', 
+             '0110000001111000010100001', 
+             '1100001100100000010011011', 
+             '1010000011110111000010000', 
+             '1010111100011100111110111', 
+             '0000000011100001100011010', 
+             '1111111010111001101011000', 
+             '1000001001101101100010100', 
+             '1011101001000001111110010', 
+             '1011101010111111110101011', 
+             '1011101011000011110011000', 
+             '1000001011110111000101000',
+             '1111111000111010101111111'] 
+        for i in range(len(m)):
+            for j in range(len(m)):
+                if m[i][j] == '1': o += bytes('%d %d %d %d re ' % (ox+i*w, oy-j*w, w, w), 'ascii')
+        return o + b'f '
 
-    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(BPUB), '000.00'])    
-    s = sign(kBPU1[0], kBPU1[1], msg)
-    print ('X SHOW HOW TO SIGN TO BANKER:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(BPUB), hiban(BPU1), '000.00'])    
-    s = sign(kBPUB[0], kBPUB[1], msg)
-    print ('BANKER VALIDATE:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(CRMT), '001.00'])    
-    s = sign(kBPU1[0], kBPU1[1], msg)
-    print ('CUSTOMER BUY DATE:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(CRAG), '010.00'])    
-    s = sign(kBPU1[0], kBPU1[1], msg)
-    print ('NORMAL BUY:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(POST), '005.00'])    
-    s = sign(kBPU1[0], kBPU1[1], msg)
-    print ('NORMAL BUY:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([today[:10], hiban(BPUB)])    
-    s = sign(kBPUB[0], kBPUB[1], msg)
-    #print ('GET LIST:\n', cmd(True, '/'.join(['D1', msg, s.decode('ascii')])))
-
-
-def print_db():
-    arg, o = '/cup/%s/trx.db' % __app__, ''
-    if os.path.isfile(arg):
-        m = re.search(r'^(.+)\.(dat|db)', arg)
-        if m:
-            d = dbm.open(m.group(1))
-            nt = 0
-            for x in d.keys():
-                tv, tk = d[x].decode('utf8').split('/'), x.decode('utf8').split('/')
-                if reg(re.match(r'^\d{10,16}/[^/]{%s}$' % ID_SIZE, x.decode('ascii'))):
-                    nt += 1
-                    trx = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(tk[0])))
-                    o += '>%s %s %s %s\n' % (trx, tk[1], tv[0], tv[1])
-                elif reg(re.match(r'^.{%s}$' % ID_SIZE, x.decode('ascii'))):
-                    o += 'USER %s -> %s "%s" %s %s\n'  % (x.decode('utf8') , tv[0], tv[3], tv[4], tv[5])
-                elif reg(re.match(r'^[\d\-]{10}/.{%s}$' % ID_SIZE, x.decode('ascii'))):
-                    o += 'NB_TR %s -> %s\n'  % (x.decode('utf8') , len(tv))
-                elif reg(re.match(r'^\w{5,10}$', x.decode('ascii'))):
-                    o += 'AGENCY %s -> %s\n'  % (x.decode('utf8') , len(tv))
-                else:
-                    o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
-            o += 'NB_TRANSACTIONS: %s\n' % nt 
-            d.close()
-    return o
+    def gen(self, document):
+        "generate a valid binary PDF file, ready for printing!"
+        np = len(document)
+        self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
+        self.add('/Linearized 1.0/L 1565/H [570 128]/O 11/E 947/N 111/T 1367')
+        ref, kids, seenall, fref, h, firstp = [], '', {}, [], {}, 0
+        for p, page in enumerate(document):
+            w, x, y = 12, 26, 798
+            t = bytes('.11 .35 1 rg %s %s %s %s re %s %s %s %s re %s %s %s %s re f ' % (x, y, w, w/4, x, y, w/4, 1.5*w, x+w, y, w/4, 1.5*w),'ascii')
+            t += bytes('BT 1 w 0.9 0.9 0.9 RG %s %s %s %s re S 0 0 0 RG 0 Tc ' % (self.mx, self.my, self.pw-2*self.mx, self.ph-2*self.my), 'ascii')
+            t += b'0.99 0.99 0.99 rg 137 150 50 400 re f 137 100 321 50 re f 408 150 50 400 re f '
+            t += b'0.88 0.95 1.0 rg 44 600 505 190 re f '
+            t += self.qrcode(498, 788, 2)
+            t += b'1.0 1.0 1.0 rg 1 0 0 1 60 680 Tm /F1 60 Tf (Put your Ads here)Tj 0.0 0.0 0.0 rg '
+            for par in page: t += bytes(self.sgen(par), 'ascii')
+            t += b'ET\n'
+            self.adds(t)
+            ref.append('%s 0 R' % self.i)
+        for p, page in enumerate(document):
+            seen = {}
+            for par in page:
+                for m in re.compile('/\d+F(\d+)\{').finditer('/%s{%s' % (par[2], par[3])):
+                    seen[m.group(1)] = True
+            fref.append(' '.join(seen))
+            seenall.update(seen)
+        fc, lc = 0, 255 
+        for f in seenall:
+            #print (f, len(__fonts__)-3)
+            if int(f) > len(__fonts__)-1:
+            #if int(f) > len(__fonts__)-3:
+                print (f)
+                self.addarray([self.afm[int(f)-1].w(i) for i in range(fc, lc+1)])
+                indice = int(f)-len(__fonts__)+2
+                self.adds3(self.pfb[int(f)-len(__fonts__)+2])
+                bb = self.afm[int(f)-1]._header[b'FontBBox']
+                self.add('/Type/FontDescriptor/FontName/%s/Flags 4/FontBBox[%s]/Ascent 704/CapHeight 674/Descent -194/ItalicAngle 0/StemV 109/FontFile %s 0 R' % (__fonts__[int(f)-1], ''.join(['%s '% i for i in bb]), self.i))
+                self.add('/Type/Font/Subtype/Type1/BaseFont/%s/FirstChar %d/LastChar %s/Widths %s 0 R/FontDescriptor %d 0 R'% (__fonts__[int(f)-1], fc, lc, self.i-2 , self.i))
+            else:
+                self.addnull()
+                self.addnull()
+                self.addnull()
+                self.add('/Type/Font/Subtype/Type1/BaseFont/%s' % (__fonts__[int(f)-1]))
+            h[f] = self.i
+        #nba = ['www.google.com']
+        nba = []
+        for a in nba:
+            #self.add('/Type/Annot/Subtype/Link/Border[16 16 1]/Rect[150 600 270 640]/Dest[10 0 R/Fit]')
+            self.add('/Type/Annot/Subtype/Link/Border[16 16 1]/Rect[150 600 270 640]/A<</Type/Action/S/URI/URI(http://pelinquin/u?beamer)>> ')
+            #self.add('/Type/Annot/Subtype/Link/Border[16 16 1]/Rect[150 600 270 640]/A<</S/URL/URL(./u?beamer)>> ')
+            #self.add('/Type/Annot/Subtype/Link/Border[16 16 1]/K<</Type/MCR/MCID 0/Pg 10 0 R>>/A<</S/URL/URL(http://pelinquin/u?beamer)>> ')
+        aref = self.i
+        pref = np + self.i + 1
+        for p, page in enumerate(document):
+            fo = functools.reduce(lambda y, i: y+'/F%s %d 0 R' % (i, h[i]), fref[p].split(), '')
+            #self.add('/Type/Page/Parent %d 0 R/Contents %s/Annots[%d 0 R]/Resources<</Font<<%s>> >> ' % (pref, ref[p], aref, fo))
+            self.add('/Type/Page/Parent %d 0 R/Contents %s/Resources<</Font<<%s>> >> ' % (pref, ref[p], fo))
+            kids += '%s 0 R ' % self.i
+            if p == 1: firstp = self.i
+        self.add('/Type/Pages/MediaBox[0 0 %s %s]/Count %d/Kids[%s]' % (self.pw, self.ph, np, kids[:-1]))
+        pagesid = self.i
+        self.add('/Type/Outlines/First %s 0 R/Last %s 0 R/Count 1' % (self.i+2, self.i+2))
+        self.add('/Title (Document)/Parent %d 0 R/Dest [%d 0 R /Fit]' % (self.i, firstp)) 
+        #self.add('/FS /URL /F (http://www.google.com)')
+        #self.add('/URLS[%s 0 R]' % self.i)
+        self.add('/Type/Catalog/Pages %d 0 R/Outlines %d 0 R/Names %d 0 R' % (pagesid, self.i-3, self.i))  
+        n, size = len(self.pos), len(self.o)
+        self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
+        self.o += bytes('trailer<</Size %d/Root %d 0 R>>startxref %s\n' % (n+1, self.i, size), 'ascii') + b'%%EOF'
+        return self.o
 
 #################### QR CODE ################
 
@@ -1176,6 +1309,7 @@ def create_bytes(buffer, rs_b):
                 index += 1
     return data
 
+
 class DataOverflowError(Exception):
     pass
 
@@ -1293,7 +1427,6 @@ class QRCode:
                 self.m[row + r][col + c] = True if (0 <= r and r <= 6 and (c == 0 or c == 6) or (0 <= c and c <= 6 and (r == 0 or r == 6)) or (2 <= r and r <= 4 and 2 <= c and c <= 4)) else False
 
     def best_fit(self, start=None):
-        """ Find the minimum size required to fit in the data. """
         size = start or 1
         while True:
             try:
@@ -1393,6 +1526,8 @@ class QRCode:
                     inc = -inc
                     break
 
+############### TEST ############
+
 def test_crypto():
     k = ecdsa()
     msg = 'Hello World!'
@@ -1407,7 +1542,120 @@ def test_crypto():
     print (s, len(s))    
     print (verify(RSA_E, kBPUB[1], msg, s))    
 
+def test_pdf():
+    pass
+
 ############################################
+
+def test():
+    "_"
+    lb = {
+        'BPU1': 'FR76 1780 7000 1445 3199 4029 836',
+        'BPUB': 'fr76 1780 7000 1445 6208 6047 866',        
+        'CRAG': 'FR7618206002105487266700217',
+        'POST': 'FR19 2004 1100 2000 5874 1005 T15',
+        'CRMT': 'FR76 1027 8022 3300 0202 8350 157',
+        'BELG': 'BEkkBBBCCCCCCCKK',
+        'ALLM': 'DEkk BBBB BBBB CCCC CCCC CC',
+        'MALT': 'MTkk BBBB SSSS SCCC CCCC CCCC CCCC CCC',
+        }
+    CRAG = compact(lb['CRAG'])
+    POST = compact(lb['POST'])
+    BPU1 = compact(lb['BPU1'])
+    BPUB = compact(lb['BPUB'])
+    CRMT = compact(lb['CRMT'])
+    d = dbm.open('/cup/ppc/keys')
+    kCRAG = [b64toi(x) for x in d[CRAG].split(b'/')[2:]]
+    kPOST = [b64toi(x) for x in d[POST].split(b'/')[2:]]
+    kBPU1 = [b64toi(x) for x in d[BPU1].split(b'/')[2:]]
+    kBPUB = [b64toi(x) for x in d[BPUB].split(b'/')[2:]]
+    kCRMT = [b64toi(x) for x in d[CRMT].split(b'/')[2:]]
+    d.close()
+
+    # 1/ register accounts on web site
+    msg = 'name=%s&mail=%s&iban=%s' % ('banker', 'contact@pingpongcash.net', lb['BPUB'])
+    print ('WEB REGISTER', cmd(True, msg))
+    msg = 'name=%s&mail=%s&iban=%s' % ('valérie', 'ttoto@gmail.com', lb['POST'])
+    print ('WEB REGISTER', cmd(True, msg))
+    msg = 'name=%s&mail=%s&iban=%s' % ('tata', 'tata@gmail.com', lb['CRAG'])
+    print ('WEB REGISTER', cmd(True, msg))
+    msg = 'name=%s&mail=%s&iban=%s' % ('main', 'user@gmail.com', lb['BPU1'])
+    print ('WEB REGISTER', cmd(True, msg))
+
+    epoch, today = '%s' % time.mktime(time.gmtime()), '%s' % datetime.datetime.now()
+
+    # 2/Register PubKey
+    msg = '/'.join([hiban(BPUB), itob64(H('héro'))[:10].decode('utf8'), itob64(kBPUB[1]).decode('ascii')])    
+    print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kBPUB[0], kBPUB[1], msg).decode('ascii')])))
+    msg = '/'.join([hiban(BPU1), itob64(H('zéro'))[:10].decode('utf8'), itob64(kBPU1[1]).decode('ascii')])    
+    print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kBPU1[0], kBPU1[1], msg).decode('ascii')])))
+    msg = '/'.join([hiban(POST), itob64(H('toto'))[:10].decode('utf8'), itob64(kPOST[1]).decode('ascii')])    
+    print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kPOST[0], kPOST[1], msg).decode('ascii')])))
+    #msg = '/'.join([hiban(CRMT), itob64(H('&éçà'))[:10].decode('utf8'), itob64(kCRMT[1]).decode('ascii')])    
+    #print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kCRMT[0], kCRMT[1], msg).decode('ascii')])))
+
+    # 2/ valid banker
+    msg = '/'.join([epoch[:-2], hiban(BPUB), hiban(CRMT), '000.00'])    
+    s = sign(kBPUB[0], kBPUB[1], msg)
+    print ('BANKER SHOW HOW TO SIGN TO ADMIN:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+
+    msg = '/'.join([epoch[:-2], hiban(CRMT), hiban(BPUB), '000.00'])    
+    s = sign(kCRMT[0], kCRMT[1], msg)
+    print ('ADMIN VALID BANKER:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+
+    msg = '/'.join([epoch[:-2], hiban(POST), hiban(BPUB), '000.00'])    
+    s = sign(kPOST[0], kPOST[1], msg)
+    print ('X SHOW HOW TO SIGN TO BANKER:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+
+    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(BPUB), '000.00'])    
+    s = sign(kBPU1[0], kBPU1[1], msg)
+    print ('X SHOW HOW TO SIGN TO BANKER:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+
+    msg = '/'.join([epoch[:-2], hiban(BPUB), hiban(BPU1), '000.00'])    
+    s = sign(kBPUB[0], kBPUB[1], msg)
+    print ('BANKER VALIDATE:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+
+    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(CRMT), '001.00'])    
+    s = sign(kBPU1[0], kBPU1[1], msg)
+    print ('CUSTOMER BUY DATE:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+
+    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(CRAG), '010.00'])    
+    s = sign(kBPU1[0], kBPU1[1], msg)
+    print ('NORMAL BUY:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+
+    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(POST), '005.00'])    
+    s = sign(kBPU1[0], kBPU1[1], msg)
+    print ('NORMAL BUY:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
+
+    msg = '/'.join([today[:10], hiban(BPUB)])    
+    s = sign(kBPUB[0], kBPUB[1], msg)
+    #print ('GET LIST:\n', cmd(True, '/'.join(['D1', msg, s.decode('ascii')])))
+
+def print_db():
+    arg, o = '/cup/%s/trx.db' % __app__, ''
+    if os.path.isfile(arg):
+        m = re.search(r'^(.+)\.(dat|db)', arg)
+        if m:
+            d = dbm.open(m.group(1))
+            nt = 0
+            for x in d.keys():
+                tv, tk = d[x].decode('utf8').split('/'), x.decode('utf8').split('/')
+                if reg(re.match(r'^\d{10,16}/[^/]{%s}$' % ID_SIZE, x.decode('ascii'))):
+                    nt += 1
+                    trx = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(tk[0])))
+                    o += '>%s %s %s %s\n' % (trx, tk[1], tv[0], tv[1])
+                elif reg(re.match(r'^.{%s}$' % ID_SIZE, x.decode('ascii'))):
+                    o += 'USER %s -> %s "%s" %s %s\n'  % (x.decode('utf8') , tv[0], tv[3], tv[4], tv[5])
+                elif reg(re.match(r'^[\d\-]{10}/.{%s}$' % ID_SIZE, x.decode('ascii'))):
+                    o += 'NB_TR %s -> %s\n'  % (x.decode('utf8') , len(tv))
+                elif reg(re.match(r'^\w{5,10}$', x.decode('ascii'))):
+                    o += 'AGENCY %s -> %s\n'  % (x.decode('utf8') , len(tv))
+                else:
+                    o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
+            o += 'NB_TRANSACTIONS: %s\n' % nt 
+            d.close()
+    return o
+
 
 if __name__ == '__main__':
     #test()
@@ -1415,7 +1663,11 @@ if __name__ == '__main__':
     #test2()
     #qr = QRCode(data='hvbqi6i/eOYqzQ')
     #print (qr.svg(50,50,3))
-    test_crypto()
-    
+    #test_crypto()
+    #test_pdf()
+    img = 'www/favicon.png'
+    o = '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image(img)
+    print (o)
+
     sys.exit()
 # End ⊔net!
