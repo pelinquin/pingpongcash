@@ -533,12 +533,203 @@ def H(*tab):
     "hash"
     return int(hashlib.sha1(b''.join(bytes('%s' % i, 'utf8') for i in tab)).hexdigest(), 16)
 
+##### RSA #####
+
 def sign(d, n, msg):
     return itob64(pow(H(msg), d, n))
 
 def verify(e, n, msg, s):
     return (pow(b64toi(s), e, n) == H(msg)) 
 
+##### ECDSA ####
+def encode_oid(first, second, *pieces):
+    assert first <= 2
+    assert second <= 39
+    encoded_pieces = [chr(40*first+second)] + [encode_number(p) for p in pieces]
+    body = "".join(encoded_pieces)
+    return "\x06" + encode_length(len(body)) + body
+
+def encode_number(n):
+    b128_digits = []
+    while n:
+        b128_digits.insert(0, (n & 0x7f) | 0x80)
+        n = n >> 7
+    if not b128_digits: b128_digits.append(0)
+    b128_digits[-1] &= 0x7f
+    return "".join([chr(d) for d in b128_digits])
+
+def encode_length(l):
+    assert l >= 0
+    if l < 0x80: return chr(l)
+    s = "%x" % l
+    if len(s)%2: s = "0"+s
+    s = binascii.unhexlify(s)
+    llen = len(s)
+    return chr(0x80|llen) + s
+
+class CurveFp( object ):
+    def __init__( self, p, a, b ):
+        """The curve of points satisfying y^2 = x^3 + a*x + b (mod p)."""
+        self.__p, self.__a, self.__b = p, a, b
+    def p( self ):
+        return self.__p
+    def a( self ):
+        return self.__a
+    def b( self ):
+        return self.__b
+    def contains_point( self, x, y ):
+        return ( y * y - ( x * x * x + self.__a * x + self.__b ) ) % self.__p == 0
+
+class Point( object ):
+    def __init__( self, curve, x, y, order = None ):
+        """curve, x, y, order; order (optional) is the order of this point."""
+        self.__curve = curve
+        self.__x = x
+        self.__y = y
+        self.__order = order
+        if self.__curve: assert self.__curve.contains_point( x, y )
+        if order: assert self * order == INFINITY
+    def __cmp__( self, other ):
+        """Return 0 if the points are identical, 1 otherwise."""
+        if self.__curve == other.__curve and self.__x == other.__x and self.__y == other.__y: return 0
+        else: return 1
+    def __add__( self, other ):
+        """Add one point to another point."""
+        if other == INFINITY: return self
+        if self == INFINITY: return other
+        assert self.__curve == other.__curve
+        if self.__x == other.__x:
+            if ( self.__y + other.__y ) % self.__curve.p() == 0: return INFINITY
+            else: return self.double()
+        p = self.__curve.p()
+        l = ( ( other.__y - self.__y ) * inverse_mod( other.__x - self.__x, p ) ) % p
+        x3 = ( l * l - self.__x - other.__x ) % p
+        y3 = ( l * ( self.__x - x3 ) - self.__y ) % p
+        return Point( self.__curve, x3, y3 )
+    def __mul__( self, other ):
+        """Multiply a point by an integer."""
+        def leftmost_bit( x ):
+            assert x > 0
+            result = 1
+            while result <= x: result = 2 * result
+            return result // 2
+        e = other
+        if self.__order: e = e % self.__order
+        if e == 0: return INFINITY
+        if self == INFINITY: return INFINITY
+        assert e > 0
+        e3 = 3 * e
+        negative_self = Point( self.__curve, self.__x, -self.__y, self.__order )
+        i = leftmost_bit( e3 ) // 2
+        result = self
+        while i > 1:
+            result = result.double()
+            if ( e3 & i ) != 0 and ( e & i ) == 0: result = result + self
+            if ( e3 & i ) == 0 and ( e & i ) != 0: result = result + negative_self
+            i = i // 2
+        return result
+    def __rmul__( self, other ):
+        """Multiply a point by an integer."""
+        return self * other
+    def double( self ):
+        if self == INFINITY: return INFINITY
+        p = self.__curve.p()
+        a = self.__curve.a()
+        l = ( ( 3 * self.__x * self.__x + a ) * inverse_mod( 2 * self.__y, p ) ) % p
+        x3 = ( l * l - 2 * self.__x ) % p
+        y3 = ( l * ( self.__x - x3 ) - self.__y ) % p
+        return Point( self.__curve, x3, y3 )
+    def x( self ):
+        return self.__x
+    def y( self ):
+        return self.__y
+    def curve( self ):
+        return self.__curve  
+    def order( self ):
+        return self.__order
+
+def orderlen(order):
+    return (1+len("%x"%order))//2 # bytes
+
+class Curve:
+    def __init__(self, name, curve, generator, oid):
+        self.name = name
+        self.curve = curve
+        self.generator = generator
+        self.order = generator.order()
+        self.baselen = orderlen(self.order)
+        self.verifying_key_length = 2*self.baselen
+        self.signature_length = 2*self.baselen
+        self.oid = oid
+        self.encoded_oid = encode_oid(*oid)
+
+# NIST Curve P-521:
+_p = 6864797660130609714981900799081393217269435300143305409394463459185543183397656052122559640661454554977296311391480858037121987999716643812574028291115057151
+_r = 6864797660130609714981900799081393217269435300143305409394463459185543183397655394245057746333217197532963996371363321113864768612440380340372808892707005449
+_b = 0x051953eb9618e1c9a1f929a21a0b68540eea2da725b99b315f3b8b489918ef109e156193951ec7e937b1652c0bd3bb1bf073573df883d2c34f1ef451fd46b503f00
+_Gx = 0xc6858e06b70404e9cd9e3ecb662395b4429c648139053fb521f828af606b4d3dbaa14b5e77efe75928fe1dc127a2ffa8de3348b3c1856a429bf97e7e31c2e5bd66
+_Gy = 0x11839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e662c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650
+
+INFINITY = Point( None, None, None )  
+curve_521 = CurveFp( _p, -3, _b )
+encoded_oid_ecPublicKey = encode_oid(*(1, 2, 840, 10045, 2, 1))
+NIST521p = Curve("NIST521p", curve_521, Point( curve_521, _Gx, _Gy, _r ), (1, 3, 132, 0, 35))
+
+class ecdsa:
+    def __init__(self):
+        curve=NIST521p
+        secexp = randrange(curve.order)
+        pp = curve.generator*secexp
+        self.pkgenerator = curve.generator
+        self.pt, n = pp, curve.generator.order()
+        if not n: raise "Generator point must have order."
+        if not n * pp == INFINITY: raise "Generator point order is bad."
+        if pp.x() < 0 or n <= pp.x() or pp.y() < 0 or n <= pp.y(): raise "Out of range."
+        self.pkorder, self.privkey = n, secexp
+
+    def verify(self, s, data):
+        nb, [r, s], G, n = H(data), [b64toi(x) for x in s.encode('ascii').split(b'/')], self.pkgenerator, self.pkorder
+        if r < 1 or r > n-1: return False
+        if s < 1 or s > n-1: return False
+        c = inverse_mod( s, n )
+        u1, u2 = ( nb * c ) % n, ( r * c ) % n
+        xy = u1 * G + u2 * self.pt
+        return xy.x() % n == r
+
+    def sign(self, data):
+        nb, rk, G, n = H(data), randrange(self.pkorder), self.pkgenerator, self.pkorder
+        k = rk % n
+        p1 = k * G
+        r = p1.x()
+        if r == 0: raise "amazingly unlucky random number r"
+        s = ( inverse_mod( k, n ) * ( nb + ( self.privkey * r ) % n ) ) % n
+        if s == 0: raise "amazingly unlucky random number s"
+        return '%s/%s' % (itob64(r).decode('ascii'), itob64(s).decode('ascii'))
+
+def inverse_mod( a, m ):
+    if a < 0 or m <= a: a = a % m
+    c, d = a, m
+    uc, vc, ud, vd = 1, 0, 0, 1
+    while c != 0:
+        q, c, d = divmod( d, c ) + ( c, )
+        uc, vc, ud, vd = ud - q*uc, vd - q*vc, uc, vc
+    assert d == 1
+    if ud > 0: return ud
+    else: return ud + m
+
+def randrange(order):
+    entropy = os.urandom
+    assert order > 1
+    byts = orderlen(order)
+    dont_try_forever = 10000 # gives about 2**-60 failures for worst case
+    while dont_try_forever > 0:
+        dont_try_forever -= 1
+        candidate = int(binascii.hexlify(entropy(byts)), 16)
+        if 1 <= candidate < order: return candidate
+        continue
+    raise "randrange() tried hard but gave up. Order was %x" % order
+
+################
 def luhn(num):
     "_"
     s = 0
@@ -1186,13 +1377,29 @@ class QRCode:
                     inc = -inc
                     break
 
+def test_crypto():
+    k = ecdsa()
+    msg = 'Hello World!'
+    s = k.sign(msg) 
+    print (s, len(s))
+    print(k.verify(s, msg))
+    BPUB = compact('FR76 1780 7000 1445 6208 6047 866')
+    d = dbm.open('/cup/ppc/keys')
+    kBPUB = [b64toi(x) for x in d[BPUB].split(b'/')][2:]
+    d.close()
+    s = sign(kBPUB[0], kBPUB[1], msg)
+    print (s, len(s))    
+    print (verify(RSA_E, kBPUB[1], msg, s))    
+
 ############################################
 
 if __name__ == '__main__':
     #test()
     #print (print_db())
     #test2()
-    qr = QRCode(data='hvbqi6i/eOYqzQ')
-    print (qr.svg(50,50,3))
+    #qr = QRCode(data='hvbqi6i/eOYqzQ')
+    #print (qr.svg(50,50,3))
+    test_crypto()
+    
     sys.exit()
 # End ⊔net!
