@@ -139,19 +139,20 @@ def help_register():
     return o
 
 
-def front_html(cm='', t=[], pub=False):
+def front_html(nusers, cm='', t=[], pub=False):
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<html>\n' + favicon()
     o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:350}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:360;margin:20}a.qr{position:absolute;top:0;right:50;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:32;color:green;}b.red{color:red;}p.alpha{font-size:20;position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217} a.ppc{color:RoyalBlue;font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash";}</style>\n'
     
     o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
-    #o += '<img title="...notre QRcode \'%s\'" src="data:image/png;base64,%s"/>\n' % (hiban('frhvbqi6i/eOYqzQ'), qr_admin())    
 
     o += '<p class="alpha" font-size="16pt" x="29"  y="25" title="still in security test phase!">Beta</p>\n'
 
     data = 'àà.eu/zgnZQW' # give the real one!
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
+
+    o += '<p><b class="green">%s</b> inscrits</p>' % nusers.decode('ascii')
 
     if cm == '':
         if pub:
@@ -161,7 +162,7 @@ def front_html(cm='', t=[], pub=False):
             o += '<div class="col">'
         else:
             o += '<form method="post">\n'
-            o += '<input class="txt" type="text" name="mail" placeholder="E-mail" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="name" placeholder="E-mail" required="yes"/><br/>'
             o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe"/><br/>'
             o += '<input class="sh" type="submit" value="Se connecter"/> '
             o += '<input class="sh" type="submit" name="lost" value="Mot de passe oublié"/>\n'
@@ -170,11 +171,11 @@ def front_html(cm='', t=[], pub=False):
             o += '<form method="post">\n'
             o += '<input class="txt" type="text" name="first" placeholder="Prénom(s)" title="liste complète" required="yes"/><br/>'
             o += '<input class="txt" type="text" name="last" placeholder="Nom de famille" required="yes"/><br/>'
-            o += '<input class="txt" type="text" name="mail" placeholder="E-mail" title="n\'est pas communiqué" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="name" placeholder="E-mail" title="n\'est pas communiqué" required="yes"/><br/>'
             o += '<input class="txt" type="text" name="iban" placeholder="IBAN" required="yes"/><br/>'
             o += '<input class="txt" type="text" name="bic" placeholder="Code BIC" pattern="[A-Z0-9]{8,11}" title="pour vérification" required="yes"/><br/>'
             o += '<input class="txt" type="text" name="ssid" placeholder="[Optionel] Numéro de sécurité sociale"/><br/>'
-            o += '<input class="txt" type="text" name="name" placeholder="[Optionel] Nom affiché de marchand"/><br/>'
+            o += '<input class="txt" type="text" name="dname" placeholder="[Optionel] Nom affiché de marchand"/><br/>'
             o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" title="de plus de 4 caractères" required="yes"/><br/>'
             o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
             o += '<input class="txt" type="checkbox" name="read" title="j\'ai lu les avertissements ci contre" required="yes"/>'
@@ -196,7 +197,9 @@ def front_html(cm='', t=[], pub=False):
         o += '<p>Date d\'enregistrement: <b class="green">%s</b></p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(t[_DREG])))
               
         o += '<form method="post">\n'
+        o += '<input type="hidden" name="name" value="%s"/>' % t[_MAIL]
         o += '<input class="txt" type="password" name="pw" placeholder="Nouveau mot de passe" required="yes"/><br/>'
+        o += '<input class="txt" type="password" name="pw1" placeholder="Nouveau mot de passe" required="yes"/><br/>'
         o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
         o += '<input class="sh" type="submit" name="new" value="Changer votre mot de passe"/> '
         o += '</form>\n'
@@ -248,8 +251,11 @@ def gbic (code):
     return code.split('/')[0]
 
 
-#d['He8Tx-d'] = 'A/frhvbqi6i/eOYqzQ/Laurent Fournier/pelinquin@gmail.com//nopw/uGhhu3XsnKNDfCOW0cISKmsx_ML_jN5bA7A5ViSm7AhMm-Upu-S24UfH8hznnWpDKuEswnZsI96_TfBVQDkkn4DlhhnUR1fPm2pYs5if5Q51RWua5k8M7sPnWzsrbF3NPkcc_-XtHo6YhRlGrvFj1I9ogYO3Ha0ooVjNQN-Ca3c' 
-# BIC CMCIFR2A
+
+#pelinquin@gmail.com -> gtMVi0
+#frhvbqi6i/eOYqzQ -> gtMVi0
+#gtMVi0 -> pelinquin@gmail.com/X//1369814966/Laurent/Fournier/Cup Foundation/167071927202809/frhvbqi6i/eOYqzQ/CMCIFR29/100/3000/0//0s1BeDEvqU/
+
 
 def init_dbs(dbs):
     "_"
@@ -259,6 +265,7 @@ def init_dbs(dbs):
         db = '/cup/%s/%s.db' % (__app__, dbn)
         if not os.path.isfile(db):
             d = dbm.open(db[:-3], 'c')
+            d['__N'] = '0'
             d.close()
             os.chmod(db, 511)
 
@@ -368,9 +375,10 @@ def log(s, ip=''):
     cont = open(logf, 'r', encoding='utf8').read()
     open(logf, 'w', encoding='utf8').write('%s|%s|%s\n%s' % (now[:-7], ip, s, cont))
 
-_PAT_LOGIN_ = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})$'
-_PAT_LOST_  = r'mail=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
-_PAT_REGISTER_ = r'first=([^&/]{3,80})&last=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&name=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
+_PAT_LOGIN_ = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})$'
+_PAT_LOST_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
+_PAT_CHPWD_ = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
+_PAT_REGISTER_ = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 
 def register_match(dusr, gr):
     "_"
@@ -383,7 +391,8 @@ def register_match(dusr, gr):
                 epoch = '%s' % time.mktime(time.gmtime())
                 cid = compact(gr[3])
                 k = h6(cid + '/' + epoch[:-2])
-                #if k not in dusr.keys(): break
+                if k not in dusr.keys(): break
+            dusr['__N'] = '%d' % (int(dusr['__N']) + 1)
             dusr[mail] = k
             dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
             dusr[k] = '/'.join([  
@@ -405,7 +414,7 @@ def register_match(dusr, gr):
                     ''])            #_PUBK
     else:
         o = 'not the same password!'
-    # check valid IBAN, IBAN == BIC, valid email, valid ssid, pw=pw2                
+    # check valid IBAN, IBAN == BIC, valid email, valid ssid
     return k, o
 
 def login_match(dusr, gr):
@@ -413,9 +422,10 @@ def login_match(dusr, gr):
     cm, o = None, ''
     mail = gr[0]
     if mail.encode('ascii') in dusr.keys():
-        cm = dusr[mail]
-        t = dusr[cm].decode('utf8').split('/')
-        if not h10(gr[1]).encode('utf8').decode('ascii') == t[_PAWD]: o = 'bad password'
+        if h10(gr[1]).encode('utf8').decode('ascii') == (dusr[dusr[mail]].decode('utf8').split('/'))[_PAWD]: 
+            cm = dusr[mail]
+        else:
+            o = 'bad password'
     else:
         o = 'this e-mail is not registered! %s' % mail
     return cm, o
@@ -427,30 +437,34 @@ def application(environ, start_response):
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base = environ['PATH_INFO'][1:]
     d = dbm.open(db[:-3], 'c')
+    dusr = dbm.open('/cup/pp/usr', 'c')            
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
         if reg(re.match(_PAT_LOGIN_, arg)):
-            dusr = dbm.open('/cup/pp/usr', 'c')
             #smail ('pelinquin@gmail.com', 'LOGIN OK \n')
             cm, res = login_match(dusr, reg.v.groups())
             if cm:
                 t = dusr[cm].decode('utf8').split('/')
-                o, mime = front_html(cm.decode('ascii'), t), 'text/html; charset=utf8'
+                o, mime = front_html(dusr['__N'], cm.decode('ascii'), t), 'text/html; charset=utf8'
             else:
                 o += res
-            dusr.close()
         elif reg(re.match(_PAT_LOST_, arg)):
             o = 'you will receive an e-mail to reset your password !'
-            #smail ('pelinquin@gmail.com', 'THIS IS A \nSIMPLE MAIL TEST \n')
+        elif reg(re.match(_PAT_CHPWD_, arg)):
+            cm, res = login_match(dusr, reg.v.groups())
+            if cm:
+                t = dusr[cm].decode('utf8').split('/')
+                o, mime = front_html(dusr['__N'], cm.decode('ascii'), t), 'text/html; charset=utf8'
+            else:
+                o += res
+                #o = 'your password  is changed!'
         elif reg(re.match(_PAT_REGISTER_, arg)):
-            dusr = dbm.open('/cup/pp/usr', 'c')
             k, res = register_match(dusr, reg.v.groups())
             if k:
                 t = dusr[k].decode('utf8').split('/')
-                o, mime = front_html(k, t), 'text/html; charset=utf8'
+                o, mime = front_html(dusr['__N'], k, t), 'text/html; charset=utf8'
             else:
                 o += res
-            dusr.close()
         elif reg(re.match(r'^name=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})$', arg)):
             cc = compact(reg.v.group(3))
             bic, anb = cc.split('/') # verifier
@@ -486,17 +500,19 @@ def application(environ, start_response):
             o = ''
             for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
             d.close()
+        elif raw.lower() == '_reset': # DEBUG!
+            os.remove('/cup/pp/usr.db')
+            o = 'reset OK'
         elif base == '':
-            o, mime = front_html(), 'text/html; charset=utf8'
+            o, mime = front_html(dusr['__N']), 'text/html; charset=utf8'
         else:
-            dusr = dbm.open('/cup/pp/usr', 'c')
             if base.encode('ascii') in dusr.keys():
                 t = dusr[base].decode('utf8').split('/')
-                o, mime = front_html('', t, True), 'text/html; charset=utf8'
+                o, mime = front_html(dusr['__N'], '', t, True), 'text/html; charset=utf8'
             else:
                 o += 'IBAN NOT registered'                
-            dusr.close()
     d.close()
+    dusr.close()
     start_response('200 OK', [('Content-type', mime), ('Content-Disposition', 'filename={}'.format(fname))])
     return [o if mime == 'application/pdf' else o.encode('utf8')] 
 
