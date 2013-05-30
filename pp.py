@@ -135,7 +135,7 @@ def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<html>\n<link rel="shortcut icon" type="www/image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAIAAAABc2X6AAAABmJLR0QA/wD/AP+gvaeTAAAAoklEQVR4nO3csQ0CMRAAQR6R0wk1URo1UYnpgA4M0iNA65n0kltdankbYxxWcvz1At8muE5wneA6wXWn+fhyO0+m9+vjo8u8a89Wy11YcJ3gOsF1gusE1wmuE1wnuE5wneA6wXWC6wTXCa4TXCe4TnCd4DrBdYLrBNcJrhNcJ7juxYv4ufnL9P+03IUF1wmuE1wnuG7zy0Oc4DrBdYLrBNc9AUj0DSD4QMJ7AAAAAElFTkSuQmCC"/>'
     o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);p,li,i,b,a,div,input {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:100;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.bigorange{font-size:32;color:#F87217;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left; width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{border:1px solid #666;padding:2pt;}</style>'
-    o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
+    o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
     data = 'àà.eu/zgnZQW' # give the real one!
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
@@ -178,6 +178,7 @@ def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
             o += '<form method="post">\n'
             v = 'value="%s"' % total if total else 'placeholder="000.00"'
             o += '<input class="digit" type="text" name="total" pattern="\d\d\d\.\d\d" %s required="yes"/> €<br/>'% v
+            #o += '<input class="digit" type="text" name="total" %s required="yes"/> €<br/>'% v
             o += '<input class="sh" type="submit" name="income" value="Editer une facture"/><br/>\n'
             o += '<input class="sh" type="submit" name="send"   value="Envoyer par e-mail" disabled="yes"/><br/>\n'
             o += '<input class="sh" type="submit" name="tweet"  value="Poster un tweet" disabled="yes"/>\n'
@@ -188,14 +189,16 @@ def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
                 o += '<b class="bigorange" title="Nom affiché de marchand">\"%s\"</b>' % t[_PUBN]
             total = re.sub('€', '', total)
             data = '%s?%06.2f€' % (cm, float(total)) if total != '' else cm
-            o += '<p title="...votre code marchand \'%s\' en QRcode">%s</p>\n' % (data, QRCode(data=data).svg(100, 50, 12, data))    
+            o += '<p title="...code marchand \'%s\' en QRcode">%s</p>\n' % (data, QRCode(data=data).svg(100, 50, 12, data))    
             o += '</div>'
         else:
             o += '<div id="lcol">' 
             o += '<p>Identifiant: <b class="green">%s</b></p>' % t[_MAIL]
-            o += '<p>Status crédit: <b class="green">%s</b></p>' % 'valide'
-            o += '<p>Status débit: <b class="red">%s</b></p>' % 'en attente de validation par le banquier'
-            o += '<p title="Identité Numérique Citoyenne">Status INC: <b class="red">%s</b></p>' % 'en attente de validation par une adminnistration'
+            st = 'Admistrateur' if t[_STAT] == 'A' else 'Banquier' if t[_STAT] == 'B' else 'Particulier' 
+            o += '<p>Statut utilisateur: <b class="green">%s</b></p>' % st
+            o += '<p>Statut crédit: <b class="green">%s</b></p>' % 'valide'
+            o += '<p>Statut débit: <b class="red">%s</b></p>' % 'en attente de validation par le banquier'
+            o += '<p title="Identité Numérique Citoyenne">Statut INC: <b class="red">%s</b></p>' % 'en attente de validation par une adminnistration'
             o += '<p>Seuils d\'achâts : <b class="green">%d€/jour</b> maximum <b class="green">%d€</b></p>' % (int(t[_THR1]), int(t[_THR2])) 
             o += '<p>Montant autorisé le <b class="green">%s</b> : <b class="green">%d€</b></p>' % (today[:10],0) 
             o += '<p>Code marchand: <b class="green">%s</b></p>' % cm
@@ -258,7 +261,6 @@ def h10 (code):
 def gbic (code):
     "_"
     return code.split('/')[0]
-
 
 
 #pelinquin@gmail.com -> gtMVi0
@@ -373,20 +375,23 @@ _PAT_INCOME_ = r'total=([\d\.]{1,7})&income=Editer une facture$'
 _PAT_CHPWD_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
 _PAT_REG_    = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 _PAT_PUBKEY_ = r'PK/1/(([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})/([^/]{80,100})/([^/]{80,100}))/(\S{160,200})$'
-_PAT_TRANS_  = r'TR/1/((\d{10})/([^/]{6})/([^/]{6})/(\d{3}\.\d{2}))/(\S{160,200})$'
+_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{6})/(B|C|\d{3}\.\d{2}))/(\S{160,200})$'
 
 def transaction_match(dusr, dtrx, gr):
     "_"
     o = ''
     today = '%s' % datetime.datetime.now()
-    msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5] 
+    trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6] 
     if src.encode('ascii') in dusr.keys() and dst.encode('ascii') in dusr.keys(): 
-        t, k = dusr[src].decode('utf8').split('/'), ecdsa()
-        k.pt = Point(curve_521, b64toi(t[_PBK1].encode('ascii')), b64toi(t[_PBK2].encode('ascii')))
+        tb, ts, k = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/'), ecdsa()
+        k.pt = Point(curve_521, b64toi(tb[_PBK1].encode('ascii')), b64toi(tb[_PBK2].encode('ascii')))
         if k.verify(sig, msg):
+            if trvd == 'VD' and tb[_STAT] == 'A':
+                ts[_STAT] = 'B'
+            dusr[src], dusr[dst] = '/'.join(tb), '/'.join(ts)
             dtrx['__N'] = '%d' % (int(dtrx['__N']) + 1)
             dtrx['%s/%s' % (epoch, src)] = '/'.join([dst, val, val, sig])
-            x, tx = '%s/%s' % (today[:10], t[_NBNK]), '/'.join([epoch, src])
+            x, tx = '%s/%s' % (today[:10], tb[_NBNK]), '/'.join([epoch, src])
             dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
         else:
             o = 'Wrong signature!'
@@ -429,10 +434,11 @@ def register_match(dusr, gr):
             dusr['__N'] = '%d' % (int(dusr['__N']) + 1)
             dusr[mail] = k
             dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
+            st = 'A' if mail == __mail__ else 'X'
             dusr[k] = '/'.join([  
                     mail,           #_MAIL 
                     'X',            #_STAT
-                    '',             #_LOCK
+                    st,             #_LOCK
                     epoch[:-2],     #_DREG
                     gr[0].title(),  #_FRST 
                     gr[1].title(),  #_LSAT
@@ -457,7 +463,7 @@ def login_match(dusr, gr):
     mail = gr[0]
     if mail.encode('ascii') in dusr.keys():
         if h10(gr[1]).encode('utf8').decode('ascii') == (dusr[dusr[mail]].decode('utf8').split('/'))[_PAWD]: 
-            if len(gr) > 1:
+            if len(gr) > 2:
                 if gr[2] == gr[3]:
                     cm = dusr[mail]
                     t = dusr[cm].decode('utf8').split('/')
@@ -513,16 +519,12 @@ def application(environ, start_response):
             o, mime = front_html(nb, base, t, True, reg.v.group(1), 'Facture'), 'text/html; charset=utf8'
         elif reg(re.match(_PAT_PUBKEY_, arg)):
             res = pubkey_match(dusr, reg.v.groups())
-            if res:
-                o += res
-            else:
-                o = 'PUBKEY OK' 
+            if res: o += res
+            else: o = 'PUBKEY OK' 
         elif reg(re.match(_PAT_TRANS_, arg)):
             res = transaction_match(dusr, dtrx, reg.v.groups())
-            if res:
-                o += res
-            else:
-                o = 'TRANSACTION OK' 
+            if res: o += res
+            else: o = 'TRANSACTION OK (%s)' % reg.v.group(1) 
         else:
             o += 'not valid args %s' % arg
     else:
