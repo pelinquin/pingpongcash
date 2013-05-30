@@ -27,8 +27,8 @@ Status:
 'B' Banker (at least one per agency)
 'C' Validated by banquer and payed to admin
 
-codeM -> mail/status/lock/regDate/FirstName/LastName/DisplayName/Secu/numbank/iban/bic/Threhold1/Threhold2/balance/expiredate/pw/pubkey
-          0     1      2     3       4         5           6      7      8     9    10    11        12       13       14      15   16
+codeM -> mail/status/lock/regDate/FirstName/LastName/DisplayName/Secu/numbank/iban/bic/Threhold1/Threhold2/balance/expiredate/pw/pubk1/pubk2
+          0     1      2     3       4         5           6      7      8     9    10    11        12       13       14      15   16   17
 """
 
 _MAIL = 0
@@ -47,18 +47,8 @@ _THR2 = 12
 _BALA = 13
 _DEXP = 14
 _PAWD = 15
-_PUBK = 16
-
-# old TO REMOVE !
-_ST_   = 0
-_BIC_  = 1
-_ACNB_ = 2
-_NAME_ = 3
-_MAIL_ = 4
-_DAT_  = 5
-_PW_   = 6
-_PK_   = 7
-
+_PBK1 = 16
+_PBK2 = 17
 
 import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time, smtplib
 
@@ -121,7 +111,7 @@ def get_image(img):
 def help_private(cm):
     "_"
     o = "<p>Cette page est votre page privée. Elle contient des informations qui ne sont pas divulguées aux personnes ou commerçants avec qui vous faites des transactions financières <a class=\"ppc\">Ping-Pong&nbsp;</a>.</p>"
-    o += "<p>Votre page puplique est <a href=\"http://àà.eu/pp/%s\">ici</a>. Elle est accessible directement depuis le code marchand en QRcode. Diffusez cette page publique ou ce QRcode à toute personne susceptible de vous verser de l'argent.</p>" % cm
+    o += "<p>Votre page puplique est <a href=\"./%s\">ici</a>. Elle est accessible directement depuis le code marchand en QRcode. Diffusez cette page publique ou ce QRcode à toute personne susceptible de vous verser de l'argent.</p>" % cm
     o += '<p></p>'
     o += "<p>Attention: le bloquage du compte doit être utilisé si vous perdez ou vous faites voler votre <i>iPhone</i> et il n'a de sens que si vous avez autorisation d'achât délivrée par votre banquier.</p>"
     o += "<p>Nous n'avons pas accès au solde de votre compte. La limite des montants d'achât est encadrée par les deux valeurs de seuils fournies par votre banquier. Vous pouvez le contacter votre négocier des valeur différentes.</p>"
@@ -139,21 +129,23 @@ def help_register():
     return o
 
 
-def front_html(nusers, cm='', t=[], pub=False, msg=''):
+def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
     "_"
     today = '%s' % datetime.datetime.now()
     o = '<?xml version="1.0" encoding="utf8"?>\n' 
     o += '<html>\n<link rel="shortcut icon" type="www/image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAIAAAABc2X6AAAABmJLR0QA/wD/AP+gvaeTAAAAoklEQVR4nO3csQ0CMRAAQR6R0wk1URo1UYnpgA4M0iNA65n0kltdankbYxxWcvz1At8muE5wneA6wXWn+fhyO0+m9+vjo8u8a89Wy11YcJ3gOsF1gusE1wmuE1wnuE5wneA6wXWC6wTXCa4TXCe4TnCd4DrBdYLrBNcJrhNcJ7juxYv4ufnL9P+03IUF1wmuE1wnuG7zy0Oc4DrBdYLrBNc9AUj0DSD4QMJ7AAAAAElFTkSuQmCC"/>'
-    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);p,li,i,b,a,div,input {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:24pt;position:absolute;top:100;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:100;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}#wrap{overflow:hidden;}#lcol{float:left; width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10; padding:4}</style>'
+    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);p,li,i,b,a,div,input {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:100;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.bigorange{font-size:32;color:#F87217;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left; width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{border:1px solid #666;padding:2pt;}</style>'
     o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
     data = 'àà.eu/zgnZQW' # give the real one!
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
 
+    o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     dmsg = '| %s' % msg if msg else ''
     if t and not pub:
-        dmsg += '| Bonjour %s %s !' % (t[_FRST], t[_LAST])
-    o += '<p class="msg">%s inscrits %s</p>' % (nusers.decode('ascii'), dmsg)
+        dmsg += 'Bonjour %s %s !' % (t[_FRST], t[_LAST])
+        o += '<p class="msg">%s</p>' % dmsg
+
 
     o += '<div id="wrap">'
     if cm == '':
@@ -183,11 +175,21 @@ def front_html(nusers, cm='', t=[], pub=False, msg=''):
     else:
         if pub:
             o += '<div id="lcol">'
-            o += '<p>Nom affiché de marchand: <b class="biggreen">\"%s\"</b></p>' % t[_PUBN]
-            o += '<p>Code marchand: <b class="biggreen">\"%s\"</b></p>' % cm
-            o += '<p class="toto" title="...code marchand \'%s\' en QRcode">%s</p>\n' % (cm, QRCode(data=cm).svg(100, 50, 12))    
+            o += '<form method="post">\n'
+            v = 'value="%s"' % total if total else 'placeholder="000.00"'
+            o += '<input class="digit" type="text" name="total" pattern="\d\d\d\.\d\d" %s required="yes"/> €<br/>'% v
+            o += '<input class="sh" type="submit" name="income" value="Editer une facture"/><br/>\n'
+            o += '<input class="sh" type="submit" name="send"   value="Envoyer par e-mail" disabled="yes"/><br/>\n'
+            o += '<input class="sh" type="submit" name="tweet"  value="Poster un tweet" disabled="yes"/>\n'
+            o += '</form>\n'
             o += '</div>'
-            o += '<div id="rcol"></div>'
+            o += '<div id="rcol">'
+            if t[_PUBN] != '':
+                o += '<b class="bigorange" title="Nom affiché de marchand">\"%s\"</b>' % t[_PUBN]
+            total = re.sub('€', '', total)
+            data = '%s?%06.2f€' % (cm, float(total)) if total != '' else cm
+            o += '<p title="...votre code marchand \'%s\' en QRcode">%s</p>\n' % (data, QRCode(data=data).svg(100, 50, 12, data))    
+            o += '</div>'
         else:
             o += '<div id="lcol">' 
             o += '<p>Identifiant: <b class="green">%s</b></p>' % t[_MAIL]
@@ -201,7 +203,7 @@ def front_html(nusers, cm='', t=[], pub=False, msg=''):
             o += '<p>Date d\'enregistrement: <b class="green">%s</b></p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(t[_DREG])))
             o += '<form method="post">\n'
             o += '<input type="hidden" name="name" value="%s"/>' % t[_MAIL]
-            o += '<input class="txt" type="password" name="pw" placeholder="Nouveau mot de passe" required="yes"/><br/>'
+            o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" required="yes"/><br/>'
             o += '<input class="txt" type="password" name="pw1" placeholder="Nouveau mot de passe" required="yes"/><br/>'
             o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
             o += '<input class="sh" type="submit" name="new" value="Changer votre mot de passe"/> '
@@ -211,89 +213,17 @@ def front_html(nusers, cm='', t=[], pub=False, msg=''):
             o += '<input class="sh" type="submit" name="lock" value="Bloquer tout achât" %s/>\n' % 'disabled="yes"'
             o += '</form>\n'
             o += '</div>'
-            o += '<div id="rcol">%s</div>'% help_private(cm)
+            o += '<div id="rcol">%s</div>' % help_private(cm)
+            o += '<table title="historique des opérations"><tr><th width="100">Date</th><th width="20">+/-</th><th width="150">Opération</th><th width="280">Message</th><th width="100">Montant</th></tr><tr><td colspan="5"><p align="center">Aucune opération</p></td></tr></table>'
+
+            o += '</div>'
 
     o += '</div>'
     o += '<div id="footer">Contact: <a href="mailto:contact@pingpongcash.net">contact@pingpongcash.net</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>'
     return o + '</html>'
 
-def front1_html(nusers, cm='', t=[], pub=False, msg=''):
-    "_"
-    o = '<?xml version="1.0" encoding="utf8"?>\n' 
-    o += '<html>\n' + favicon()
-    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:350}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:360;margin:20}a.qr{position:absolute;top:0;right:50;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:32;color:green;}b.red{color:red;}p.alpha{position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217} a.ppc{color:RoyalBlue;font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash";}</style>\n'
-    
-    o += '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image('www/header.png')
-    o += '<p class="alpha" font-size="16pt" x="29"  y="25" title="still in security test phase!">Beta</p>\n'
-
-    data = 'àà.eu/zgnZQW' # give the real one!
-    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
-
-    dmsg = '|<b class="red">%s</b>' % msg if msg else ''
-    o += '<p><b class="green">%s</b> inscrits %s</p>' % (nusers.decode('ascii'), dmsg)
-
-
-    if cm == '':
-        if pub:
-            o += '<p>Nom affiché de marchand: <b class="biggreen">\"%s\"</b></p>' % t[7]
-            o += '<p>Code marchand: <b class="biggreen">\"%s\"</b></p>' % t[0]
-            o += '<p class="toto" title="...code marchand \'%s\' en QRcode">%s</p>\n' % (t[0], QRCode(data=t[0]).svg(100, 50, 12))    
-            o += '<div class="col">'
-        else:
-            o += '<form method="post">\n'
-            o += '<input class="txt" type="text" name="name" placeholder="E-mail" required="yes"/><br/>'
-            o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe"/><br/>'
-            o += '<input class="sh" type="submit" value="Se connecter"/> '
-            o += '<input class="sh" type="submit" name="lost" value="Mot de passe oublié"/>\n'
-            o += '</form>\n'
- 
-            o += '<form method="post">\n'
-            o += '<input class="txt" type="text" name="first" placeholder="Prénom(s)" title="liste complète" required="yes"/><br/>'
-            o += '<input class="txt" type="text" name="last" placeholder="Nom de famille" required="yes"/><br/>'
-            o += '<input class="txt" type="text" name="name" placeholder="E-mail" title="n\'est pas communiqué" required="yes"/><br/>'
-            o += '<input class="txt" type="text" name="iban" placeholder="IBAN" required="yes"/><br/>'
-            o += '<input class="txt" type="text" name="bic" placeholder="Code BIC" pattern="[A-Z0-9]{8,11}" title="pour vérification" required="yes"/><br/>'
-            o += '<input class="txt" type="text" name="ssid" placeholder="[Optionel] Numéro de sécurité sociale"/><br/>'
-            o += '<input class="txt" type="text" name="dname" placeholder="[Optionel] Nom affiché de marchand"/><br/>'
-            o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" title="de plus de 4 caractères" required="yes"/><br/>'
-            o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
-            o += '<input class="txt" type="checkbox" name="read" title="j\'ai lu les avertissements ci contre" required="yes"/>'
-            o += '<input class="sh" type="submit" value="S\'enregistrer"/>\n'
-            o += '</form>\n'
-            o += '<div class="col">'
-            o += help_register()
-    else:
-        o += '<h6 class="login">Bonjour %s %s !</h6>' % (t[_FRST], t[_LAST])
-        o += '<p>Identifiant: <b class="green">%s</b></p>' % t[_MAIL]
-        o += '<p>Status crédit: <b class="green">%s</b></p>' % 'valide'
-        o += '<p>Status débit: <b class="red">%s</b></p>' % 'en attente de validation par le banquier'
-        o += '<p title="Identité Numérique Citoyenne">Status INC: <b class="red">%s</b></p>' % 'en attente de validation par une adminnistration'
-        o += '<p>Seuils d\'achâts : <b class="green">%d€/jour</b> maximum <b class="green">%d€</b></p>' % (int(t[_THR1]), int(t[_THR2])) 
-        today = '%s' % datetime.datetime.now()
-        o += '<p>Montant autorisé le <b class="green">%s</b> : <b class="green">%d€</b></p>' % (today[:10],0) 
-        o += '<p>Code marchand: <b class="green">%s</b></p>' % cm
-        o += '<p>Nom affiché de marchand: <b class="green">%s</b></p>' % t[_PUBN]
-        o += '<p>Date d\'enregistrement: <b class="green">%s</b></p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(t[_DREG])))
-              
-        o += '<form method="post">\n'
-        o += '<input type="hidden" name="name" value="%s"/>' % t[_MAIL]
-        o += '<input class="txt" type="password" name="pw" placeholder="Nouveau mot de passe" required="yes"/><br/>'
-        o += '<input class="txt" type="password" name="pw1" placeholder="Nouveau mot de passe" required="yes"/><br/>'
-        o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
-        o += '<input class="sh" type="submit" name="new" value="Changer votre mot de passe"/> '
-        o += '</form>\n'
-        
-        o += '<form method="post">\n'
-        o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" required="yes"/><br/>'
-        o += '<input class="sh" type="submit" name="lock" value="Bloquer tout achât" %s/>\n' % 'disabled="yes"'
-        o += '</form>\n'
-
-        o += '<div class="col">%s' % help_private(cm)
-
-    o += '</div>\n'
-    o += '<h6>Contact: <a href="mailto:contact@pingpongcash.net">contact@pingpongcash.net</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025<br/></h6>'
-    o += '</div>'
-    return o + '</html>'
+def old_style_html():
+    o = '@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:350}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:360;margin:20}a.qr{position:absolute;top:0;right:50;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:32;color:green;}b.red{color:red;}p.alpha{position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217} a.ppc{color:RoyalBlue;font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash";}'
 
 def compact (iban):
     "_"
@@ -354,21 +284,7 @@ def same_bic(d, biban, siban):
     ps = d[siban].decode('utf8').split('/')
     return bs[1] == ps[1]
 
-def register_pk(d, msg, iban, pw, pk, sig):
-    "_"
-    o, pb = '', d[iban].decode('utf8').split('/')
-    if verify(RSA_E, b64toi(pk.encode('ascii')), msg, sig):
-        if pb[_ST_] == 'X':
-            pb[_PW_], pb[_PK_], pb[_ST_] = pw, pk, 'Y' 
-            d[iban] = '/'.join(pb)
-            o = 'Register public key OK'
-        else:
-            o += 'email not validated'
-    else:
-        o = 'Error:Bad signature'
-    return o
-
-def daylist(d, msg, day, iban, sig):
+def old_daylist(d, msg, day, iban, sig):
     "_"
     o, pb = '', d[iban].decode('utf8').split('/')
     if verify(RSA_E, b64toi(pb[_PK_].encode('ascii')), msg, sig):
@@ -379,9 +295,6 @@ def daylist(d, msg, day, iban, sig):
             if cc.encode('ascii') in d.keys():
                 for t in d[cc].decode('ascii').split('/'):
                     o += '%s/%s\n' % (t, d['%s/%s' % (t, ee)].decode('ascii'))
-        #smail (pb[_MAIL_], 'THIS IS A LIST \n %s' % o)
-        #smail (pb[_MAIL_], 'THIS IS A \nSIMPLE MAIL TEST \n')
-        #o = 'mail send! to %s' % pb[_MAIL_]
     else:
         o = 'Error:Bad signature'
     return o
@@ -393,7 +306,7 @@ def smail(dest, content):
     s.sendmail (b'contact@pingpongcash.net', [dest], content)
     s.quit()
 
-def transaction (d, msg, epoch, s_biban, s_siban, val, s_sig):
+def old_transaction (d, msg, epoch, s_biban, s_siban, val, s_sig):
     "_"
     o, biban, siban, sig = 'Error:', bytes(s_biban, 'ascii'), bytes(s_siban, 'ascii'), bytes(s_sig,'ascii')
     if biban in d.keys():
@@ -454,10 +367,52 @@ def log(s, ip=''):
     cont = open(logf, 'r', encoding='utf8').read()
     open(logf, 'w', encoding='utf8').write('%s|%s|%s\n%s' % (now[:-7], ip, s, cont))
 
-_PAT_LOGIN_ = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})$'
-_PAT_LOST_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
-_PAT_CHPWD_ = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
-_PAT_REGISTER_ = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
+_PAT_LOGIN_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})$'
+_PAT_LOST_   = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
+_PAT_INCOME_ = r'total=([\d\.]{1,7})&income=Editer une facture$'
+_PAT_CHPWD_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
+_PAT_REG_    = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
+_PAT_PUBKEY_ = r'PK/1/(([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})/([^/]{80,100})/([^/]{80,100}))/(\S{160,200})$'
+_PAT_TRANS_  = r'TR/1/((\d{10})/([^/]{6})/([^/]{6})/(\d{3}\.\d{2}))/(\S{160,200})$'
+
+def transaction_match(dusr, dtrx, gr):
+    "_"
+    o = ''
+    today = '%s' % datetime.datetime.now()
+    msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5] 
+    if src.encode('ascii') in dusr.keys() and dst.encode('ascii') in dusr.keys(): 
+        t, k = dusr[src].decode('utf8').split('/'), ecdsa()
+        k.pt = Point(curve_521, b64toi(t[_PBK1].encode('ascii')), b64toi(t[_PBK2].encode('ascii')))
+        if k.verify(sig, msg):
+            dtrx['__N'] = '%d' % (int(dtrx['__N']) + 1)
+            dtrx['%s/%s' % (epoch, src)] = '/'.join([dst, val, val, sig])
+            x, tx = '%s/%s' % (today[:10], t[_NBNK]), '/'.join([epoch, src])
+            dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
+        else:
+            o = 'Wrong signature!'
+    else:
+        o = 'unknown cm'
+    return o
+
+def pubkey_match(dusr, gr):
+    "_"
+    o = ''
+    today = '%s' % datetime.datetime.now()
+    raw, mail, pk1, pk2, sig = gr[0], gr[1], gr[2], gr[3], gr[4] 
+    if mail.encode('ascii') in dusr.keys(): 
+        t, k = dusr[dusr[mail]].decode('utf8').split('/'), ecdsa()
+        k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
+        msg = '/'.join([today[:10], t[_PAWD], raw])
+        if k.verify(sig, msg): 
+            cm = dusr[mail] # ! CAN SOMEONE CHANGE PUBKEY?
+            t = dusr[cm].decode('utf8').split('/')
+            t[_PBK1], t[_PBK2] = pk1, pk2 
+            dusr[cm] = '/'.join(t)
+        else:
+            o = 'Wrong signature!'
+    else:
+        o = 'e-mail unknown!'
+    return o
 
 def register_match(dusr, gr):
     "_"
@@ -490,7 +445,7 @@ def register_match(dusr, gr):
                     '0',            #_BALA
                     '',             #_DEXP
                     h10(gr[7]),     #_PAWD
-                    ''])            #_PUBK
+                    '',''])         #_PBK1_PBK2
     else:
         o = 'not the same password!'
     # check valid IBAN, IBAN == BIC, valid email, valid ssid
@@ -502,7 +457,16 @@ def login_match(dusr, gr):
     mail = gr[0]
     if mail.encode('ascii') in dusr.keys():
         if h10(gr[1]).encode('utf8').decode('ascii') == (dusr[dusr[mail]].decode('utf8').split('/'))[_PAWD]: 
-            cm = dusr[mail]
+            if len(gr) > 1:
+                if gr[2] == gr[3]:
+                    cm = dusr[mail]
+                    t = dusr[cm].decode('utf8').split('/')
+                    t[_PAWD] = h10(gr[2])
+                    dusr[cm] = '/'.join(t)
+                else:
+                    o = 'different new passwords'
+            else:
+                cm = dusr[mail]
         else:
             o = 'bad password'
     else:
@@ -511,12 +475,12 @@ def login_match(dusr, gr):
 
 def application(environ, start_response):
     "wsgi server app"
-    mime, o, db, now, fname = 'text/plain; charset=utf8', 'Error:', '/cup/%s/trx.db' % __app__, '%s' % datetime.datetime.now(), 'default.txt'
+    mime, o, now, fname = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt'
     init_dbs(('trx', 'ags', 'bic', 'usr'))
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base = environ['PATH_INFO'][1:]
-    d = dbm.open(db[:-3], 'c')
-    dusr = dbm.open('/cup/pp/usr', 'c')            
+    dusr, dtrx = dbm.open('/cup/pp/usr', 'c'), dbm.open('/cup/pp/trx', 'c')
+    nb = [dusr['__N'], dtrx['__N']]
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
         if reg(re.match(_PAT_LOGIN_, arg)):
@@ -524,7 +488,7 @@ def application(environ, start_response):
             cm, res = login_match(dusr, reg.v.groups())
             if cm:
                 t = dusr[cm].decode('utf8').split('/')
-                o, mime = front_html(dusr['__N'], cm.decode('ascii'), t), 'text/html; charset=utf8'
+                o, mime = front_html(nb, cm.decode('ascii'), t), 'text/html; charset=utf8'
             else:
                 o += res
         elif reg(re.match(_PAT_LOST_, arg)):
@@ -533,28 +497,32 @@ def application(environ, start_response):
             cm, res = login_match(dusr, reg.v.groups())
             if cm:
                 t = dusr[cm].decode('utf8').split('/')
-                o, mime = front_html(dusr['__N'], cm.decode('ascii'), t, 'Mot de passe changé!'), 'text/html; charset=utf8'
+                o, mime = front_html(nb, cm.decode('ascii'), t, False, '', 'Mot de passe changé!'), 'text/html; charset=utf8'
             else:
                 o += res
-        elif reg(re.match(_PAT_REGISTER_, arg)):
+        elif reg(re.match(_PAT_REG_, arg)):
             k, res = register_match(dusr, reg.v.groups())
             if k:
                 t = dusr[k].decode('utf8').split('/')
-                o, mime = front_html(dusr['__N'], k, t), 'text/html; charset=utf8'
+                o, mime = front_html(nb, k, t), 'text/html; charset=utf8'
             else:
                 o += res
-        elif reg(re.match(r'^name=([^&/]{3,80})&mail=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})$', arg)):
-            cc = compact(reg.v.group(3))
-            bic, anb = cc.split('/') # verifier
-            d[bic] = d[bic] + anb if bic in d.keys() else anb # verifier 
-            d[hiban(cc)] = 'X/%s/%s/%s///' % (cc, reg.v.group(1), reg.v.group(2))
-            o = 'web register OK %s' % cc
-        elif reg(re.match(r'^R1/(([^/]{3,20})/([^/]{6,15})/([^/]{60,500}))/([^/]{150,200})$', arg)):
-            o = register_pk(d, reg.v.group(1), reg.v.group(2), reg.v.group(3), reg.v.group(4), bytes(reg.v.group(5),'ascii'))
-        elif reg(re.match(r'^T1/((\d{10,16})/([^/]{3,20})/([^/]{3,20})/(\d{3}\.\d{2}))/([^/]{150,200})$', arg)):
-            o = transaction(d, reg.v.group(1), reg.v.group(2), reg.v.group(3), reg.v.group(4), float(reg.v.group(5)), reg.v.group(6))
-        elif reg(re.match(r'^D1/(([^/]{10})/([^/]{3,20}))/([^/]{150,200})$', arg)):
-            o = daylist(d, reg.v.group(1), reg.v.group(2), reg.v.group(3), bytes(reg.v.group(4),'ascii'))
+        elif reg(re.match(_PAT_INCOME_, arg)):
+            o = 'facture! %s' % base
+            t = dusr[base].decode('utf8').split('/')
+            o, mime = front_html(nb, base, t, True, reg.v.group(1), 'Facture'), 'text/html; charset=utf8'
+        elif reg(re.match(_PAT_PUBKEY_, arg)):
+            res = pubkey_match(dusr, reg.v.groups())
+            if res:
+                o += res
+            else:
+                o = 'PUBKEY OK' 
+        elif reg(re.match(_PAT_TRANS_, arg)):
+            res = transaction_match(dusr, dtrx, reg.v.groups())
+            if res:
+                o += res
+            else:
+                o = 'TRANSACTION OK' 
         else:
             o += 'not valid args %s' % arg
     else:
@@ -563,24 +531,30 @@ def application(environ, start_response):
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif raw.lower() == '_log':
             o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
-        elif raw.lower() == '_db':
-            d = dbm.open('/cup/pp/usr')
-            o = ''
+        elif raw.lower() == '_usr':
+            d, o = dbm.open('/cup/pp/usr'), ''
             for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
             d.close()
-        elif raw.lower() == '_reset': # DEBUG!
+        elif raw.lower() == '_trx':
+            d, o = dbm.open('/cup/pp/trx'), ''
+            for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
+            d.close()
+        elif raw.lower() == '_reset_usr': # DEBUG!
             os.remove('/cup/pp/usr.db')
-            o = 'reset OK'
-        elif base == '':
-            o, mime = front_html(dusr['__N']), 'text/html; charset=utf8'
+            o = 'reset USR OK'
+        elif raw.lower() == '_reset_trx': # DEBUG!
+            os.remove('/cup/pp/trx.db')
+            o = 'reset TRX OK'
+        elif base == '': # public pages
+            o, mime = front_html(nb), 'text/html; charset=utf8'
         else:
             if base.encode('ascii') in dusr.keys():
                 t = dusr[base].decode('utf8').split('/')
-                o, mime = front_html(dusr['__N'], base, t, True), 'text/html; charset=utf8'
+                o, mime = front_html(nb, base, t, True, raw, 'Facture'), 'text/html; charset=utf8'
             else:
                 o += 'IBAN NOT registered'                
-    d.close()
-    dusr.close()
+    dtrx.close()
+    dusr.close()    
     start_response('200 OK', [('Content-type', mime), ('Content-Disposition', 'filename={}'.format(fname))])
     return [o if mime == 'application/pdf' else o.encode('utf8')] 
 
@@ -1446,7 +1420,7 @@ class QRCode:
             if i == 0 or min_lost_point > lost_point: min_lost_point, pattern = lost_point, i
         return pattern
 
-    def svg(self, ox=0, oy=0, d=10):
+    def svg(self, ox=0, oy=0, d=10, txt=''):
         "_"
         o, mc = '<svg %s width="%s" height="%s">\n' % (_SVGNS, ox+d*25, oy+d*25), self.m_count
         for r in range(mc):
@@ -1457,6 +1431,8 @@ class QRCode:
                     o += '<rect x="%d" y="%d" width="%d" height="%d"/>\n' % (ox+(c-k)*d, oy+r*d, k*d, d)
                     k = 0
             if k>0: o += '<rect x="%d" y="%d" width="%d" height="%d"/>\n' % (ox+(mc-k)*d, oy+r*d, k*d, d)
+        if txt:
+            o += '<text x="%s" y="%s" style="font-size:32;fill:gray" >%s</text>\n' % (ox, oy + 40 + d*mc, txt)
         return o + '</svg>\n'
 
     def setup_timing_pattern(self):
