@@ -390,8 +390,7 @@ def transaction_match(dusr, dtrx, gr):
         tb, ts, k = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/'), ecdsa()
         k.pt = Point(curve_521, b64toi(tb[_PBK1].encode('ascii')), b64toi(tb[_PBK2].encode('ascii')))
         if k.verify(sig, msg):
-            if trvd == 'VD' and tb[_STAT] == 'A':
-                ts[_STAT] = 'B'
+            if trvd == 'VD' and tb[_STAT] == 'A': ts[_STAT] = 'B'
             dusr[src], dusr[dst] = '/'.join(tb), '/'.join(ts)
             dtrx['__N'] = '%d' % (int(dtrx['__N']) + 1)
             dtrx['%s/%s' % (epoch, src)] = '/'.join([dst, val, val, sig])
@@ -441,8 +440,8 @@ def register_match(dusr, gr):
             st = 'A' if mail == __email__ else 'X'
             dusr[k] = '/'.join([  
                     mail,           #_MAIL 
-                    'X',            #_STAT
-                    st,             #_LOCK
+                    st,             #_STAT
+                    '',             #_LOCK
                     epoch[:-2],     #_DREG
                     gr[0].title(),  #_FRST 
                     gr[1].title(),  #_LSAT
@@ -529,7 +528,7 @@ def application(environ, start_response):
             res = transaction_match(dusr, dtrx, reg.v.groups())
             if res: o += res
             #else: o = 'TRANSACTION OK (%s)' % reg.v.group(1)
-            else: o, mime = pdf_digital_check(), 'application/pdf'
+            else: o, mime = pdf_digital_check(dusr, dtrx, reg.v.groups()), 'application/pdf'
         else:
             o += 'not valid args %s' % arg
     else:
@@ -819,7 +818,7 @@ class updf:
     def __init__(self, pagew, pageh, binary=True):
         self.pw = pagew
         self.ph = pageh
-        self.mx, self.my = 25, 25
+        self.mx, self.my = 10, 10
         self.binary = binary
         self.i = 0
         self.pos = []
@@ -885,52 +884,25 @@ class updf:
                 other = True
         return o
 
-    def qrcode(self, ox, oy, w, content="none"):
-        o = b'0 0 0 rg '
-        m = ['1111111010011000001111111', 
-             '1000001001110011101000001', 
-             '1011101000000101001011101', 
-             '1011101000001101101011101', 
-             '1011101000000100101011101', 
-             '1000001001110001001000001', 
-             '1111111010101010101111111', 
-             '0000000000101100100000000', 
-             '0111001110111101110000001', 
-             '0000010100101011000011110', 
-             '0000101001101001011010100', 
-             '0000010010000011101000110', 
-             '0100011110011010010110100', 
-             '0110000001111000010100001', 
-             '1100001100100000010011011', 
-             '1010000011110111000010000', 
-             '1010111100011100111110111', 
-             '0000000011100001100011010', 
-             '1111111010111001101011000', 
-             '1000001001101101100010100', 
-             '1011101001000001111110010', 
-             '1011101010111111110101011', 
-             '1011101011000011110011000', 
-             '1000001011110111000101000',
-             '1111111000111010101111111'] 
-        for i in range(len(m)):
-            for j in range(len(m)):
-                if m[i][j] == '1': o += bytes('%d %d %d %d re ' % (ox+i*w, oy-j*w, w, w), 'ascii')
-        return o + b'f '
-
     def gen(self, document):
         "generate a valid binary PDF file, ready for printing!"
         np = len(document)
+        A4_h = 798
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
         self.add('/Linearized 1.0/L 1565/H [570 128]/O 11/E 947/N 111/T 1367')
         ref, kids, seenall, fref, h, firstp = [], '', {}, [], {}, 0
         for p, page in enumerate(document):
             w, x, y = 12, 26, 798
             t = bytes('.11 .35 1 rg %s %s %s %s re %s %s %s %s re %s %s %s %s re f ' % (x, y, w, w/4, x, y, w/4, 1.5*w, x+w, y, w/4, 1.5*w),'ascii')
-            t += bytes('BT 1 w 0.9 0.9 0.9 RG %s %s %s %s re S 0 0 0 RG 0 Tc ' % (self.mx, self.my, self.pw-2*self.mx, self.ph-2*self.my), 'ascii')
-            t += b'0.99 0.99 0.99 rg 137 150 50 400 re f 137 100 321 50 re f 408 150 50 400 re f '
-            t += b'0.88 0.95 1.0 rg 44 600 505 190 re f '
-            t += self.qrcode(498, 788, 2)
-            t += b'1.0 1.0 1.0 rg 1 0 0 1 60 680 Tm /F1 60 Tf (Put your Ads here)Tj 0.0 0.0 0.0 rg '
+            # border
+            #t += bytes('BT 1 w 0.9 0.9 0.9 RG %s %s %s %s re S 0 0 0 RG 0 Tc ' % (self.mx, self.my, self.pw-2*self.mx, self.ph-2*self.my), 'ascii')
+            #t += b'0.99 0.99 0.99 rg 137 150 50 400 re f 137 100 321 50 re f 408 150 50 400 re f ' # U light
+            
+            t += bytes('0.88 0.95 1.0 rg %s %s %s %s re f ' % (self.mx, self.my, self.pw-2*self.mx, self.ph-2*self.my), 'ascii') # blue rect
+
+            qr = QRCode(data='hvbqidskdshkdshkjdshjdshdskdshjksdhdshkdsjdshjkdshYqzQ')
+            t += qr.pdf(40,self.ph-144,2)
+            t += bytes('1.0 1.0 1.0 rg 1 0 0 1 40 %s Tm /F1 72 Tf (Digital Check)Tj 0.0 0.0 0.0 rg ' % (self.ph-120), 'ascii')
             for par in page: t += bytes(self.sgen(par), 'ascii')
             t += b'ET\n'
             self.adds(t)
@@ -1231,20 +1203,40 @@ class AFM:
 
 ##### PDF BUILD #####
 
-def pdf_digital_check():
+def transaction_match22(dusr, dtrx, gr):
     "_"
-    own = 'toto'
+    o = ''
     today = '%s' % datetime.datetime.now()
+    trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6] 
+    if src.encode('ascii') in dusr.keys() and dst.encode('ascii') in dusr.keys(): 
+        tb, ts, k = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/'), ecdsa()
+
+
+def pdf_digital_check(dusr, dtrx, gr):
+    "_"
+    trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6]
+    date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
+    tb, ts = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/')
+    v1, v2 = int(val[:3]), int(val[4:])
+    pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page = [
-        (410,  18, '12F1', today[:19]), 
-        (30, 20, '14F1', own), 
-        (20, 260, '14F1', 'Intangible Good:'), 
+        (30,  20, '12F1', 'Date: %s' %date_gen), 
+        (400,  26, '16F1', val), 
+        (300,  144, '10F1', 'Digital Signature:'), 
+        (130,  160, '9F3', sig[:59]), 
+        (130,  170, '9F3', sig[59:118]), 
+        (130,  180, '9F3', sig[118:]), 
+        (200,  196, '8F1', 'Signed message:'), (280,  196, '9F3', msg),
+        (30,  40, '10F1', 'PAY: '), (80,  40, '16F1', dst),
+        (20,  60, '12F6', num2word_fr(v1, v2)),
+        (30,  100, '10F1', 'FROM: '), (80,  100, '16F1', src), 
+        (20,  110, '8F1', 'Public key:'), (20,  120, '8F3', pk1), (20,  128, '8F3', pk2),
         ] 
-    a = updf(595, 842)
+    #a = updf(595, 342) # A4
+    a = updf(496, 227) # 175x80
     return a.gen([page])
 
-
-def pdf_digital_check1():
+def old_pdf_check1():
     "_"
     td, ig, slr, byr, url, ncl, sig = 'A', 'B', 'C', 'D', 'E', 'F', 'G'
 
@@ -1261,11 +1253,6 @@ def pdf_digital_check1():
                 (10,  650, '10F3', sig),
                 (10,  782, '8F1',  url),
                 ]]
-    a = updf(595, 842)
-    return a.gen(content)
-
-def pdf_digital_check2():
-    content = [[(100, 300, '32F1', 'Invoice'), ]]
     a = updf(595, 842)
     return a.gen(content)
 
@@ -1709,7 +1696,7 @@ class QRCode:
             if i == 0 or min_lost_point > lost_point: min_lost_point, pattern = lost_point, i
         return pattern
 
-    def svg(self, ox=0, oy=0, d=10, txt=''):
+    def svg(self, ox=0, oy=0, d=2, txt=''):
         "_"
         o, mc = '<svg %s width="%s" height="%s">\n' % (_SVGNS, ox+d*25, oy+d*25), self.m_count
         for r in range(mc):
@@ -1723,6 +1710,19 @@ class QRCode:
         if txt:
             o += '<text x="%s" y="%s" style="font-size:32;fill:gray" >%s</text>\n' % (ox, oy + 40 + d*mc, txt)
         return o + '</svg>\n'
+
+    def pdf(self, ox=0, oy=0, d=10):
+        "_"
+        o, mc = b'0 0 0 rg ', self.m_count
+        for r in range(mc):
+            k = 0
+            for c in range(mc):
+                if self.m[r][c]: k += 1
+                elif k>0:
+                    o += bytes('%d %d %d %d re ' % (ox+(c-k)*d, oy-r*d, k*d, d), 'ascii')
+                    k = 0
+            if k>0: o += bytes('%d %d %d %d re ' % (ox+(mc-k)*d, oy-r*d, k*d, d), 'ascii')
+        return o + b'f '
 
     def setup_timing_pattern(self):
         for r in range(8, self.m_count - 8):
@@ -1920,6 +1920,56 @@ def print_db():
             o += 'NB_TRANSACTIONS: %s\n' % nt 
             d.close()
     return o
+
+def num2word(n, c):
+    elm = {0:"zero", 1:"one", 2:"two", 3:"three", 4:"four", 5:"five", 6:"six", 7:"seven", 8:"eight", 9:"nine", 10:"ten", 
+           11:"eleven", 12:"twelve", 13:"thirteen", 14:"fourteen", 15:"fifteen", 16:"sixteen", 17:"seventeen", 18:"eighteen", 
+           19:"nineteen", 20:"twenty", 30:"thirty", 40:"forty", 50:"fifty", 60:"sixty", 70:"seventy", 80:"eighty", 90:"ninety"}
+    o, u1, u2, op = '', 'euro' if n in (0,1) else 'euros', 'cent' if n == 1 else 'cents', ' and '
+    q, r = n//100, n%100
+    if q > 0:
+        o = '%s hundred' % elm[q] 
+        o += op if r > 0 else ' %s' % u1
+    n -= 100*q
+    if n in elm:
+        o += '%s %s' % (elm[n], unit)
+    else: 
+        p, r = (n//10)*10, n%10
+        if p in elm:
+            o += '%s %s %s' % (elm[p], elm[r], u1)
+    if c > 0:
+        o += op
+        if c in elm:
+            o += '%s %s' % (elm[c], unit)
+        else: 
+            p, r = (c//10)*10, c%10
+            o += '%s %s %s' % (elm[p], elm[r], u2)
+    return o.title()
+
+def num2word_fr(n, c):
+    elm = {0:"zéro", 1:"un", 2:"deux", 3:"trois", 4:"quatre", 5:"cinq", 6:"six", 7:"sept", 8:"huit", 9:"neuf", 10:"dix", 
+           11:"onze", 12:"douze", 13:"treize", 14:"quatorze", 15:"quinze", 16:"seize", 17:"dix sept", 18:"dix huit", 
+           19:"dix neuf", 20:"ving", 30:"trente", 40:"quarante", 50:"cinquante", 60:"soixante", 70:"soixante dix", 80:"quatre vingt", 90:"quatre ving dix"}
+    o, u1, u2, op = '', 'euro' if n in (0,1) else 'euros', 'centimes' if n == 1 else 'centimes', ' et '
+    q, r = n//100, n%100
+    if q > 0:
+        o = '%s cent' % elm[q] 
+        o += ' ' if r > 0 else ' %s' % u1
+    n -= 100*q
+    if n in elm:
+        o += '%s %s' % (elm[n], unit)
+    else: 
+        p, r = (n//10)*10, n%10
+        if p in elm:
+            o += '%s %s %s' % (elm[p], elm[r], u1)
+    if c > 0:
+        o += op
+        if c in elm:
+            o += '%s %s' % (elm[c], unit)
+        else: 
+            p, r = (c//10)*10, c%10
+            o += '%s %s %s' % (elm[p], elm[r], u2)
+    return o.capitalize()
 
 
 if __name__ == '__main__':
