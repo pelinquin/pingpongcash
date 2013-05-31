@@ -74,6 +74,10 @@ IBAN_FORMAT = {
     'PT': 8,
 }
 
+__embedded_fonts__ = ('cmr10', 'cmr17')
+__fonts__ = ('Helvetica', 'Times-Roman', 'Courier', 'Times-Bold', 'Helvetica-Bold', 'Courier-Bold', 'Times-Italic', 'Helvetica-Oblique', 
+             'Courier-Oblique', 'Times-BoldItalic', 'Helvetica-BoldOblique', 'Courier-BoldOblique', 'Symbol') + __embedded_fonts__
+
 """
 Small is beautiful!
 """
@@ -434,7 +438,7 @@ def register_match(dusr, gr):
             dusr['__N'] = '%d' % (int(dusr['__N']) + 1)
             dusr[mail] = k
             dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
-            st = 'A' if mail == __mail__ else 'X'
+            st = 'A' if mail == __email__ else 'X'
             dusr[k] = '/'.join([  
                     mail,           #_MAIL 
                     'X',            #_STAT
@@ -524,7 +528,8 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_TRANS_, arg)):
             res = transaction_match(dusr, dtrx, reg.v.groups())
             if res: o += res
-            else: o = 'TRANSACTION OK (%s)' % reg.v.group(1) 
+            #else: o = 'TRANSACTION OK (%s)' % reg.v.group(1)
+            else: o, mime = pdf_digital_check(), 'application/pdf'
         else:
             o += 'not valid args %s' % arg
     else:
@@ -557,7 +562,8 @@ def application(environ, start_response):
                 o += 'IBAN NOT registered'                
     dtrx.close()
     dusr.close()    
-    start_response('200 OK', [('Content-type', mime), ('Content-Disposition', 'filename={}'.format(fname))])
+    start_response('200 OK', [('Content-type', mime)])
+    #start_response('200 OK', [('Content-type', mime), ('Content-Disposition', 'filename={}'.format(fname))])
     return [o if mime == 'application/pdf' else o.encode('utf8')] 
 
 def favicon():
@@ -807,7 +813,6 @@ def cmd(post, cd, host='localhost'):
         co.request('GET', serv + '?' + urllib.parse.quote(cd))
     return co.getresponse().read().decode('utf8')    
 
-
 ####### PDF #########
 
 class updf:
@@ -981,6 +986,288 @@ class updf:
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
         self.o += bytes('trailer<</Size %d/Root %d 0 R>>startxref %s\n' % (n+1, self.i, size), 'ascii') + b'%%EOF'
         return self.o
+
+## AFM PARSING
+
+def _to_int(x):
+    return int(float(x))
+
+def _to_str(x):
+    return x.decode('utf8')
+
+def _to_list_of_ints(s):
+    s = s.replace(b',', b' ')
+    return [_to_int(val) for val in s.split()]
+
+def _to_list_of_floats(s):
+    return [float(val) for val in s.split()]
+
+def _to_bool(s):
+    if s.lower().strip() in (b'false', b'0', b'no'): return False
+    else: return True
+
+def _sanity_check(fh):
+    """Check if the file at least looks like AFM. If not, raise :exc:`RuntimeError`."""
+    pos = fh.tell()
+    try:
+        line = bytes(fh.readline(), 'ascii')
+    finally:
+        fh.seek(pos, 0)
+    # AFM spec, Section 4: The StartFontMetrics keyword [followed by a version number] must be the first line in the file, and the
+    # EndFontMetrics keyword must be the last non-empty line in the file. We just check the first line.
+    if not line.startswith(b'StartFontMetrics'): raise RuntimeError('Not an AFM file')
+
+def _parse_header(fh):
+    """Reads the font metrics header (up to the char metrics) and returns
+    a dictionary mapping *key* to *val*.  *val* will be converted to the
+    appropriate python type as necessary; eg:
+        * 'False'->False
+        * '0'->0
+        * '-168 -218 1000 898'-> [-168, -218, 1000, 898]
+    Dictionary keys are
+      StartFontMetrics, FontName, FullName, FamilyName, Weight,ItalicAngle, IsFixedPitch, FontBBox, UnderlinePosition, UnderlineThickness, Version, Notice, EncodingScheme, CapHeight, XHeight, Ascender, Descender, StartCharMetrics"""
+    headerConverters = {
+        b'StartFontMetrics': float,
+        b'FontName': _to_str,
+        b'FullName': _to_str,
+        b'FamilyName': _to_str,
+        b'Weight': _to_str,
+        b'ItalicAngle': float,
+        b'IsFixedPitch': _to_bool,
+        b'FontBBox': _to_list_of_ints,
+        b'UnderlinePosition': _to_int,
+        b'UnderlineThickness': _to_int,
+        b'Version': _to_str,
+        b'Notice': _to_str,
+        b'EncodingScheme': _to_str,
+        b'CapHeight': float, # Is the second version a mistake, or
+        b'Capheight': float, # do some AFM files contain 'Capheight'? -JKS
+        b'XHeight': float,
+        b'Ascender': float,
+        b'Descender': float,
+        b'StdHW': float,
+        b'StdVW': float,
+        b'StartCharMetrics': _to_int,
+        b'CharacterSet': _to_str,
+        b'Characters': _to_int,
+        }
+    d = {}
+    while 1:
+        line = bytes(fh.readline(), 'ascii')
+        if not line: break
+        line = line.rstrip()
+        if line.startswith(b'Comment'): continue
+        lst = line.split(b' ', 1 )
+        key = lst[0]
+        if len( lst ) == 2:
+            val = lst[1]
+        else:
+            val = b''
+        #key, val = line.split(' ', 1)
+        try: d[key] = headerConverters[key](val)
+        except ValueError:
+            continue
+        except KeyError:
+            continue
+        if key==b'StartCharMetrics': return d
+    raise RuntimeError('Bad parse')
+
+def _parse_char_metrics(fh):
+    """Return a character metric dictionary.  Keys are the ASCII num of
+    the character, values are a (*wx*, *name*, *bbox*) tuple, where
+    *wx* is the character width, *name* is the postscript language
+    name, and *bbox* is a (*llx*, *lly*, *urx*, *ury*) tuple.
+    This function is incomplete per the standard, but thus far parses all the sample afm files tried."""
+    ascii_d = {}
+    name_d  = {}
+    while 1:
+        line = bytes(fh.readline(), 'ascii')
+        if not line: break
+        line = line.rstrip()
+        if line.startswith(b'EndCharMetrics'): return ascii_d, name_d
+        vals = line.split(b';')[:4]
+        if len(vals) !=4 : raise RuntimeError('Bad char metrics line: %s' % line)
+        num = _to_int(vals[0].split()[1])
+        wx = float(vals[1].split()[1])
+        name = vals[2].split()[1]
+        name = name.decode('ascii')
+        bbox = _to_list_of_floats(vals[3][2:])
+        bbox = list(map(int, bbox))
+        # Workaround: If the character name is 'Euro', give it the corresponding
+        # character code, according to WinAnsiEncoding (see PDF Reference).
+        if name == 'Euro':
+            num = 128
+        if num != -1:
+            ascii_d[num] = (wx, name, bbox)
+        name_d[name] = (wx, bbox)
+    raise RuntimeError('Bad parse')
+
+def _parse_kern_pairs(fh):
+    """Return a kern pairs dictionary; keys are (*char1*, *char2*) tuples and values are the kern pair value.  For example, a kern pairs line like
+    ``KPX A y -50`` will be represented as:: d[ ('A', 'y') ] = -50"""
+    line = bytes(fh.readline(), 'ascii')
+    if not line.startswith(b'StartKernPairs'): raise RuntimeError('Bad start of kern pairs data: %s'%line)
+    d = {}
+    while 1:
+        line = bytes(fh.readline(), 'ascii')
+        if not line: break
+        line = line.rstrip()
+        if len(line)==0: continue
+        if line.startswith(b'EndKernPairs'):
+            fh.readline()  # EndKernData
+            return d
+        vals = line.split()
+        if len(vals)!=4 or vals[0]!=b'KPX':
+            raise RuntimeError('Bad kern pairs line: %s'%line)
+        c1, c2, val = _to_str(vals[1]), _to_str(vals[2]), float(vals[3])
+        d[(c1,c2)] = val
+    raise RuntimeError('Bad kern pairs parse')
+
+def _parse_composites(fh):
+    """Return a composites dictionary.  Keys are the names of the
+    composites.  Values are a num parts list of composite information,
+    with each element being a (*name*, *dx*, *dy*) tuple.  Thus a
+    composites line reading: CC Aacute 2 ; PCC A 0 0 ; PCC acute 160 170 ;
+    will be represented as:: d['Aacute'] = [ ('A', 0, 0), ('acute', 160, 170) ]"""
+    d = {}
+    while 1:
+        line = fh.readline()
+        if not line: break
+        line = line.rstrip()
+        if len(line)==0: continue
+        if line.startswith(b'EndComposites'):
+            return d
+        vals = line.split(b';')
+        cc = vals[0].split()
+        name, numParts = cc[1], _to_int(cc[2])
+        pccParts = []
+        for s in vals[1:-1]:
+            pcc = s.split()
+            name, dx, dy = pcc[1], float(pcc[2]), float(pcc[3])
+            pccParts.append( (name, dx, dy) )
+        d[name] = pccParts
+    raise RuntimeError('Bad composites parse')
+
+def _parse_optional(fh):
+    """Parse the optional fields for kern pair data and composites
+    return value is a (*kernDict*, *compositeDict*) which are the
+    return values from :func:`_parse_kern_pairs`, and
+    :func:`_parse_composites` if the data exists, or empty dicts
+    otherwise"""
+    optional = { b'StartKernData' : _parse_kern_pairs, b'StartComposites' :  _parse_composites}
+    d = {b'StartKernData':{}, b'StartComposites':{}}
+    while 1:
+        line = bytes(fh.readline(), 'ascii')
+        if not line: break
+        line = line.rstrip()
+        if len(line)==0: continue
+        key = line.split()[0]
+        if key in optional: d[key] = optional[key](fh)
+    l = ( d[b'StartKernData'], d[b'StartComposites'] )
+    return l
+
+def parse_afm(fh):
+    """Parse the Adobe Font Metics file in file handle *fh*. Return value is a (*dhead*, *dcmetrics*, *dkernpairs*, *dcomposite*) tuple where
+    *dhead* is a :func:`_parse_header` dict, *dcmetrics* is a
+    :func:`_parse_composites` dict, *dkernpairs* is a
+    :func:`_parse_kern_pairs` dict (possibly {}), and *dcomposite* is a
+    :func:`_parse_composites` dict (possibly {}) """
+    _sanity_check(fh)
+    dhead =  _parse_header(fh)
+    dcmetrics_ascii, dcmetrics_name = _parse_char_metrics(fh)
+    doptional = _parse_optional(fh)
+    return dhead, dcmetrics_ascii, dcmetrics_name, doptional[0], doptional[1]
+
+class AFM:
+
+    def __init__(self, fh):
+        """Parse the AFM file in file object *fh*"""
+        (dhead, dcmetrics_ascii, dcmetrics_name, dkernpairs, dcomposite) = parse_afm(fh)
+        self._header = dhead
+        self._kern = dkernpairs
+        self._metrics = dcmetrics_ascii
+        self._metrics_by_name = dcmetrics_name
+        self._composite = dcomposite
+
+    def stw(self, s):
+        """ Return the string width (including kerning) """
+        totalw = 0
+        namelast = None
+        for c in s:
+            wx, name, bbox = self._metrics[ord(c)]
+            l,b,w,h = bbox
+            try: kp = self._kern[ (namelast, name) ]
+            except KeyError: kp = 0
+            totalw += wx + kp
+            namelast = name
+        return totalw 
+
+    def w(self, c):
+        """ Return the string width (including kerning) """
+        try: w = self._metrics[c][0]
+        except KeyError: w = 0
+        return w
+
+    def k0(self, s):
+        """ Return PDF kerning string """
+        o, l = '(', None
+        for c in s + ' ':
+            try: kp = - self._kern[(l, c)]
+            except KeyError: kp = 0
+            if l: o += '%s)%d(' % (l, kp) if kp else l
+            l = c
+        return o + ')'
+
+    def k(self, s):
+        """ Return PDF kerning string """
+        o, l = '', None
+        for c in s + ' ':
+            try: kp = - self._kern[(l, c)]
+            except KeyError: kp = 0
+            if l: o += '%s)%d(' % (l, kp) if kp else l
+            l = c
+        return o 
+
+
+##### PDF BUILD #####
+
+def pdf_digital_check():
+    "_"
+    own = 'toto'
+    today = '%s' % datetime.datetime.now()
+    page = [
+        (410,  18, '12F1', today[:19]), 
+        (30, 20, '14F1', own), 
+        (20, 260, '14F1', 'Intangible Good:'), 
+        ] 
+    a = updf(595, 842)
+    return a.gen([page])
+
+
+def pdf_digital_check1():
+    "_"
+    td, ig, slr, byr, url, ncl, sig = 'A', 'B', 'C', 'D', 'E', 'F', 'G'
+
+    try: ig.encode('ascii')
+    except: ig = '%s' % bytes(ig, 'utf8')
+    content = [[(100, 300, '32F1', 'Invoice'),
+                (420,  18, '12F1', td), 
+                (20,  400, '14F1', 'Buyer: %s' % byr), 
+                (20,  430, '14F1', 'Seller: %s' % slr), 
+                (20,  460, '14F1', 'Intangible Good:'), 
+                (300, 460, '18F1', ig), 
+                (300, 500, '9F1',  '%s instances sold' % ncl), 
+                (10,  630, '12F1', 'Digital Signature of dedicated IG \(ECDSA-521P\):'),
+                (10,  650, '10F3', sig),
+                (10,  782, '8F1',  url),
+                ]]
+    a = updf(595, 842)
+    return a.gen(content)
+
+def pdf_digital_check2():
+    content = [[(100, 300, '32F1', 'Invoice'), ]]
+    a = updf(595, 842)
+    return a.gen(content)
 
 #################### QR CODE ################
 
@@ -1643,9 +1930,10 @@ if __name__ == '__main__':
     #print (qr.svg(50,50,3))
     #test_crypto()
     #test_pdf()
-    img = 'www/favicon.png'
-    o = '<img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/>\n' % get_image(img)
-    print (o)
+    
+    #toto = b'%PDF-1.4\n%\xbf\xf7\xa2\xfe\n'
+    #print (toto, toto.decode('latin1'))
+    #print (''.join(map(chr,toto)))
 
     sys.exit()
 # End ⊔net!
