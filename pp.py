@@ -31,9 +31,9 @@ codeM -> mail/status/lock/regDate/FirstName/LastName/DisplayName/Secu/numbank/ib
           0     1      2     3       4         5           6      7      8     9    10    11        12       13       14      15   16   17
 """
 
-_MAIL = 0
-_STAT = 1
-_LOCK = 2
+_STAT = 0
+_LOCK = 1
+_MAIL = 2
 _DREG = 3
 _FRST = 4
 _LAST = 5
@@ -115,7 +115,7 @@ def get_image(img):
 def help_private(cm):
     "_"
     o = "<p>Cette page est votre page privée. Elle contient des informations qui ne sont pas divulguées aux personnes ou commerçants avec qui vous faites des transactions financières <a class=\"ppc\">Ping-Pong&nbsp;</a>.</p>"
-    o += "<p>Votre page puplique est <a href=\"./%s\">ici</a>. Elle est accessible directement depuis le code marchand en QRcode. Diffusez cette page publique ou ce QRcode à toute personne susceptible de vous verser de l'argent.</p>" % cm
+    o += "<p>Votre page puplique est <a href=\"/%s\">ici</a>. Elle est accessible directement depuis le code marchand en QRcode. Diffusez cette page publique ou ce QRcode à toute personne susceptible de vous verser de l'argent.</p>" % cm
     o += '<p></p>'
     o += "<p>Attention: le bloquage du compte doit être utilisé si vous perdez ou vous faites voler votre <i>iPhone</i> et il n'a de sens que si vous avez autorisation d'achât délivrée par votre banquier.</p>"
     o += "<p>Nous n'avons pas accès au solde de votre compte. La limite des montants d'achât est encadrée par les deux valeurs de seuils fournies par votre banquier. Vous pouvez le contacter votre négocier des valeur différentes.</p>"
@@ -407,7 +407,7 @@ def pubkey_match(dusr, gr):
     o = ''
     today = '%s' % datetime.datetime.now()
     raw, mail, pk1, pk2, sig = gr[0], gr[1], gr[2], gr[3], gr[4] 
-    if mail.encode('ascii') in dusr.keys(): 
+    if mail.encode('utf8') in dusr.keys(): 
         t, k = dusr[dusr[mail]].decode('utf8').split('/'), ecdsa()
         k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
         msg = '/'.join([today[:10], t[_PAWD], raw])
@@ -427,7 +427,7 @@ def register_match(dusr, gr):
     k, o = None, ''
     mail = gr[2]
     if gr[7] == gr[8]:
-        if mail.encode('ascii') in dusr.keys(): o = 'this e-mail is already registered!'
+        if mail.encode('utf8') in dusr.keys(): o = 'this e-mail is already registered!'
         else:
             while True:
                 epoch = '%s' % time.mktime(time.gmtime())
@@ -439,9 +439,9 @@ def register_match(dusr, gr):
             dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
             st = 'A' if mail == __email__ else 'X'
             dusr[k] = '/'.join([  
-                    mail,           #_MAIL 
                     st,             #_STAT
                     '',             #_LOCK
+                    mail,           #_MAIL 
                     epoch[:-2],     #_DREG
                     gr[0].title(),  #_FRST 
                     gr[1].title(),  #_LSAT
@@ -464,7 +464,7 @@ def login_match(dusr, gr):
     "_"
     cm, o = None, ''
     mail = gr[0]
-    if mail.encode('ascii') in dusr.keys():
+    if mail.encode('utf8') in dusr.keys():
         if h10(gr[1]).encode('utf8').decode('ascii') == (dusr[dusr[mail]].decode('utf8').split('/'))[_PAWD]: 
             if len(gr) > 2:
                 if gr[2] == gr[3]:
@@ -1065,12 +1065,9 @@ def _parse_char_metrics(fh):
         name = name.decode('ascii')
         bbox = _to_list_of_floats(vals[3][2:])
         bbox = list(map(int, bbox))
-        # Workaround: If the character name is 'Euro', give it the corresponding
-        # character code, according to WinAnsiEncoding (see PDF Reference).
-        if name == 'Euro':
-            num = 128
-        if num != -1:
-            ascii_d[num] = (wx, name, bbox)
+        # If the character name is 'Euro', give it the corresponding character code, according to WinAnsiEncoding.
+        if name == 'Euro': num = 128
+        if num != -1: ascii_d[num] = (wx, name, bbox)
         name_d[name] = (wx, bbox)
     raise RuntimeError('Bad parse')
 
@@ -1096,10 +1093,8 @@ def _parse_kern_pairs(fh):
     raise RuntimeError('Bad kern pairs parse')
 
 def _parse_composites(fh):
-    """Return a composites dictionary.  Keys are the names of the
-    composites.  Values are a num parts list of composite information,
-    with each element being a (*name*, *dx*, *dy*) tuple.  Thus a
-    composites line reading: CC Aacute 2 ; PCC A 0 0 ; PCC acute 160 170 ;
+    """Return a composites dictionary.  Keys are the names of the composites.  Values are a num parts list of composite information,
+    with each element being a (*name*, *dx*, *dy*) tuple.  Thus a composites line reading: CC Aacute 2 ; PCC A 0 0 ; PCC acute 160 170 ;
     will be represented as:: d['Aacute'] = [ ('A', 0, 0), ('acute', 160, 170) ]"""
     d = {}
     while 1:
@@ -1121,11 +1116,8 @@ def _parse_composites(fh):
     raise RuntimeError('Bad composites parse')
 
 def _parse_optional(fh):
-    """Parse the optional fields for kern pair data and composites
-    return value is a (*kernDict*, *compositeDict*) which are the
-    return values from :func:`_parse_kern_pairs`, and
-    :func:`_parse_composites` if the data exists, or empty dicts
-    otherwise"""
+    """Parse the optional fields for kern pair data and composites return value is a (*kernDict*, *compositeDict*) which are the
+    return values from :func:`_parse_kern_pairs`, and :func:`_parse_composites` if the data exists, or empty dicts otherwise"""
     optional = { b'StartKernData' : _parse_kern_pairs, b'StartComposites' :  _parse_composites}
     d = {b'StartKernData':{}, b'StartComposites':{}}
     while 1:
@@ -1200,17 +1192,7 @@ class AFM:
             l = c
         return o 
 
-
 ##### PDF BUILD #####
-
-def transaction_match22(dusr, dtrx, gr):
-    "_"
-    o = ''
-    today = '%s' % datetime.datetime.now()
-    trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6] 
-    if src.encode('ascii') in dusr.keys() and dst.encode('ascii') in dusr.keys(): 
-        tb, ts, k = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/'), ecdsa()
-
 
 def pdf_digital_check(dusr, dtrx, gr):
     "_"
@@ -1235,26 +1217,6 @@ def pdf_digital_check(dusr, dtrx, gr):
     #a = updf(595, 342) # A4
     a = updf(496, 227) # 175x80
     return a.gen([page])
-
-def old_pdf_check1():
-    "_"
-    td, ig, slr, byr, url, ncl, sig = 'A', 'B', 'C', 'D', 'E', 'F', 'G'
-
-    try: ig.encode('ascii')
-    except: ig = '%s' % bytes(ig, 'utf8')
-    content = [[(100, 300, '32F1', 'Invoice'),
-                (420,  18, '12F1', td), 
-                (20,  400, '14F1', 'Buyer: %s' % byr), 
-                (20,  430, '14F1', 'Seller: %s' % slr), 
-                (20,  460, '14F1', 'Intangible Good:'), 
-                (300, 460, '18F1', ig), 
-                (300, 500, '9F1',  '%s instances sold' % ncl), 
-                (10,  630, '12F1', 'Digital Signature of dedicated IG \(ECDSA-521P\):'),
-                (10,  650, '10F3', sig),
-                (10,  782, '8F1',  url),
-                ]]
-    a = updf(595, 842)
-    return a.gen(content)
 
 #################### QR CODE ################
 
