@@ -115,7 +115,8 @@ def get_image(img):
 def help_private(cm):
     "_"
     o = "<p>Cette page est votre page privée. Elle contient des informations qui ne sont pas divulguées aux personnes ou commerçants avec qui vous faites des transactions financières <a class=\"ppc\">Ping-Pong&nbsp;</a>.</p>"
-    o += "<p>Votre page puplique est <a href=\"/%s\">ici</a>. Elle est accessible directement depuis le code marchand en QRcode. Diffusez cette page publique ou ce QRcode à toute personne susceptible de vous verser de l'argent.</p>" % cm
+    
+    o += "<p>Votre page puplique est <a href=\"pp/%s\">ici</a>. Elle est accessible directement depuis le code marchand en QRcode. Diffusez cette page publique ou ce QRcode à toute personne susceptible de vous verser de l'argent.</p>" % cm
     o += '<p></p>'
     o += "<p>Attention: le bloquage du compte doit être utilisé si vous perdez ou vous faites voler votre <i>iPhone</i> et il n'a de sens que si vous avez autorisation d'achât délivrée par votre banquier.</p>"
     o += "<p>Nous n'avons pas accès au solde de votre compte. La limite des montants d'achât est encadrée par les deux valeurs de seuils fournies par votre banquier. Vous pouvez le contacter votre négocier des valeur différentes.</p>"
@@ -145,11 +146,10 @@ def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
 
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
-    dmsg = '| %s' % msg if msg else ''
+    dmsg = ' %s' % msg if msg else ''
     if t and not pub:
-        dmsg += 'Bonjour %s %s !' % (t[_FRST], t[_LAST])
+        dmsg = 'Bonjour %s %s, ' % (t[_FRST], t[_LAST]) + dmsg 
         o += '<p class="msg">%s</p>' % dmsg
-
 
     o += '<div id="wrap">'
     if cm == '':
@@ -375,7 +375,7 @@ def log(s, ip=''):
 
 _PAT_LOGIN_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})$'
 _PAT_LOST_   = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
-_PAT_INCOME_ = r'total=([\d\.]{1,7})&income=Editer une facture$'
+_PAT_INCOME_ = r'total=(\d{3}\.\d{2})&income=Editer une facture$'
 _PAT_CHPWD_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
 _PAT_REG_    = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 _PAT_PUBKEY_ = r'PK/1/(([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})/([^/]{80,100})/([^/]{80,100}))/(\S{160,200})$'
@@ -506,7 +506,7 @@ def application(environ, start_response):
             cm, res = login_match(dusr, reg.v.groups())
             if cm:
                 t = dusr[cm].decode('utf8').split('/')
-                o, mime = front_html(nb, cm.decode('ascii'), t, False, '', 'Mot de passe changé!'), 'text/html; charset=utf8'
+                o, mime = front_html(nb, cm.decode('ascii'), t, False, '', 'votre mot de passe a été changé!'), 'text/html; charset=utf8'
             else:
                 o += res
         elif reg(re.match(_PAT_REG_, arg)):
@@ -956,7 +956,61 @@ class updf:
         self.add('/Type/Catalog/Pages %d 0 R/Outlines %d 0 R/Names %d 0 R' % (pagesid, self.i-3, self.i))  
         n, size = len(self.pos), len(self.o)
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
-        self.o += bytes('trailer<</Size %d/Root %d 0 R>>startxref %s\n' % (n+1, self.i, size), 'ascii') + b'%%EOF'
+        self.o += bytes('trailer <</Size %d/Root %d 0 R>>startxref %s\n' % (n+1, self.i, size), 'ascii') + b'%%EOF'
+        return self.o
+
+    def gen1(self, document):
+        "generate a valid binary PDF file, ready for printing!"
+        np = len(document)
+        self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
+        self.add('/Linearized 1.0/L 1565/H [570 128]/O 11/E 947/N 111/T 1367')
+        ref, kids, seenall, fref, h, firstp = [], '', {}, [], {}, 0
+        for p, page in enumerate(document):
+            w, x, y = 12, 26, 798
+            t = bytes('.11 .35 1 rg %s %s %s %s re %s %s %s %s re %s %s %s %s re f ' % (x, y, w, w/4, x, y, w/4, 1.5*w, x+w, y, w/4, 1.5*w),'ascii')
+            t += bytes('0.88 0.95 1.0 rg %s %s %s %s re f ' % (self.mx, self.my, self.pw-2*self.mx, self.ph-2*self.my), 'ascii') # blue rect
+            for par in page: t += bytes(self.sgen(par), 'ascii')
+            t += b'ET\n'
+            self.adds(t)
+            ref.append('%s 0 R' % self.i)
+        for p, page in enumerate(document):
+            seen = {}
+            for par in page:
+                for m in re.compile('/\d+F(\d+)\{').finditer('/%s{%s' % (par[2], par[3])):
+                    seen[m.group(1)] = True
+            fref.append(' '.join(seen))
+            seenall.update(seen)
+        fc, lc = 0, 255 
+        for f in seenall:
+            if int(f) > len(__fonts__)-1:
+                print (f)
+                self.addarray([self.afm[int(f)-1].w(i) for i in range(fc, lc+1)])
+                indice = int(f)-len(__fonts__)+2
+                self.adds3(self.pfb[int(f)-len(__fonts__)+2])
+                bb = self.afm[int(f)-1]._header[b'FontBBox']
+                self.add('/Type/FontDescriptor/FontName/%s/Flags 4/FontBBox[%s]/Ascent 704/CapHeight 674/Descent -194/ItalicAngle 0/StemV 109/FontFile %s 0 R' % (__fonts__[int(f)-1], ''.join(['%s '% i for i in bb]), self.i))
+                self.add('/Type/Font/Subtype/Type1/BaseFont/%s/FirstChar %d/LastChar %s/Widths %s 0 R/FontDescriptor %d 0 R'% (__fonts__[int(f)-1], fc, lc, self.i-2 , self.i))
+            else:
+                self.addnull()
+                self.addnull()
+                self.addnull()
+                self.add('/Type/Font/Subtype/Type1/BaseFont/%s' % (__fonts__[int(f)-1]))
+            h[f] = self.i
+        aref = self.i
+        pref = np + self.i + 1
+        for p, page in enumerate(document):
+            fo = functools.reduce(lambda y, i: y+'/F%s %d 0 R' % (i, h[i]), fref[p].split(), '')
+            self.add('/Type/Page/Parent %d 0 R/Contents %s/Resources<</Font<<%s>> >> ' % (pref, ref[p], fo))
+            kids += '%s 0 R ' % self.i
+            if p == 1: firstp = self.i
+        self.add('/Type/Pages/MediaBox[0 0 %s %s]/Count %d/Kids[%s]' % (self.pw, self.ph, np, kids[:-1]))
+        pagesid = self.i
+        self.add('/Type/Outlines/First %s 0 R/Last %s 0 R/Count 1' % (self.i+2, self.i+2))
+        self.add('/Title (Document)/Parent %d 0 R/Dest [%d 0 R /Fit]' % (self.i, firstp)) 
+        self.add('/Type/Catalog/Pages %d 0 R/Outlines %d 0 R/Names %d 0 R' % (pagesid, self.i-3, self.i))  
+        n, size = len(self.pos), len(self.o)
+        self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
+        self.o += bytes('trailer <</Size %d/Root %d 0 R>>startxref %s\n' % (n+1, self.i, size), 'ascii') + b'%%EOF'
         return self.o
 
 ## AFM PARSING
@@ -1770,7 +1824,10 @@ def test_crypto():
     print (verify(RSA_E, kBPUB[1], msg, s))    
 
 def test_pdf():
-    pass
+    page = [ (130, 100, '32F1', 'Hello'), ] 
+    a = updf(496, 227) 
+    o = a.gen([page])
+    open('toto.pdf', 'bw').write(o)    
 
 ############################################
 
@@ -1910,8 +1967,9 @@ def num2word(n, c):
 
 def num2word_fr(n, c):
     elm = {0:"zéro", 1:"un", 2:"deux", 3:"trois", 4:"quatre", 5:"cinq", 6:"six", 7:"sept", 8:"huit", 9:"neuf", 10:"dix", 
-           11:"onze", 12:"douze", 13:"treize", 14:"quatorze", 15:"quinze", 16:"seize", 17:"dix sept", 18:"dix huit", 
-           19:"dix neuf", 20:"ving", 30:"trente", 40:"quarante", 50:"cinquante", 60:"soixante", 70:"soixante dix", 80:"quatre vingt", 90:"quatre ving dix"}
+           11:"onze", 12:"douze", 13:"treize", 14:"quatorze", 15:"quinze", 16:"seize", 17:"dix-sept", 18:"dix-huit", 
+           19:"dix-neuf", 20:"vingt", 30:"trente", 40:"quarante", 50:"cinquante", 60:"soixante", 70:"soixante-dix", 
+           80:"quatre-vingts", 90:"quatre-vingt-dix"}
     o, u1, u2, op = '', 'euro' if n in (0,1) else 'euros', 'centimes' if n == 1 else 'centimes', ' et '
     q, r = n//100, n%100
     if q > 0:
@@ -1919,20 +1977,23 @@ def num2word_fr(n, c):
         o += ' ' if r > 0 else ' %s' % u1
     n -= 100*q
     if n in elm:
-        o += '%s %s' % (elm[n], unit)
+        o += '%s %s' % (elm[n], u1)
     else: 
         p, r = (n//10)*10, n%10
         if p in elm:
-            o += '%s %s %s' % (elm[p], elm[r], u1)
+            o += '%s-%s %s' % (elm[p], elm[r], u1)
     if c > 0:
         o += op
         if c in elm:
-            o += '%s %s' % (elm[c], unit)
+            o += '%s %s' % (elm[c], u2)
         else: 
             p, r = (c//10)*10, c%10
-            o += '%s %s %s' % (elm[p], elm[r], u2)
+            o += '%s-%s %s' % (elm[p], elm[r], u2)
     return o.capitalize()
 
+def test_num():
+    for i in range(100):
+        print (num2word_fr(i, 0))
 
 if __name__ == '__main__':
     #test()
@@ -1942,10 +2003,7 @@ if __name__ == '__main__':
     #print (qr.svg(50,50,3))
     #test_crypto()
     #test_pdf()
+    test_num()
     
-    #toto = b'%PDF-1.4\n%\xbf\xf7\xa2\xfe\n'
-    #print (toto, toto.decode('latin1'))
-    #print (''.join(map(chr,toto)))
-
     sys.exit()
 # End ⊔net!
