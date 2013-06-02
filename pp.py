@@ -33,8 +33,8 @@ codeM -> mail/status/lock/regDate/FirstName/LastName/DisplayName/Secu/numbank/ib
 
 _STAT = 0
 _LOCK = 1
-_MAIL = 2
-_DREG = 3
+_DREG = 2
+_MAIL = 3
 _FRST = 4
 _LAST = 5
 _PUBN = 6
@@ -124,7 +124,7 @@ def help_private(cm):
 
 def help_register():
     "_"
-    o = "<p>Le mot de passe choisi ne permet que d'accéder au statut de votre compte et éventuellement de bloquer l'autorisation de dépenser de l'argent si vous perdez votre <i>iPhone</i>, mais en aucun cas ce mot de passe permet de faire des achâts. Pour donner de l'argent à autre personne, il vous faut obligatoirement utiliser le code <b>alpha-pin</b> de votre <i>iPhone</i>, après création d'un jeux de clés cryptographiques, uniquement sur téléphone, déconnecté de l'Internet et enfin après acquisition du certificat de votre banquier qui confirmera le lien avec votre compte bancaire. Personne (ni l'opérateur téléphonique, ni le banquier, ni nos administrateurs informatique, ni l'Etat et aucun hacker) à part vous ne connaît ou ne doit connaître votre code <b>alpha-pin</b>, et si vous le perdez ou vi vous changez de téléphone, vous devrez simplement re-suivre la procédure d'enregistrement. Vous récupérez bien entendu le délai de cotisation de votre ancien compte.</p>"
+    o = "<p>Le mot de passe choisi ne permet que d'accéder au statut de votre compte et éventuellement de bloquer l'autorisation de dépenser de l'argent si vous perdez votre <i>iPhone</i>, mais en aucun cas ce mot de passe permet de faire des achâts. Pour donner de l'argent à une autre personne, il vous faut obligatoirement utiliser le code <b>alpha-pin</b> de votre <i>iPhone</i>, après création d'un jeux de clés cryptographiques, uniquement sur téléphone, déconnecté de l'Internet et enfin après acquisition du certificat de votre banquier qui confirmera le lien avec votre compte bancaire. Personne (ni l'opérateur téléphonique, ni le banquier, ni nos administrateurs informatique, ni l'Etat et aucun hacker) à part vous ne connaît ou ne doit connaître votre code <b>alpha-pin</b>, et si vous le perdez ou vi vous changez de téléphone, vous devrez simplement re-suivre la procédure d'enregistrement. Vous récupérez bien entendu le délai de cotisation de votre ancien compte.</p>"
     o += "<p>Vous pouvez vous enregistrer même si vous ne possédez pas d'<i>iPhone</i>. Vous ne pourrez que recevoir de l'argent et pas en donner.</p>"
     o += "<p>Le fait de nous communiquer votre IBAN+BIC ne permet à personne, nous compris, de retirer de l'argent sur votre compte. Il faudrait pour cela votre signature numérique réalisée uniquement par votre <i>iPhone</i> et avec la connaissance de votre code <b>alpha-pin</b>. Votre banquier doit respecter les directives du virement SEPA et toute transaction n'est utilisable qu'une seule fois. Afin de mieux encore garantir votre confidentialité, aucun de vos correspondants autre que les banquiers et nous, n'aura accès à votre IBAN, BIC, ni à votre e-mail. Vous utilisez et diffusez un <i>code marchand</i> représenté par un QRcode reçu par e-mail si l'enregistrement est validé. En revanche, ce <i>code marchand</i> permet à la personne qui le possède de vous verser de l'argent et vous en êtes notifiés. Nous référençons ce jour 21065 agences bancaires en France et si par malchance votre agence n'est pas trouvée par votre IBAN, un email vous invitera à nous donner l'adresse exacte de celle ci.</p>"
     o += "<p>Le numéro de sécurité sociale est optionel. Il vous permet de demander la validation (un certificat) de votre identité numérique à une administration locale, et ainsi guarantir l'unicité de cette identité. Ce qui sera requis pour de futures opérations citoyenne comme le vote par Internet. Cette fonction est indépendante du moyen de paiement numérique mais elle suit le même principe de sécurité, en particulier une authentification forte par votre <i>iPhone</i> et la connaissance du code <b>alpha-pin</b> associé.</p>"
@@ -441,8 +441,8 @@ def register_match(dusr, gr):
             dusr[k] = '/'.join([  
                     st,             #_STAT
                     '',             #_LOCK
-                    mail,           #_MAIL 
                     epoch[:-2],     #_DREG
+                    mail,           #_MAIL 
                     gr[0].title(),  #_FRST 
                     gr[1].title(),  #_LSAT
                     gr[6],          #_PUBN
@@ -900,9 +900,16 @@ class updf:
             
             t += bytes('0.88 0.95 1.0 rg %s %s %s %s re f ' % (self.mx, self.my, self.pw-2*self.mx, self.ph-2*self.my), 'ascii') # blue rect
 
-            qr = QRCode(data='hvbqidskdshkdshkjdshjdshdskdshjksdhdshkdsjdshjkdshYqzQ')
-            t += qr.pdf(40,self.ph-144,2)
-            t += bytes('1.0 1.0 1.0 rg 1 0 0 1 40 %s Tm /F1 72 Tf (Digital Check)Tj 0.0 0.0 0.0 rg ' % (self.ph-120), 'ascii')
+            t += bytes('1.0 1.0 1.0 rg %s %s %s %s re f ' % (self.mx, self.my, 125, 125), 'ascii') # blue rect
+
+            t += bytes('0 0 1.0 rg 1 0 0 1 10 %s Tm /F1 16 Tf (Ping-Pong-Cash)Tj 0.0 0.0 0.0 rg ' % (self.ph-23), 'ascii')
+            t += bytes('1.0 1.0 1.0 rg 1 0 0 1 168 %s Tm /F1 76 Tf (Digital)Tj 0.0 0.0 0.0 rg ' % (self.ph-90), 'ascii')
+            t += bytes('1.0 1.0 1.0 rg 1 0 0 1 168 %s Tm /F1 76 Tf (Check)Tj 0.0 0.0 0.0 rg ' % (self.ph-180), 'ascii')
+
+            data = '1370111119/Sxlhri/Sxlhri/383.79/AaZGdQddQvw47GUkoS7k5owrsU9J34YwUQ0Mnhf9WbSo_BYP2AlhEXC4pNvYFXUZ6_HKwdbnvIZLqSGR4nT-1Rlf/AW331rHLN4HC75pz7BKmbpPxxZChRgXMfAHkgadO13z5KKcGr3e7Algnuq8YFAA4XCIOMELJLprsBw7PCTaEw0rB'
+            qr = QRCode(data=data)
+            t += qr.pdf(10,self.ph-105,2)
+
             for par in page: t += bytes(self.sgen(par), 'ascii')
             t += b'ET\n'
             self.adds(t)
@@ -1256,17 +1263,19 @@ def pdf_digital_check(dusr, dtrx, gr):
     v1, v2 = int(val[:3]), int(val[4:])
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page = [
-        (30,  20, '12F1', 'Date: %s' %date_gen), 
-        (400,  26, '16F1', val), 
-        (300,  144, '10F1', 'Digital Signature:'), 
-        (130,  160, '9F3', sig[:59]), 
-        (130,  170, '9F3', sig[59:118]), 
-        (130,  180, '9F3', sig[118:]), 
-        (200,  196, '8F1', 'Signed message:'), (280,  196, '9F3', msg),
-        (30,  40, '10F1', 'PAY: '), (80,  40, '16F1', dst),
-        (20,  60, '12F6', num2word_fr(v1, v2)),
-        (30,  100, '10F1', 'FROM: '), (80,  100, '16F1', src), 
-        (20,  110, '8F1', 'Public key:'), (20,  120, '8F3', pk1), (20,  128, '8F3', pk2),
+        (200,  144, '12F1', 'Date: %s' %date_gen), 
+        (400,  26, '16F1', val+ ' E'), 
+        (380,  144, '10F1', 'Digital Signature:'), (380,  135, '4F1', 'EC-DSA-521P'),
+        (138,  160, '9F3', sig[:59]), 
+        (138,  170, '9F3', sig[59:118]), 
+        (138,  180, '9F3', sig[118:]), 
+        (196,  196, '8F1', 'Signed message:'), (270,  196, '9F3', msg),
+        (30,  40, '10F1', 'PAY: '), (80,  40, '16F1', dst), (170,  40, '12F8', ts[_PUBN]),
+        (12,  60, '12F6', num2word_fr(v1, v2)),
+        (12,  69, '8F3', num2word(v1, v2)),
+        (150,  90, '10F1', 'FROM: '), (200,  90, '16F1', src), (290,  90, '12F8', tb[_PUBN]), 
+        (160,  100, '8F1', 'Public key:'), 
+        (220,  100, '8F3', pk1[:44]), (220,  108, '8F3', pk1[44:]), (220,  116, '8F3', pk2[:44]), (220,  124, '8F3', pk2[44:]),
         ] 
     #a = updf(595, 342) # A4
     a = updf(496, 227) # 175x80
@@ -1824,7 +1833,7 @@ def test_crypto():
     print (verify(RSA_E, kBPUB[1], msg, s))    
 
 def test_pdf():
-    page = [ (130, 100, '32F1', 'Hello'), ] 
+    page = [ (150, 100, '32F1', 'Hello Wordl!'),(150, 140, '32F14', 'Hello World!'), ] 
     a = updf(496, 227) 
     o = a.gen([page])
     open('toto.pdf', 'bw').write(o)    
@@ -2002,8 +2011,8 @@ if __name__ == '__main__':
     #qr = QRCode(data='hvbqi6i/eOYqzQ')
     #print (qr.svg(50,50,3))
     #test_crypto()
-    #test_pdf()
-    test_num()
+    test_pdf()
+    #test_num()
     
     sys.exit()
 # End ⊔net!
