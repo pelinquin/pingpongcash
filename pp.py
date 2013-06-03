@@ -379,7 +379,7 @@ _PAT_INCOME_ = r'total=(\d{3}\.\d{2})&income=Editer une facture$'
 _PAT_CHPWD_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
 _PAT_REG_    = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 _PAT_PUBKEY_ = r'PK/1/(([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})/([^/]{80,100})/([^/]{80,100}))/(\S{160,200})$'
-_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{6})/(B|C|\d{3}\.\d{2}))/(\S{160,200})$'
+_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{6})/(B|C|\d{5}))/(\S{160,200})$'
 
 def transaction_match(dusr, dtrx, gr):
     "_"
@@ -527,7 +527,6 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_TRANS_, arg)):
             res = transaction_match(dusr, dtrx, reg.v.groups())
             if res: o += res
-            #else: o = 'TRANSACTION OK (%s)' % reg.v.group(1)
             else: o, mime = pdf_digital_check(dusr, dtrx, reg.v.groups()), 'application/pdf'
         else:
             o += 'not valid args %s' % arg
@@ -876,11 +875,11 @@ class updf:
         self.add('/Type/Page/Parent 2 0 R/Resources <<%s %s >>/Contents 10 0 R' % (fonts, img))
         enc = ' /Encoding << /Type /Encoding /Differences [ 1 /Euro /agrave /eacute /egrace /ccedilla] >> '
         for f in ft: self.add('/Type /Font /Subtype /Type1 /BaseFont /%s %s' % (__fonts__[f-1], enc))
-
-        self.addimg('/home/laurent/pingpongcash/header.img', 9) 
-        self.addmsk('/home/laurent/pingpongcash/header.msk') 
-
-        o = bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402, 184, 78, 25), 'ascii') 
+        here = os.path.dirname(os.path.abspath(__file__))
+        self.addimg('%s/www/header.img' % here, 9) 
+        self.addmsk('%s/www/header.msk' % here) 
+        o = bytes('0 1 1 RG 1 1 .9 rg 0 0 %s %s re b ' % (self.pw, self.ph), 'ascii') 
+        o += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402, 184, 78, 25), 'ascii')
         o += b'.84 .84 .84 rg BT 1 0 0 1 200 34 Tm /F1 240 Tf (\001) Tj ET 0 0 0 rg '
         o += self.text(document[0]) + code 
         self.adds( o + b'144 0 0 40.8 1 184 cm /Im1 Do ')
@@ -894,29 +893,28 @@ def pdf_digital_check(dusr, dtrx, gr):
     trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6]
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     tb, ts = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/')
-    v1, v2 = int(val[:3]), int(val[4:])
+    v1, v2 = val[:3], val[3:]
     tab = msg.split('/')
-    val = re.sub('\.', ',', val)
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page = [
         (200,  144, 1, 12, 'Date: %s' %date_gen),
-        (400,  26, 1, 16, '%s \001' % val), 
-        (380,  144, 1, 10, 'Digital Signature:'), (380,  135, 1, 4, 'EC-DSA-521P'),
-        (140,  160, 3, 9, sig[:59]), 
-        (140,  170, 3, 9, sig[59:118]), 
-        (140,  180, 3, 9, sig[118:]), 
-        (140,  196, 1, 8, 'Signed message:'), (270,  196, 3, 9, msg),
+        (400,  26, 1, 16, '%s,%s \001' % (v1,v2)), 
+        (380,  147, 1, 10, 'Digital Signature:'), (380,  138, 1, 4, 'EC-DSA-521P'),
+        (145,  160, 3, 9, sig[:59]), 
+        (145,  170, 3, 9, sig[59:118]), 
+        (145,  180, 3, 9, sig[118:]), 
+        (145,  196, 1, 8, 'Signed message:'), (220,  196, 3, 9, msg),
         (354,  210, 1, 5, 'Anti Fishing URL:'), (400,  210, 6, 7, 'http://\002\002.eu/%s' % src),
         (30,  40, 1, 10, 'PAY: '), (80,  40, 1, 16, dst), (170,  40, 8, 12, ts[_PUBN]),
-        (0,  60, 6, 11, num2word_fr(v1, v2)),
-        (0,  69, 3, 8, num2word(v1, v2)),
-        (140,  90, 1, 10, 'FROM: '), (200,  90, 1, 16, src), (290,  90, 8, 12, tb[_PUBN]), 
+        (0,  60, 6, 11, num2word_fr(int(v1), int(v2))),
+        (0,  69, 3, 8, num2word(int(v1), int(v2))),
+        (145,  90, 1, 10, 'FROM: '), (200,  90, 1, 16, src), (296,  90, 8, 12, tb[_PUBN]), 
         (160,  100, 1, 8, 'Public key:'), 
         (220,  100, 3, 8, pk1[:44]), (220,  108, 3, 8, pk1[44:]), (220,  116, 3, 8, pk2[:44]), (220,  124, 3, 8, pk2[44:]),
         ] 
     qr = QRCode(data='http://xn--0caa.eu/pp/%s/%s' % (msg, sig))
     a = updf(496, 227) # 175x80
-    return a.gen([page], qr.pdf(15, 128, 2))
+    return a.gen([page], qr.pdf(17, 132, 2))
 
 #################### QR CODE ################
 
@@ -1376,6 +1374,7 @@ class QRCode:
     def pdf(self, ox=0, oy=0, d=10):
         "_"
         o, mc = b'0 0 0 rg ', self.m_count
+        o += bytes('0 0 0 rg BT 1 0 0 1 153 6 Tm /F1 4 Tf (%d) Tj ET 0 0 0 rg ' % self.m_count, 'ascii')
         for r in range(mc):
             k = 0
             for c in range(mc):
