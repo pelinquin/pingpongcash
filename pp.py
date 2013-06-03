@@ -823,14 +823,23 @@ class updf:
         self.i = 0
         self.pos = []
         self.o = b'%PDF-1.4\n%'
-        fpath = '/cup/fonts/'
-        self.afm = [AFM(open(fpath + '%s.afm' % f)) for f in __fonts__]
-        self.pfb = [open(fpath + '%s.pfb' % f, 'rb').read() for f in __embedded_fonts__]
     
     def add(self, line):
         self.pos.append(len(self.o))
         self.i += 1
         self.o += bytes('%d 0 obj<<%s>>endobj\n' % (self.i, line), 'ascii')
+
+    def addimg(self, img, rmsk):
+        self.pos.append(len(self.o))
+        self.i += 1
+        self.o += bytes('%s 0 obj << /Type /XObject /Subtype /Image /Width 600 /Height 170 /BitsPerComponent 8 /ColorSpace /DeviceRGB /SMask %d 0 R /Length 44037 /Filter /FlateDecode >> stream\n' % (self.i, rmsk), 'ascii')
+        self.o += open(img, 'rb').read() + bytes('endstream endobj\n', 'ascii')
+
+    def addmsk(self, msk):
+        self.pos.append(len(self.o))
+        self.i += 1
+        self.o += bytes('%s 0 obj << /Type /XObject /Subtype /Image /Width 600 /Height 170 /BitsPerComponent 8 /ColorSpace /DeviceGray /Length 15990 /Filter /FlateDecode >> stream\n' % self.i, 'ascii')
+        self.o += open(msk, 'rb').read() + bytes('endstream endobj\n', 'ascii')
     
     def addnull(self):
         self.pos.append(len(self.o))
@@ -851,407 +860,34 @@ class updf:
         self.o += stream
         self.o += b'endstream endobj\n'
 
-    def adds3(self, stream):
-        self.pos.append(len(self.o))
-        self.i += 1
-        fil = '/Filter/FlateDecode' if self.binary else ''
-        len1, len2, len3 = 0, 0, 0
-        m = re.search(b'currentfile eexec', stream)
-        if m: len1 = m.start()+18
-        m = re.search(b'0000000000', stream)
-        if m: len2 = m.start() - len1
-        len3 = len(stream) - len1 - len2
-        if self.binary: stream = zlib.compress(stream) 
-        ltot = len(stream)
-        self.o += bytes('%d 0 obj<</Length1 %d/Length2 %d/Length3 %d/Length %d%s>>stream\n' % (self.i, len1, len2, len3, ltot, fil), 'ascii')
-        self.o += stream
-        self.o += b'endstream endobj\n'
 
-    def kern(self, s, a):
-        ""
-        return ')-338('.join([a.k(l) for l in s.split()])
+    def text(self, tab):
+        o = b'BT '
+        for (x, y, ft, size, s) in tab: o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (x+self.mx, self.ph-self.my-y, ft, size, s), 'ascii')
+        return o + b' ET '
 
-    def sgen(self, par):
-        "stream parser"
-        if par[3] == '⊔':
-            w, x, y = int(par[2].split('F')[0]), par[0]+self.mx, self.ph-par[1]-self.my
-            o = '.11 .35 1.0 rg %s %s %s %s re %s %s %s %s re %s %s %s %s re f 0 0 0 rg ' % (x, y, w, w/4, x, y, w/4, 1.5*w, x+w, y, w/4, 1.5*w)
-        else:
-            ff, other = par[2].split('F'), False
-            o = '1 0 0 1 %s %s Tm /F%s %s Tf %s TL ' % (par[0]+self.mx, self.ph-par[1]-self.my, ff[1], ff[0], 1.2*int(ff[0]))
-            for m in re.compile(r'([^\n]+)').finditer(par[3]):
-                o += '%s[(%s)]TJ ' % ('T* ' if other else '', self.kern(m.group(1), self.afm[int(ff[1])-1])) 
-                other = True
-        return o
-
-    def gen(self, document):
-        "generate a valid binary PDF file, ready for printing!"
-        np = len(document)
-        A4_h = 798
+    def gen(self, document, code):
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
-        self.add('/Linearized 1.0/L 1565/H [570 128]/O 11/E 947/N 111/T 1367')
-        ref, kids, seenall, fref, h, firstp = [], '', {}, [], {}, 0
-        for p, page in enumerate(document):
-            w, x, y = 12, 26, 798
-            t = bytes('.11 .35 1 rg %s %s %s %s re %s %s %s %s re %s %s %s %s re f ' % (x, y, w, w/4, x, y, w/4, 1.5*w, x+w, y, w/4, 1.5*w),'ascii')
-            # border
-            #t += bytes('BT 1 w 0.9 0.9 0.9 RG %s %s %s %s re S 0 0 0 RG 0 Tc ' % (self.mx, self.my, self.pw-2*self.mx, self.ph-2*self.my), 'ascii')
-            #t += b'0.99 0.99 0.99 rg 137 150 50 400 re f 137 100 321 50 re f 408 150 50 400 re f ' # U light
-            
-            t += bytes('0.88 0.95 1.0 rg %s %s %s %s re f ' % (self.mx, self.my, self.pw-2*self.mx, self.ph-2*self.my), 'ascii') # blue rect
+        self.add('/Type /Catalog /Pages 2 0 R')
+        self.add('/Type /Pages /MediaBox [ 0 0 %d %d ] /Count 1 /Kids [ 3 0 R ]' % (self.pw, self.ph))
+        ft = (1, 3, 6, 8)
+        fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f,i+4)  for i,f in enumerate(ft)]) + ' >>'
+        img = '/ColorSpace << /pgfprgb [/Pattern /DeviceRGB] >> /XObject << /Im1 8 0 R >>'
+        self.add('/Type/Page/Parent 2 0 R/Resources <<%s %s >>/Contents 10 0 R' % (fonts, img))
+        enc = ' /Encoding << /Type /Encoding /Differences [ 1 /Euro /eacute /egrace /ccedilla] >> '
+        for f in ft: self.add('/Type /Font /Subtype /Type1 /BaseFont /%s %s' % (__fonts__[f-1], enc))
 
-            t += bytes('1.0 1.0 1.0 rg %s %s %s %s re f ' % (self.mx, self.my, 125, 125), 'ascii') # blue rect
+        self.addimg('/home/laurent/pingpongcash/header.img', 9) 
+        self.addmsk('/home/laurent/pingpongcash/header.msk') 
 
-            t += bytes('0 0 1.0 rg 1 0 0 1 10 %s Tm /F1 16 Tf (Ping-Pong-Cash)Tj 0.0 0.0 0.0 rg ' % (self.ph-23), 'ascii')
-            t += bytes('1.0 1.0 1.0 rg 1 0 0 1 168 %s Tm /F1 76 Tf (Digital)Tj 0.0 0.0 0.0 rg ' % (self.ph-90), 'ascii')
-            t += bytes('1.0 1.0 1.0 rg 1 0 0 1 168 %s Tm /F1 76 Tf (Check)Tj 0.0 0.0 0.0 rg ' % (self.ph-180), 'ascii')
-
-            data = '1370111119/Sxlhri/Sxlhri/383.79/AaZGdQddQvw47GUkoS7k5owrsU9J34YwUQ0Mnhf9WbSo_BYP2AlhEXC4pNvYFXUZ6_HKwdbnvIZLqSGR4nT-1Rlf/AW331rHLN4HC75pz7BKmbpPxxZChRgXMfAHkgadO13z5KKcGr3e7Algnuq8YFAA4XCIOMELJLprsBw7PCTaEw0rB'
-            qr = QRCode(data=data)
-            t += qr.pdf(10,self.ph-105,2)
-
-            for par in page: t += bytes(self.sgen(par), 'ascii')
-            t += b'ET\n'
-            self.adds(t)
-            ref.append('%s 0 R' % self.i)
-        for p, page in enumerate(document):
-            seen = {}
-            for par in page:
-                for m in re.compile('/\d+F(\d+)\{').finditer('/%s{%s' % (par[2], par[3])):
-                    seen[m.group(1)] = True
-            fref.append(' '.join(seen))
-            seenall.update(seen)
-        fc, lc = 0, 255 
-        for f in seenall:
-            #print (f, len(__fonts__)-3)
-            if int(f) > len(__fonts__)-1:
-            #if int(f) > len(__fonts__)-3:
-                print (f)
-                self.addarray([self.afm[int(f)-1].w(i) for i in range(fc, lc+1)])
-                indice = int(f)-len(__fonts__)+2
-                self.adds3(self.pfb[int(f)-len(__fonts__)+2])
-                bb = self.afm[int(f)-1]._header[b'FontBBox']
-                self.add('/Type/FontDescriptor/FontName/%s/Flags 4/FontBBox[%s]/Ascent 704/CapHeight 674/Descent -194/ItalicAngle 0/StemV 109/FontFile %s 0 R' % (__fonts__[int(f)-1], ''.join(['%s '% i for i in bb]), self.i))
-                self.add('/Type/Font/Subtype/Type1/BaseFont/%s/FirstChar %d/LastChar %s/Widths %s 0 R/FontDescriptor %d 0 R'% (__fonts__[int(f)-1], fc, lc, self.i-2 , self.i))
-            else:
-                self.addnull()
-                self.addnull()
-                self.addnull()
-                self.add('/Type/Font/Subtype/Type1/BaseFont/%s' % (__fonts__[int(f)-1]))
-            h[f] = self.i
-        #nba = ['www.google.com']
-        nba = []
-        for a in nba:
-            #self.add('/Type/Annot/Subtype/Link/Border[16 16 1]/Rect[150 600 270 640]/Dest[10 0 R/Fit]')
-            self.add('/Type/Annot/Subtype/Link/Border[16 16 1]/Rect[150 600 270 640]/A<</Type/Action/S/URI/URI(http://pelinquin/u?beamer)>> ')
-            #self.add('/Type/Annot/Subtype/Link/Border[16 16 1]/Rect[150 600 270 640]/A<</S/URL/URL(./u?beamer)>> ')
-            #self.add('/Type/Annot/Subtype/Link/Border[16 16 1]/K<</Type/MCR/MCID 0/Pg 10 0 R>>/A<</S/URL/URL(http://pelinquin/u?beamer)>> ')
-        aref = self.i
-        pref = np + self.i + 1
-        for p, page in enumerate(document):
-            fo = functools.reduce(lambda y, i: y+'/F%s %d 0 R' % (i, h[i]), fref[p].split(), '')
-            #self.add('/Type/Page/Parent %d 0 R/Contents %s/Annots[%d 0 R]/Resources<</Font<<%s>> >> ' % (pref, ref[p], aref, fo))
-            self.add('/Type/Page/Parent %d 0 R/Contents %s/Resources<</Font<<%s>> >> ' % (pref, ref[p], fo))
-            kids += '%s 0 R ' % self.i
-            if p == 1: firstp = self.i
-        self.add('/Type/Pages/MediaBox[0 0 %s %s]/Count %d/Kids[%s]' % (self.pw, self.ph, np, kids[:-1]))
-        pagesid = self.i
-        self.add('/Type/Outlines/First %s 0 R/Last %s 0 R/Count 1' % (self.i+2, self.i+2))
-        self.add('/Title (Document)/Parent %d 0 R/Dest [%d 0 R /Fit]' % (self.i, firstp)) 
-        #self.add('/FS /URL /F (http://www.google.com)')
-        #self.add('/URLS[%s 0 R]' % self.i)
-        self.add('/Type/Catalog/Pages %d 0 R/Outlines %d 0 R/Names %d 0 R' % (pagesid, self.i-3, self.i))  
+        o = bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (400, 184, 80, 25), 'ascii') 
+        o += b'.84 .84 .84 rg BT 1 0 0 1 200 50 Tm /F1 200 Tf (\001) Tj ET 0 0 0 rg '
+        o += self.text(document[0]) + code 
+        self.adds( o + b'144 0 0 40.8 1 184 cm /Im1 Do ')
         n, size = len(self.pos), len(self.o)
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
-        self.o += bytes('trailer <</Size %d/Root %d 0 R>>startxref %s\n' % (n+1, self.i, size), 'ascii') + b'%%EOF'
+        self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
         return self.o
-
-    def gen1(self, document):
-        "generate a valid binary PDF file, ready for printing!"
-        np = len(document)
-        self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
-        self.add('/Linearized 1.0/L 1565/H [570 128]/O 11/E 947/N 111/T 1367')
-        ref, kids, seenall, fref, h, firstp = [], '', {}, [], {}, 0
-        for p, page in enumerate(document):
-            w, x, y = 12, 26, 798
-            t = bytes('.11 .35 1 rg %s %s %s %s re %s %s %s %s re %s %s %s %s re f ' % (x, y, w, w/4, x, y, w/4, 1.5*w, x+w, y, w/4, 1.5*w),'ascii')
-            t += bytes('0.88 0.95 1.0 rg %s %s %s %s re f ' % (self.mx, self.my, self.pw-2*self.mx, self.ph-2*self.my), 'ascii') # blue rect
-            for par in page: t += bytes(self.sgen(par), 'ascii')
-            t += b'ET\n'
-            self.adds(t)
-            ref.append('%s 0 R' % self.i)
-        for p, page in enumerate(document):
-            seen = {}
-            for par in page:
-                for m in re.compile('/\d+F(\d+)\{').finditer('/%s{%s' % (par[2], par[3])):
-                    seen[m.group(1)] = True
-            fref.append(' '.join(seen))
-            seenall.update(seen)
-        fc, lc = 0, 255 
-        for f in seenall:
-            if int(f) > len(__fonts__)-1:
-                print (f)
-                self.addarray([self.afm[int(f)-1].w(i) for i in range(fc, lc+1)])
-                indice = int(f)-len(__fonts__)+2
-                self.adds3(self.pfb[int(f)-len(__fonts__)+2])
-                bb = self.afm[int(f)-1]._header[b'FontBBox']
-                self.add('/Type/FontDescriptor/FontName/%s/Flags 4/FontBBox[%s]/Ascent 704/CapHeight 674/Descent -194/ItalicAngle 0/StemV 109/FontFile %s 0 R' % (__fonts__[int(f)-1], ''.join(['%s '% i for i in bb]), self.i))
-                self.add('/Type/Font/Subtype/Type1/BaseFont/%s/FirstChar %d/LastChar %s/Widths %s 0 R/FontDescriptor %d 0 R'% (__fonts__[int(f)-1], fc, lc, self.i-2 , self.i))
-            else:
-                self.addnull()
-                self.addnull()
-                self.addnull()
-                self.add('/Type/Font/Subtype/Type1/BaseFont/%s' % (__fonts__[int(f)-1]))
-            h[f] = self.i
-        aref = self.i
-        pref = np + self.i + 1
-        for p, page in enumerate(document):
-            fo = functools.reduce(lambda y, i: y+'/F%s %d 0 R' % (i, h[i]), fref[p].split(), '')
-            self.add('/Type/Page/Parent %d 0 R/Contents %s/Resources<</Font<<%s>> >> ' % (pref, ref[p], fo))
-            kids += '%s 0 R ' % self.i
-            if p == 1: firstp = self.i
-        self.add('/Type/Pages/MediaBox[0 0 %s %s]/Count %d/Kids[%s]' % (self.pw, self.ph, np, kids[:-1]))
-        pagesid = self.i
-        self.add('/Type/Outlines/First %s 0 R/Last %s 0 R/Count 1' % (self.i+2, self.i+2))
-        self.add('/Title (Document)/Parent %d 0 R/Dest [%d 0 R /Fit]' % (self.i, firstp)) 
-        self.add('/Type/Catalog/Pages %d 0 R/Outlines %d 0 R/Names %d 0 R' % (pagesid, self.i-3, self.i))  
-        n, size = len(self.pos), len(self.o)
-        self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
-        self.o += bytes('trailer <</Size %d/Root %d 0 R>>startxref %s\n' % (n+1, self.i, size), 'ascii') + b'%%EOF'
-        return self.o
-
-## AFM PARSING
-
-def _to_int(x):
-    return int(float(x))
-
-def _to_str(x):
-    return x.decode('utf8')
-
-def _to_list_of_ints(s):
-    s = s.replace(b',', b' ')
-    return [_to_int(val) for val in s.split()]
-
-def _to_list_of_floats(s):
-    return [float(val) for val in s.split()]
-
-def _to_bool(s):
-    if s.lower().strip() in (b'false', b'0', b'no'): return False
-    else: return True
-
-def _sanity_check(fh):
-    """Check if the file at least looks like AFM. If not, raise :exc:`RuntimeError`."""
-    pos = fh.tell()
-    try:
-        line = bytes(fh.readline(), 'ascii')
-    finally:
-        fh.seek(pos, 0)
-    # AFM spec, Section 4: The StartFontMetrics keyword [followed by a version number] must be the first line in the file, and the
-    # EndFontMetrics keyword must be the last non-empty line in the file. We just check the first line.
-    if not line.startswith(b'StartFontMetrics'): raise RuntimeError('Not an AFM file')
-
-def _parse_header(fh):
-    """Reads the font metrics header (up to the char metrics) and returns
-    a dictionary mapping *key* to *val*.  *val* will be converted to the
-    appropriate python type as necessary; eg:
-        * 'False'->False
-        * '0'->0
-        * '-168 -218 1000 898'-> [-168, -218, 1000, 898]
-    Dictionary keys are
-      StartFontMetrics, FontName, FullName, FamilyName, Weight,ItalicAngle, IsFixedPitch, FontBBox, UnderlinePosition, UnderlineThickness, Version, Notice, EncodingScheme, CapHeight, XHeight, Ascender, Descender, StartCharMetrics"""
-    headerConverters = {
-        b'StartFontMetrics': float,
-        b'FontName': _to_str,
-        b'FullName': _to_str,
-        b'FamilyName': _to_str,
-        b'Weight': _to_str,
-        b'ItalicAngle': float,
-        b'IsFixedPitch': _to_bool,
-        b'FontBBox': _to_list_of_ints,
-        b'UnderlinePosition': _to_int,
-        b'UnderlineThickness': _to_int,
-        b'Version': _to_str,
-        b'Notice': _to_str,
-        b'EncodingScheme': _to_str,
-        b'CapHeight': float, # Is the second version a mistake, or
-        b'Capheight': float, # do some AFM files contain 'Capheight'? -JKS
-        b'XHeight': float,
-        b'Ascender': float,
-        b'Descender': float,
-        b'StdHW': float,
-        b'StdVW': float,
-        b'StartCharMetrics': _to_int,
-        b'CharacterSet': _to_str,
-        b'Characters': _to_int,
-        }
-    d = {}
-    while 1:
-        line = bytes(fh.readline(), 'ascii')
-        if not line: break
-        line = line.rstrip()
-        if line.startswith(b'Comment'): continue
-        lst = line.split(b' ', 1 )
-        key = lst[0]
-        if len( lst ) == 2:
-            val = lst[1]
-        else:
-            val = b''
-        #key, val = line.split(' ', 1)
-        try: d[key] = headerConverters[key](val)
-        except ValueError:
-            continue
-        except KeyError:
-            continue
-        if key==b'StartCharMetrics': return d
-    raise RuntimeError('Bad parse')
-
-def _parse_char_metrics(fh):
-    """Return a character metric dictionary.  Keys are the ASCII num of
-    the character, values are a (*wx*, *name*, *bbox*) tuple, where
-    *wx* is the character width, *name* is the postscript language
-    name, and *bbox* is a (*llx*, *lly*, *urx*, *ury*) tuple.
-    This function is incomplete per the standard, but thus far parses all the sample afm files tried."""
-    ascii_d = {}
-    name_d  = {}
-    while 1:
-        line = bytes(fh.readline(), 'ascii')
-        if not line: break
-        line = line.rstrip()
-        if line.startswith(b'EndCharMetrics'): return ascii_d, name_d
-        vals = line.split(b';')[:4]
-        if len(vals) !=4 : raise RuntimeError('Bad char metrics line: %s' % line)
-        num = _to_int(vals[0].split()[1])
-        wx = float(vals[1].split()[1])
-        name = vals[2].split()[1]
-        name = name.decode('ascii')
-        bbox = _to_list_of_floats(vals[3][2:])
-        bbox = list(map(int, bbox))
-        # If the character name is 'Euro', give it the corresponding character code, according to WinAnsiEncoding.
-        if name == 'Euro': num = 128
-        if num != -1: ascii_d[num] = (wx, name, bbox)
-        name_d[name] = (wx, bbox)
-    raise RuntimeError('Bad parse')
-
-def _parse_kern_pairs(fh):
-    """Return a kern pairs dictionary; keys are (*char1*, *char2*) tuples and values are the kern pair value.  For example, a kern pairs line like
-    ``KPX A y -50`` will be represented as:: d[ ('A', 'y') ] = -50"""
-    line = bytes(fh.readline(), 'ascii')
-    if not line.startswith(b'StartKernPairs'): raise RuntimeError('Bad start of kern pairs data: %s'%line)
-    d = {}
-    while 1:
-        line = bytes(fh.readline(), 'ascii')
-        if not line: break
-        line = line.rstrip()
-        if len(line)==0: continue
-        if line.startswith(b'EndKernPairs'):
-            fh.readline()  # EndKernData
-            return d
-        vals = line.split()
-        if len(vals)!=4 or vals[0]!=b'KPX':
-            raise RuntimeError('Bad kern pairs line: %s'%line)
-        c1, c2, val = _to_str(vals[1]), _to_str(vals[2]), float(vals[3])
-        d[(c1,c2)] = val
-    raise RuntimeError('Bad kern pairs parse')
-
-def _parse_composites(fh):
-    """Return a composites dictionary.  Keys are the names of the composites.  Values are a num parts list of composite information,
-    with each element being a (*name*, *dx*, *dy*) tuple.  Thus a composites line reading: CC Aacute 2 ; PCC A 0 0 ; PCC acute 160 170 ;
-    will be represented as:: d['Aacute'] = [ ('A', 0, 0), ('acute', 160, 170) ]"""
-    d = {}
-    while 1:
-        line = fh.readline()
-        if not line: break
-        line = line.rstrip()
-        if len(line)==0: continue
-        if line.startswith(b'EndComposites'):
-            return d
-        vals = line.split(b';')
-        cc = vals[0].split()
-        name, numParts = cc[1], _to_int(cc[2])
-        pccParts = []
-        for s in vals[1:-1]:
-            pcc = s.split()
-            name, dx, dy = pcc[1], float(pcc[2]), float(pcc[3])
-            pccParts.append( (name, dx, dy) )
-        d[name] = pccParts
-    raise RuntimeError('Bad composites parse')
-
-def _parse_optional(fh):
-    """Parse the optional fields for kern pair data and composites return value is a (*kernDict*, *compositeDict*) which are the
-    return values from :func:`_parse_kern_pairs`, and :func:`_parse_composites` if the data exists, or empty dicts otherwise"""
-    optional = { b'StartKernData' : _parse_kern_pairs, b'StartComposites' :  _parse_composites}
-    d = {b'StartKernData':{}, b'StartComposites':{}}
-    while 1:
-        line = bytes(fh.readline(), 'ascii')
-        if not line: break
-        line = line.rstrip()
-        if len(line)==0: continue
-        key = line.split()[0]
-        if key in optional: d[key] = optional[key](fh)
-    l = ( d[b'StartKernData'], d[b'StartComposites'] )
-    return l
-
-def parse_afm(fh):
-    """Parse the Adobe Font Metics file in file handle *fh*. Return value is a (*dhead*, *dcmetrics*, *dkernpairs*, *dcomposite*) tuple where
-    *dhead* is a :func:`_parse_header` dict, *dcmetrics* is a
-    :func:`_parse_composites` dict, *dkernpairs* is a
-    :func:`_parse_kern_pairs` dict (possibly {}), and *dcomposite* is a
-    :func:`_parse_composites` dict (possibly {}) """
-    _sanity_check(fh)
-    dhead =  _parse_header(fh)
-    dcmetrics_ascii, dcmetrics_name = _parse_char_metrics(fh)
-    doptional = _parse_optional(fh)
-    return dhead, dcmetrics_ascii, dcmetrics_name, doptional[0], doptional[1]
-
-class AFM:
-
-    def __init__(self, fh):
-        """Parse the AFM file in file object *fh*"""
-        (dhead, dcmetrics_ascii, dcmetrics_name, dkernpairs, dcomposite) = parse_afm(fh)
-        self._header = dhead
-        self._kern = dkernpairs
-        self._metrics = dcmetrics_ascii
-        self._metrics_by_name = dcmetrics_name
-        self._composite = dcomposite
-
-    def stw(self, s):
-        """ Return the string width (including kerning) """
-        totalw = 0
-        namelast = None
-        for c in s:
-            wx, name, bbox = self._metrics[ord(c)]
-            l,b,w,h = bbox
-            try: kp = self._kern[ (namelast, name) ]
-            except KeyError: kp = 0
-            totalw += wx + kp
-            namelast = name
-        return totalw 
-
-    def w(self, c):
-        """ Return the string width (including kerning) """
-        try: w = self._metrics[c][0]
-        except KeyError: w = 0
-        return w
-
-    def k0(self, s):
-        """ Return PDF kerning string """
-        o, l = '(', None
-        for c in s + ' ':
-            try: kp = - self._kern[(l, c)]
-            except KeyError: kp = 0
-            if l: o += '%s)%d(' % (l, kp) if kp else l
-            l = c
-        return o + ')'
-
-    def k(self, s):
-        """ Return PDF kerning string """
-        o, l = '', None
-        for c in s + ' ':
-            try: kp = - self._kern[(l, c)]
-            except KeyError: kp = 0
-            if l: o += '%s)%d(' % (l, kp) if kp else l
-            l = c
-        return o 
 
 ##### PDF BUILD #####
 
@@ -1263,23 +899,23 @@ def pdf_digital_check(dusr, dtrx, gr):
     v1, v2 = int(val[:3]), int(val[4:])
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page = [
-        (200,  144, '12F1', 'Date: %s' %date_gen), 
-        (400,  26, '16F1', val+ ' E'), 
-        (380,  144, '10F1', 'Digital Signature:'), (380,  135, '4F1', 'EC-DSA-521P'),
-        (138,  160, '9F3', sig[:59]), 
-        (138,  170, '9F3', sig[59:118]), 
-        (138,  180, '9F3', sig[118:]), 
-        (196,  196, '8F1', 'Signed message:'), (270,  196, '9F3', msg),
-        (30,  40, '10F1', 'PAY: '), (80,  40, '16F1', dst), (170,  40, '12F8', ts[_PUBN]),
-        (12,  60, '12F6', num2word_fr(v1, v2)),
-        (12,  69, '8F3', num2word(v1, v2)),
-        (150,  90, '10F1', 'FROM: '), (200,  90, '16F1', src), (290,  90, '12F8', tb[_PUBN]), 
-        (160,  100, '8F1', 'Public key:'), 
-        (220,  100, '8F3', pk1[:44]), (220,  108, '8F3', pk1[44:]), (220,  116, '8F3', pk2[:44]), (220,  124, '8F3', pk2[44:]),
+        (200,  144, 1, 12, 'Date: %s' %date_gen), 
+        (400,  26, 1, 16, val+ ' \001'), 
+        (380,  144, 1, 10, 'Digital Signature:'), (380,  135, 1, 4, 'EC-DSA-521P'),
+        (138,  160, 3, 9, sig[:59]), 
+        (138,  170, 3, 9, sig[59:118]), 
+        (138,  180, 3, 9, sig[118:]), 
+        (196,  196, 1, 8, 'Signed message:'), (270,  196, 3, 9, msg),
+        (30,  40, 1, 10, 'PAY: '), (80,  40, 1, 16, dst), (170,  40, 8, 12, ts[_PUBN]),
+        (0,  60, 6, 11, num2word_fr(v1, v2)),
+        (0,  69, 3, 8, num2word(v1, v2)),
+        (150,  90, 1, 10, 'FROM: '), (200,  90, 1, 16, src), (290,  90, 8, 12, tb[_PUBN]), 
+        (160,  100, 1, 8, 'Public key:'), 
+        (220,  100, 3, 8, pk1[:44]), (220,  108, 3, 8, pk1[44:]), (220,  116, 3, 8, pk2[:44]), (220,  124, 3, 8, pk2[44:]),
         ] 
-    #a = updf(595, 342) # A4
+    qr = QRCode(data='%s/%s' %(msg,sig))
     a = updf(496, 227) # 175x80
-    return a.gen([page])
+    return a.gen([page], qr.pdf(10, 128, 2))
 
 #################### QR CODE ################
 
@@ -1832,12 +1468,6 @@ def test_crypto():
     print (s, len(s))    
     print (verify(RSA_E, kBPUB[1], msg, s))    
 
-def test_pdf():
-    page = [ (150, 100, '32F1', 'Hello Wordl!'),(150, 140, '32F14', 'Hello World!'), ] 
-    a = updf(496, 227) 
-    o = a.gen([page])
-    open('toto.pdf', 'bw').write(o)    
-
 ############################################
 
 def test():
@@ -1950,69 +1580,80 @@ def print_db():
     return o
 
 def num2word(n, c):
-    elm = {0:"zero", 1:"one", 2:"two", 3:"three", 4:"four", 5:"five", 6:"six", 7:"seven", 8:"eight", 9:"nine", 10:"ten", 
-           11:"eleven", 12:"twelve", 13:"thirteen", 14:"fourteen", 15:"fifteen", 16:"sixteen", 17:"seventeen", 18:"eighteen", 
-           19:"nineteen", 20:"twenty", 30:"thirty", 40:"forty", 50:"fifty", 60:"sixty", 70:"seventy", 80:"eighty", 90:"ninety"}
-    o, u1, u2, op = '', 'euro' if n in (0,1) else 'euros', 'cent' if n == 1 else 'cents', ' and '
+    elm = {1:'one', 2:'two', 3:'three', 4:'four', 5:'five', 6:'six', 7:'seven', 8:'eight', 9:'nine', 10:'ten', 
+           11:'eleven', 12:'twelve', 13:'thirteen', 14:'fourteen', 15:'fifteen', 16:'sixteen', 17:'seventeen', 18:'eighteen', 
+           19:'nineteen', 20:'twenty', 30:'thirty', 40:'forty', 50:'fifty', 60:'sixty', 70:'seventy', 80:'eighty', 90:'ninety'}
+    o, u1, u2, op = '', '' if n == 0 else 'euro' if n == 1 else 'euros', '' if c == 0 else 'cent' if c == 1 else 'cents', ' and '
     q, r = n//100, n%100
     if q > 0:
         o = '%s hundred' % elm[q] 
-        o += op if r > 0 else ' %s' % u1
-    n -= 100*q
-    if n in elm:
-        o += '%s %s' % (elm[n], unit)
-    else: 
-        p, r = (n//10)*10, n%10
-        if p in elm:
-            o += '%s %s %s' % (elm[p], elm[r], u1)
-    if c > 0:
-        o += op
-        if c in elm:
-            o += '%s %s' % (elm[c], unit)
-        else: 
-            p, r = (c//10)*10, c%10
-            o += '%s %s %s' % (elm[p], elm[r], u2)
-    return o.title()
-
-def num2word_fr(n, c):
-    elm = {0:"zéro", 1:"un", 2:"deux", 3:"trois", 4:"quatre", 5:"cinq", 6:"six", 7:"sept", 8:"huit", 9:"neuf", 10:"dix", 
-           11:"onze", 12:"douze", 13:"treize", 14:"quatorze", 15:"quinze", 16:"seize", 17:"dix-sept", 18:"dix-huit", 
-           19:"dix-neuf", 20:"vingt", 30:"trente", 40:"quarante", 50:"cinquante", 60:"soixante", 70:"soixante-dix", 
-           80:"quatre-vingts", 90:"quatre-vingt-dix"}
-    o, u1, u2, op = '', 'euro' if n in (0,1) else 'euros', 'centimes' if n == 1 else 'centimes', ' et '
-    q, r = n//100, n%100
-    if q > 0:
-        o = '%s cent' % elm[q] 
-        o += ' ' if r > 0 else ' %s' % u1
+        o += op if (r>0 or c>0) else ''
     n -= 100*q
     if n in elm:
         o += '%s %s' % (elm[n], u1)
     else: 
         p, r = (n//10)*10, n%10
         if p in elm:
-            o += '%s-%s %s' % (elm[p], elm[r], u1)
+            o += '%s %s %s' % (elm[p], elm[r], u1)
     if c > 0:
-        o += op
+        if n > 0: o += op
         if c in elm:
             o += '%s %s' % (elm[c], u2)
         else: 
             p, r = (c//10)*10, c%10
-            o += '%s-%s %s' % (elm[p], elm[r], u2)
+            o += '%s %s %s' % (elm[p], elm[r], u2)
+    return o.title()
+
+def cent(n):
+    elm = {1:'un', 2:'deux', 3:'trois', 4:'quatre', 5:'cinq', 6:'six', 7:'sept', 8:'huit', 9:'neuf', 10:'dix', 
+           11:'onze', 12:'douze', 13:'treize', 14:'quatorze', 15:'quinze', 16:'seize', 17:'dix-sept', 18:'dix-huit', 
+           19:'dix-neuf', 20:'vingt', 30:'trente', 40:'quarante', 50:'cinquante', 60:'soixante', 80:'quatre-vingts'}
+    op, o = 'et', ''
+    if n in elm: o += '%s' % (elm[n])
+    elif n == 71: o += '%s %s %s' % (elm[60], op, elm[11])
+    elif n in range(22,30): o += '%s %s' % (elm[20], elm[n-20])
+    elif n in range(32,40): o += '%s %s' % (elm[30], elm[n-30])
+    elif n in range(42,50): o += '%s %s' % (elm[40], elm[n-40])
+    elif n in range(52,60): o += '%s %s' % (elm[50], elm[n-50])
+    elif n in range(62,80): o += '%s %s' % (elm[60], elm[n-60])
+    elif n in range(81,100): o += '%s %s' % (elm[80], elm[n-80])
+    elif n%10 == 1: o += '%s %s %s' % (elm[n-1], op, elm[1])
+    return o
+
+def num2word_fr(n, c):
+    o, u1, u2, op = '', '' if n == 0 else 'euro' if n == 1 else 'euros', '' if c == 0 else 'centime' if c == 1 else 'centimes', ' et '
+    q, r = n//100, n%100
+    ct = 'cents' if r == 0 else 'cent'
+    if q > 1: o += '%s %s ' % (cent(q), ct)
+    elif q == 1: o += 'cent '
+    m = n
+    n -= 100*q
+    if n > 0: o += '%s ' % cent(n) 
+    o += u1
+    if c > 0:
+        if m > 0: o += op
+        o += '%s %s' % (cent(c), u2)
     return o.capitalize()
 
 def test_num():
-    for i in range(100):
-        print (num2word_fr(i, 0))
+    m,s = 0, None
+    for e in range(1000):
+        for i in range(100):
+            x = num2word_fr(e, i)
+            if len(x) > m: m,s = len(x),x
+            print (x)
+    print (m, s)
+
+def test_num1():
+    for e in range(100):
+        print(cent(e))
+
 
 if __name__ == '__main__':
     #test()
     #print (print_db())
-    #test2()
-    #qr = QRCode(data='hvbqi6i/eOYqzQ')
-    #print (qr.svg(50,50,3))
     #test_crypto()
-    test_pdf()
-    #test_num()
+    test_num()
     
     sys.exit()
 # End ⊔net!
