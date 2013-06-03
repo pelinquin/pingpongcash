@@ -874,14 +874,14 @@ class updf:
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f,i+4)  for i,f in enumerate(ft)]) + ' >>'
         img = '/ColorSpace << /pgfprgb [/Pattern /DeviceRGB] >> /XObject << /Im1 8 0 R >>'
         self.add('/Type/Page/Parent 2 0 R/Resources <<%s %s >>/Contents 10 0 R' % (fonts, img))
-        enc = ' /Encoding << /Type /Encoding /Differences [ 1 /Euro /eacute /egrace /ccedilla] >> '
+        enc = ' /Encoding << /Type /Encoding /Differences [ 1 /Euro /agrave /eacute /egrace /ccedilla] >> '
         for f in ft: self.add('/Type /Font /Subtype /Type1 /BaseFont /%s %s' % (__fonts__[f-1], enc))
 
         self.addimg('/home/laurent/pingpongcash/header.img', 9) 
         self.addmsk('/home/laurent/pingpongcash/header.msk') 
 
-        o = bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (400, 184, 80, 25), 'ascii') 
-        o += b'.84 .84 .84 rg BT 1 0 0 1 200 50 Tm /F1 200 Tf (\001) Tj ET 0 0 0 rg '
+        o = bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402, 184, 78, 25), 'ascii') 
+        o += b'.84 .84 .84 rg BT 1 0 0 1 200 34 Tm /F1 240 Tf (\001) Tj ET 0 0 0 rg '
         o += self.text(document[0]) + code 
         self.adds( o + b'144 0 0 40.8 1 184 cm /Im1 Do ')
         n, size = len(self.pos), len(self.o)
@@ -889,33 +889,34 @@ class updf:
         self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
         return self.o
 
-##### PDF BUILD #####
-
 def pdf_digital_check(dusr, dtrx, gr):
     "_"
     trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6]
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     tb, ts = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/')
     v1, v2 = int(val[:3]), int(val[4:])
+    tab = msg.split('/')
+    val = re.sub('\.', ',', val)
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page = [
-        (200,  144, 1, 12, 'Date: %s' %date_gen), 
-        (400,  26, 1, 16, val+ ' \001'), 
+        (200,  144, 1, 12, 'Date: %s' %date_gen),
+        (400,  26, 1, 16, '%s \001' % val), 
         (380,  144, 1, 10, 'Digital Signature:'), (380,  135, 1, 4, 'EC-DSA-521P'),
-        (138,  160, 3, 9, sig[:59]), 
-        (138,  170, 3, 9, sig[59:118]), 
-        (138,  180, 3, 9, sig[118:]), 
-        (196,  196, 1, 8, 'Signed message:'), (270,  196, 3, 9, msg),
+        (140,  160, 3, 9, sig[:59]), 
+        (140,  170, 3, 9, sig[59:118]), 
+        (140,  180, 3, 9, sig[118:]), 
+        (140,  196, 1, 8, 'Signed message:'), (270,  196, 3, 9, msg),
+        (354,  210, 1, 5, 'Anti Fishing URL:'), (400,  210, 6, 7, 'http://\002\002.eu/%s' % src),
         (30,  40, 1, 10, 'PAY: '), (80,  40, 1, 16, dst), (170,  40, 8, 12, ts[_PUBN]),
         (0,  60, 6, 11, num2word_fr(v1, v2)),
         (0,  69, 3, 8, num2word(v1, v2)),
-        (150,  90, 1, 10, 'FROM: '), (200,  90, 1, 16, src), (290,  90, 8, 12, tb[_PUBN]), 
+        (140,  90, 1, 10, 'FROM: '), (200,  90, 1, 16, src), (290,  90, 8, 12, tb[_PUBN]), 
         (160,  100, 1, 8, 'Public key:'), 
         (220,  100, 3, 8, pk1[:44]), (220,  108, 3, 8, pk1[44:]), (220,  116, 3, 8, pk2[:44]), (220,  124, 3, 8, pk2[44:]),
         ] 
-    qr = QRCode(data='%s/%s' %(msg,sig))
+    qr = QRCode(data='http://xn--0caa.eu/pp/%s/%s' % (msg, sig))
     a = updf(496, 227) # 175x80
-    return a.gen([page], qr.pdf(10, 128, 2))
+    return a.gen([page], qr.pdf(15, 128, 2))
 
 #################### QR CODE ################
 
