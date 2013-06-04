@@ -26,7 +26,6 @@ Status:
 'A' Administrator (only one)
 'B' Banker (at least one per agency)
 'C' Validated by banquer and payed to admin
-
 codeM -> mail/status/lock/regDate/FirstName/LastName/DisplayName/Secu/numbank/iban/bic/Threhold1/Threhold2/balance/expiredate/pw/pubk1/pubk2
           0     1      2     3       4         5           6      7      8     9    10    11        12       13       14      15   16   17
 """
@@ -49,13 +48,6 @@ _DEXP = 14
 _PAWD = 15
 _PBK1 = 16
 _PBK2 = 17
-
-_ABK = 0
-_AST = 1
-_ACP = 2
-_ACT = 3
-_ATL = 4
-_AEM = 5
 
 import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time, smtplib
 
@@ -236,9 +228,6 @@ def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
     o += '<div id="footer">Contact: <a href="mailto:contact@pingpongcash.net">contact@pingpongcash.net</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>'
     return o + '</html>'
 
-def old_style_html():
-    o = '@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h6,p,i,li,a {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}input{font-size:18;margin:3}input.txt{width:350}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:10;color:#333;}div.col{position:absolute;top:150;left:360;margin:20}a.qr{position:absolute;top:0;right:50;margin:10}h6.login{font-size:20;position:absolute;top:100;right:100;}h6{text-align:right;color:#AAA;}rect{fill:darkBlue;}b.green{color:green;}b.biggreen{font-size:32;color:green;}b.red{color:red;}p.alpha{position:absolute;top:100;left:80;font-size:24pt;font-family:Schoolbell;color:#F87217} a.ppc{color:RoyalBlue;font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash";}'
-
 def compact (iban):
     "_"
     CHAR_MAP = {
@@ -388,6 +377,9 @@ _PAT_REG_    = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{
 _PAT_PUBKEY_ = r'PK/1/(([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})/([^/]{80,100})/([^/]{80,100}))/(\S{160,200})$'
 _PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(B|C|\d{5}))/(\S{160,200})$'
 _PAT_AGENCY_ = r'AG/(([^/]{6})/(\d{5}/\d{5})/([^/]{,40}/[^/]{,60}/\d{5}/[^/]{,60}/\d{10}/[^/]{,60}))/(\S{160,200})$'
+_PAT_VERIF_  = r'((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(\d{5}))/(\S{160,200})$'
+
+#/1370343740/to2TyF/Dorian Litvine/00013/AYJqnqRzJkYZxSw5b_C20zWnx9xgLojXAPbPHoWSGyksCoj8uZk1XNil_yNIx6wxmvR-f4u3P4MYxZF-H_HLyZIr/WXSfFLrqqIUZGy_cfzQl2FnOtxTTdBmNJ2nqayjHaEYVCwfBsoudGtdDeY-ZYeWEhJiMn13stEVXocvkML28s5I
 
 def transaction_match(dusr, dtrx, gr):
     "_"
@@ -417,7 +409,6 @@ def agency_match(dusr, dags, gr):
     "_"
     o = ''
     msg, src, key, val = gr[0], gr[1], gr[2], gr[3] 
-
     if src.encode('ascii') in dusr.keys():
         ta = dusr[src].decode('utf8').split('/')
         if ta[_STAT] == 'A':
@@ -428,6 +419,46 @@ def agency_match(dusr, dags, gr):
             o = 'operation not allowed'
     else:
         o = 'user not known'
+    return o
+
+def verif_match(dusr, gr):
+    "_"
+    o = ''
+    msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5]
+    if src.encode('ascii') in dusr.keys(): 
+        t, k = dusr[src].decode('utf8').split('/'), ecdsa()
+        pk1, pk2 = t[_PBK1], t[_PBK2] 
+        k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
+        if not k.verify(sig, msg):
+            o = 'bad signature'
+    else:
+        o = 'unknown user'
+    return o
+
+def do_sepa(dusr, gr):
+    "_"
+    o = ''
+    msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5]
+    if src.encode('ascii') in dusr.keys(): 
+        t = dusr[src].decode('utf8').split('/')
+        bnk = 'FR76%d%012d' % (b32toi(bytes(t[_NBNK][2:],'ascii')), b64toi(bytes(t[_IBAN],'ascii')))
+        o = 'SEPA CREDIT TRANSFER (share mode)\n\n'
+        o += 'Status:\t\t%s\n' % "Valid"
+        o += 'Amount(€):\t%s\n' % (int(val)/100)
+        o += 'Date:\t\t%s\n' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
+        o += 'Debit Account:\t[%s] %s %s (%s)\n' % (src, t[_FRST], t[_LAST], t[_PUBN])
+        o += 'Debit IBAN:\t%s\n' % bnk
+        s, ib = '[] (%s)' % dst, ' - IBAN Unknown before deposit -'
+        if dst.encode('utf8') in dusr.keys(): 
+            t = dusr[dst].decode('utf8').split('/')
+            ib = 'FR76%d%012d' % (b32toi(bytes(t[_NBNK][2:],'ascii')), b64toi(bytes(t[_IBAN],'ascii')))
+            s = '%s %s (%s) %s\n' % (dst, t[_FRST], t[_LAST], t[_PUBN]) 
+        o += 'Credit Account:\t%s\n' % s
+        o += 'Credit IBAN:\t%s\n' % ib
+        o += 'Proof Message:\t%s\n' % msg
+        o += 'Public Key :\n%s\n%s\n%s\n%s\n' % (t[_PBK1][:44], t[_PBK1][44:], t[_PBK2][:44], t[_PBK2][44:])        
+        o += 'ECDSA-P521 Signature:\n%s\n%s\n%s\n\n' % (sig[:59], sig[59:118], sig[118:])
+        o += 'Any question:\tcontact@pingpongcash.net\n'
     return o
 
 def pubkey_match(dusr, gr):
@@ -556,6 +587,7 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_TRANS_, arg)):
             res = transaction_match(dusr, dtrx, reg.v.groups())
             if res: o += res
+            #else: o += 'http://àà/pp/%s/%s' % (reg.v.group(2), reg.v.group(7))
             else: o, mime = pdf_digital_check(dusr, dtrx, dags, reg.v.groups()), 'application/pdf'
         elif reg(re.match(_PAT_AGENCY_, arg)):
             res = agency_match(dusr, dags, reg.v.groups())
@@ -578,6 +610,10 @@ def application(environ, start_response):
             o = 'reset database %s OK' % raw.lower()[7:]
         elif base == '': # public pages
             o, mime = front_html(nb), 'text/html; charset=utf8'
+        elif reg(re.match(_PAT_VERIF_, base)):
+            res = verif_match(dusr, reg.v.groups())
+            if res: o += res
+            else: o = do_sepa(dusr, reg.v.groups())
         else:
             if base.encode('ascii') in dusr.keys():
                 t = dusr[base].decode('utf8').split('/')
@@ -948,7 +984,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (145, 168, 3, 9, sig[59:118]), 
         (145, 178, 3, 9, sig[118:]), 
         (145, 191, 1, 8, 'Signed message:'), (214, 191, 3, 9, msg),
-        (418, 56, 1, 5, 'Anti-Phishing URL:'), (418, 124, 1, 6, 'http://\002\002.eu/pp/%s' % src),
+        (418, 56, 1, 5, 'Anti-Phishing URL:'), (414, 124, 1, 6, 'http://\002\002.eu/pp/%s' % src),
         (30, 40, 1, 10, 'PAY: '), (80, 40, 1, 16, dst), (170, 40, 8, 12, pubname),
         (0, 60, 6, 11, num2word_fr(int(v1), int(v2))),
         (0, 69, 3, 8, num2word(int(v1), int(v2))),
@@ -961,7 +997,6 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (190, 182, 1, 240, '.84 .84 .84', '\001'),
         (5, 213, 1, 6, '.05 .46 .80', info), 
         ]
-
     qr1 = QRCode(data='http://xn--0caa.eu/pp/%s/%s' % (msg, sig))
     qr2 = QRCode(data='http://xn--0caa.eu/pp/%s' % src)
     a = updf(496, 227) # 175x80
@@ -1522,90 +1557,6 @@ def test_crypto():
 
 ############################################
 
-def test():
-    "_"
-    lb = {
-        'BPU1': 'FR76 1780 7000 1445 3199 4029 836',
-        'BPUB': 'fr76 1780 7000 1445 6208 6047 866',        
-        'CRAG': 'FR7618206002105487266700217',
-        'POST': 'FR19 2004 1100 2000 5874 1005 T15',
-        'CRMT': 'FR76 1027 8022 3300 0202 8350 157',
-        'BELG': 'BEkkBBBCCCCCCCKK',
-        'ALLM': 'DEkk BBBB BBBB CCCC CCCC CC',
-        'MALT': 'MTkk BBBB SSSS SCCC CCCC CCCC CCCC CCC',
-        }
-    CRAG = compact(lb['CRAG'])
-    POST = compact(lb['POST'])
-    BPU1 = compact(lb['BPU1'])
-    BPUB = compact(lb['BPUB'])
-    CRMT = compact(lb['CRMT'])
-    d = dbm.open('/cup/ppc/keys')
-    kCRAG = [b64toi(x) for x in d[CRAG].split(b'/')[2:]]
-    kPOST = [b64toi(x) for x in d[POST].split(b'/')[2:]]
-    kBPU1 = [b64toi(x) for x in d[BPU1].split(b'/')[2:]]
-    kBPUB = [b64toi(x) for x in d[BPUB].split(b'/')[2:]]
-    kCRMT = [b64toi(x) for x in d[CRMT].split(b'/')[2:]]
-    d.close()
-
-    # 1/ register accounts on web site
-    msg = 'name=%s&mail=%s&iban=%s' % ('banker', 'contact@pingpongcash.net', lb['BPUB'])
-    print ('WEB REGISTER', cmd(True, msg))
-    msg = 'name=%s&mail=%s&iban=%s' % ('valérie', 'ttoto@gmail.com', lb['POST'])
-    print ('WEB REGISTER', cmd(True, msg))
-    msg = 'name=%s&mail=%s&iban=%s' % ('tata', 'tata@gmail.com', lb['CRAG'])
-    print ('WEB REGISTER', cmd(True, msg))
-    msg = 'name=%s&mail=%s&iban=%s' % ('main', 'user@gmail.com', lb['BPU1'])
-    print ('WEB REGISTER', cmd(True, msg))
-
-    epoch, today = '%s' % time.mktime(time.gmtime()), '%s' % datetime.datetime.now()
-
-    # 2/Register PubKey
-    msg = '/'.join([hiban(BPUB), itob64(H('héro'))[:10].decode('utf8'), itob64(kBPUB[1]).decode('ascii')])    
-    print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kBPUB[0], kBPUB[1], msg).decode('ascii')])))
-    msg = '/'.join([hiban(BPU1), itob64(H('zéro'))[:10].decode('utf8'), itob64(kBPU1[1]).decode('ascii')])    
-    print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kBPU1[0], kBPU1[1], msg).decode('ascii')])))
-    msg = '/'.join([hiban(POST), itob64(H('toto'))[:10].decode('utf8'), itob64(kPOST[1]).decode('ascii')])    
-    print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kPOST[0], kPOST[1], msg).decode('ascii')])))
-    #msg = '/'.join([hiban(CRMT), itob64(H('&éçà'))[:10].decode('utf8'), itob64(kCRMT[1]).decode('ascii')])    
-    #print ('REG_PK:', cmd(True, '/'.join(['R1', msg, sign(kCRMT[0], kCRMT[1], msg).decode('ascii')])))
-
-    # 2/ valid banker
-    msg = '/'.join([epoch[:-2], hiban(BPUB), hiban(CRMT), '000.00'])    
-    s = sign(kBPUB[0], kBPUB[1], msg)
-    print ('BANKER SHOW HOW TO SIGN TO ADMIN:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(CRMT), hiban(BPUB), '000.00'])    
-    s = sign(kCRMT[0], kCRMT[1], msg)
-    print ('ADMIN VALID BANKER:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(POST), hiban(BPUB), '000.00'])    
-    s = sign(kPOST[0], kPOST[1], msg)
-    print ('X SHOW HOW TO SIGN TO BANKER:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(BPUB), '000.00'])    
-    s = sign(kBPU1[0], kBPU1[1], msg)
-    print ('X SHOW HOW TO SIGN TO BANKER:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(BPUB), hiban(BPU1), '000.00'])    
-    s = sign(kBPUB[0], kBPUB[1], msg)
-    print ('BANKER VALIDATE:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(CRMT), '001.00'])    
-    s = sign(kBPU1[0], kBPU1[1], msg)
-    print ('CUSTOMER BUY DATE:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(CRAG), '010.00'])    
-    s = sign(kBPU1[0], kBPU1[1], msg)
-    print ('NORMAL BUY:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([epoch[:-2], hiban(BPU1), hiban(POST), '005.00'])    
-    s = sign(kBPU1[0], kBPU1[1], msg)
-    print ('NORMAL BUY:', cmd(True, '/'.join(['T1', msg, s.decode('ascii')])))
-
-    msg = '/'.join([today[:10], hiban(BPUB)])    
-    s = sign(kBPUB[0], kBPUB[1], msg)
-    #print ('GET LIST:\n', cmd(True, '/'.join(['D1', msg, s.decode('ascii')])))
-
 def print_db():
     arg, o = '/cup/%s/trx.db' % __app__, ''
     if os.path.isfile(arg):
@@ -1696,16 +1647,10 @@ def test_num():
             print (x)
     print (m, s)
 
-def test_num1():
-    for e in range(100):
-        print(cent(e))
-
-
 if __name__ == '__main__':
-    #test()
     #print (print_db())
     #test_crypto()
-    test_num()
-    
+    #test_num()
     sys.exit()
+
 # End ⊔net!
