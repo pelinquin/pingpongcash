@@ -50,6 +50,13 @@ _PAWD = 15
 _PBK1 = 16
 _PBK2 = 17
 
+_ABK = 0
+_AST = 1
+_ACP = 2
+_ACT = 3
+_ATL = 4
+_AEM = 5
+
 import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time, smtplib
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:5]
@@ -142,8 +149,8 @@ def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
     o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);p,li,i,b,a,div,input {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:100;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.bigorange{font-size:32;color:#F87217;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left; width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{border:1px solid #666;padding:2pt;}</style>'
     o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
-    data = 'àà.eu/zgnZQW' # give the real one!
-    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
+    #data = 'àà.eu/pp/to2TyF' # give the real one!
+    #o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
 
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     dmsg = ' %s' % msg if msg else ''
@@ -266,12 +273,6 @@ def gbic (code):
     "_"
     return code.split('/')[0]
 
-
-#pelinquin@gmail.com -> gtMVi0
-#frhvbqi6i/eOYqzQ -> gtMVi0
-#gtMVi0 -> pelinquin@gmail.com/X//1369814966/Laurent/Fournier/Cup Foundation/167071927202809/frhvbqi6i/eOYqzQ/CMCIFR29/100/3000/0//0s1BeDEvqU/
-
-
 def init_dbs(dbs):
     "_"
     di = '/cup/%s' % __app__
@@ -283,6 +284,12 @@ def init_dbs(dbs):
             d['__N'] = '0'
             d.close()
             os.chmod(db, 511)
+    #db = '/cup/%s/usr.db' % __app__
+    #d = dbm.open(db[:-3], 'c')
+    #d['to2TyF'] = re.sub('CMCIFR29', 'CMCIFR2A', d['to2TyF'].decode('utf8'))
+    #d['to2TyF'] = d['TOTO'].decode('utf8')
+    #del(d['TOTO'])
+    #d.close()
 
 def same_bic(d, biban, siban):
     "_"
@@ -379,27 +386,48 @@ _PAT_INCOME_ = r'total=(\d{3}\.\d{2})&income=Editer une facture$'
 _PAT_CHPWD_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
 _PAT_REG_    = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 _PAT_PUBKEY_ = r'PK/1/(([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})/([^/]{80,100})/([^/]{80,100}))/(\S{160,200})$'
-_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{6})/(B|C|\d{5}))/(\S{160,200})$'
+_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(B|C|\d{5}))/(\S{160,200})$'
+_PAT_AGENCY_ = r'AG/(([^/]{6})/(\d{5}/\d{5})/([^/]{,40}/[^/]{,60}/\d{5}/[^/]{,60}/\d{10}/[^/]{,60}))/(\S{160,200})$'
 
 def transaction_match(dusr, dtrx, gr):
     "_"
     o = ''
     today = '%s' % datetime.datetime.now()
     trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6] 
-    if src.encode('ascii') in dusr.keys() and dst.encode('ascii') in dusr.keys(): 
-        tb, ts, k = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/'), ecdsa()
-        k.pt = Point(curve_521, b64toi(tb[_PBK1].encode('ascii')), b64toi(tb[_PBK2].encode('ascii')))
-        if k.verify(sig, msg):
-            if trvd == 'VD' and tb[_STAT] == 'A': ts[_STAT] = 'B'
-            dusr[src], dusr[dst] = '/'.join(tb), '/'.join(ts)
-            dtrx['__N'] = '%d' % (int(dtrx['__N']) + 1)
-            dtrx['%s/%s' % (epoch, src)] = '/'.join([dst, val, val, sig])
-            x, tx = '%s/%s' % (today[:10], tb[_NBNK]), '/'.join([epoch, src])
-            dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
+    if src.encode('ascii') in dusr.keys():
+        if dst.encode('utf8') in dusr.keys(): 
+            tb, ts, k = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/'), ecdsa()
+            k.pt = Point(curve_521, b64toi(tb[_PBK1].encode('ascii')), b64toi(tb[_PBK2].encode('ascii')))
+            if k.verify(sig, msg):
+                if trvd == 'VD' and tb[_STAT] == 'A': ts[_STAT] = 'B'
+                dusr[src], dusr[dst] = '/'.join(tb), '/'.join(ts)
+                dtrx['__N'] = '%d' % (int(dtrx['__N']) + 1)
+                dtrx['%s/%s' % (epoch, src)] = '/'.join([dst, val, val, sig])
+                x, tx = '%s/%s' % (today[:10], tb[_NBNK]), '/'.join([epoch, src])
+                dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
+            else:
+                o = 'Wrong signature!'
         else:
-            o = 'Wrong signature!'
+            pass
     else:
         o = 'unknown cm'
+    return o
+
+def agency_match(dusr, dags, gr):
+    "_"
+    o = ''
+    msg, src, key, val = gr[0], gr[1], gr[2], gr[3] 
+
+    if src.encode('ascii') in dusr.keys():
+        ta = dusr[src].decode('utf8').split('/')
+        if ta[_STAT] == 'A':
+            if key.encode('ascii') not in dags.keys():
+                dags['__N'] = '%d' % (int(dags['__N']) + 1)
+            dags[key] = val        
+        else:
+            o = 'operation not allowed'
+    else:
+        o = 'user not known'
     return o
 
 def pubkey_match(dusr, gr):
@@ -485,10 +513,11 @@ def login_match(dusr, gr):
 def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt'
-    init_dbs(('trx', 'ags', 'bic', 'usr'))
+    dbs = ('trx', 'ags', 'bic', 'usr')
+    init_dbs(dbs)
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base = environ['PATH_INFO'][1:]
-    dusr, dtrx = dbm.open('/cup/pp/usr', 'c'), dbm.open('/cup/pp/trx', 'c')
+    dusr, dtrx, dags = dbm.open('/cup/pp/usr', 'c'), dbm.open('/cup/pp/trx', 'c'), dbm.open('/cup/pp/ags', 'c')
     nb = [dusr['__N'], dtrx['__N']]
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
@@ -527,7 +556,11 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_TRANS_, arg)):
             res = transaction_match(dusr, dtrx, reg.v.groups())
             if res: o += res
-            else: o, mime = pdf_digital_check(dusr, dtrx, reg.v.groups()), 'application/pdf'
+            else: o, mime = pdf_digital_check(dusr, dtrx, dags, reg.v.groups()), 'application/pdf'
+        elif reg(re.match(_PAT_AGENCY_, arg)):
+            res = agency_match(dusr, dags, reg.v.groups())
+            if res: o += res
+            else: o = 'AGENCY OK' 
         else:
             o += 'not valid args %s' % arg
     else:
@@ -536,20 +569,13 @@ def application(environ, start_response):
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif raw.lower() == '_log':
             o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
-        elif raw.lower() == '_usr':
-            d, o = dbm.open('/cup/pp/usr'), ''
+        elif raw.lower() in ['_%s' % x for x in dbs]: # Just for debug!
+            d, o = dbm.open('/cup/pp/%s' % raw.lower()[1:]), ''
             for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
             d.close()
-        elif raw.lower() == '_trx':
-            d, o = dbm.open('/cup/pp/trx'), ''
-            for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
-            d.close()
-        elif raw.lower() == '_reset_usr': # DEBUG!
-            os.remove('/cup/pp/usr.db')
-            o = 'reset USR OK'
-        elif raw.lower() == '_reset_trx': # DEBUG!
-            os.remove('/cup/pp/trx.db')
-            o = 'reset TRX OK'
+        elif raw.lower() in ['_reset_%s' % x for x in dbs]: # Do not allow that in production!
+            os.remove('/cup/pp/%s.db' % raw.lower()[7:])
+            o = 'reset database %s OK' % raw.lower()[7:]
         elif base == '': # public pages
             o, mime = front_html(nb), 'text/html; charset=utf8'
         else:
@@ -557,7 +583,8 @@ def application(environ, start_response):
                 t = dusr[base].decode('utf8').split('/')
                 o, mime = front_html(nb, base, t, True, raw, 'Facture'), 'text/html; charset=utf8'
             else:
-                o += 'IBAN NOT registered'                
+                o += 'Request not valid!'
+    dags.close()
     dtrx.close()
     dusr.close()    
     start_response('200 OK', [('Content-type', mime)])
@@ -859,13 +886,17 @@ class updf:
         self.o += stream
         self.o += b'endstream endobj\n'
 
-
     def text(self, tab):
         o = b'BT '
         for (x, y, ft, size, s) in tab: o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (x+self.mx, self.ph-self.my-y, ft, size, s), 'ascii')
         return o + b' ET '
 
-    def gen(self, document, code):
+    def ctext(self, tab):
+        o = b'BT '
+        for (x, y, ft, sz, c, s) in tab: o += bytes('%s rg 1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (c, x+self.mx, self.ph-self.my-y, ft, sz, s), 'ascii')
+        return o + b' 0 0 0 rg ET '
+
+    def gen(self, page, pagec, code1, code2):
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
         self.add('/Type /Catalog /Pages 2 0 R')
         self.add('/Type /Pages /MediaBox [ 0 0 %d %d ] /Count 1 /Kids [ 3 0 R ]' % (self.pw, self.ph))
@@ -878,43 +909,63 @@ class updf:
         here = os.path.dirname(os.path.abspath(__file__))
         self.addimg('%s/www/header.img' % here, 9) 
         self.addmsk('%s/www/header.msk' % here) 
-        o = bytes('0 1 1 RG 1 1 .9 rg 0 0 %s %s re b ' % (self.pw, self.ph), 'ascii') 
+        o = bytes('.5 .5 .5 RG 1 1 .9 rg 0 0 %s %s re b ' % (self.pw, self.ph), 'ascii') 
         o += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402, 184, 78, 25), 'ascii')
-        o += b'.84 .84 .84 rg BT 1 0 0 1 200 34 Tm /F1 240 Tf (\001) Tj ET 0 0 0 rg '
-        o += self.text(document[0]) + code 
+        o += self.ctext(pagec) + self.text(page) + code1 + code2 
         self.adds( o + b'144 0 0 40.8 1 184 cm /Im1 Do ')
         n, size = len(self.pos), len(self.o)
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
         self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
         return self.o
 
-def pdf_digital_check(dusr, dtrx, gr):
+def pdf_digital_check(dusr, dtrx, dags, gr):
     "_"
     trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6]
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
-    tb, ts = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/')
+    tb = dusr[src].decode('utf8').split('/')
+    pubname, info = '',''
+    if dst.encode('utf8') in dusr.keys(): 
+        ts = dusr[dst].decode('utf8').split('/')
+        pubname = ts[_PUBN]
+    else:
+        dst = re.sub('é', '\003', dst)
+        msg = re.sub('é', '\003', msg)
+        bnk = '%s' % b32toi(bytes(tb[_NBNK][2:],'ascii'))
+        key = '%s/%s' % (bnk[:5], bnk[5:])
+        if key.encode('utf8') in dags.keys():
+            v = dags[key].decode('utf8')
+            v = re.sub('é', '\003', v)
+            info = '%s %s \'%s\' FR76%s%s %s - %s' % (tb[_FRST], tb[_LAST], tb[_PUBN], bnk, b64toi(bytes(tb[_IBAN],'ascii')), tb[_CBIC], v)
+            info = re.sub('/', ' ', info)
     v1, v2 = val[:3], val[3:]
     tab = msg.split('/')
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page = [
-        (200,  144, 1, 12, 'Date: %s' %date_gen),
-        (400,  26, 1, 16, '%s,%s \001' % (v1,v2)), 
-        (380,  147, 1, 10, 'Digital Signature:'), (380,  138, 1, 4, 'EC-DSA-521P'),
-        (145,  160, 3, 9, sig[:59]), 
-        (145,  170, 3, 9, sig[59:118]), 
-        (145,  180, 3, 9, sig[118:]), 
-        (145,  196, 1, 8, 'Signed message:'), (220,  196, 3, 9, msg),
-        (354,  210, 1, 5, 'Anti Fishing URL:'), (400,  210, 6, 7, 'http://\002\002.eu/%s' % src),
-        (30,  40, 1, 10, 'PAY: '), (80,  40, 1, 16, dst), (170,  40, 8, 12, ts[_PUBN]),
-        (0,  60, 6, 11, num2word_fr(int(v1), int(v2))),
-        (0,  69, 3, 8, num2word(int(v1), int(v2))),
-        (145,  90, 1, 10, 'FROM: '), (200,  90, 1, 16, src), (296,  90, 8, 12, tb[_PUBN]), 
-        (160,  100, 1, 8, 'Public key:'), 
-        (220,  100, 3, 8, pk1[:44]), (220,  108, 3, 8, pk1[44:]), (220,  116, 3, 8, pk2[:44]), (220,  124, 3, 8, pk2[44:]),
+        (145, 144, 1, 8, 'Date:'), (185, 144, 1, 12, date_gen),
+        (400, 26, 1, 16, '%s,%s \001' % (v1,v2)), 
+        (380, 147, 1, 10, 'Digital Signature:'), (380, 138, 1, 4, 'EC-DSA-521P'),
+        (145, 158, 3, 9, sig[:59]), 
+        (145, 168, 3, 9, sig[59:118]), 
+        (145, 178, 3, 9, sig[118:]), 
+        (145, 191, 1, 8, 'Signed message:'), (214, 191, 3, 9, msg),
+        (418, 56, 1, 5, 'Anti-Phishing URL:'), (418, 124, 1, 6, 'http://\002\002.eu/pp/%s' % src),
+        (30, 40, 1, 10, 'PAY: '), (80, 40, 1, 16, dst), (170, 40, 8, 12, pubname),
+        (0, 60, 6, 11, num2word_fr(int(v1), int(v2))),
+        (0, 69, 3, 8, num2word(int(v1), int(v2))),
+        (145, 90, 1, 10, 'FROM: '), (200, 90, 1, 16, src), (296, 90, 8, 12, tb[_PUBN]), 
+        (145, 100, 1, 8, 'Public key:'), 
+        (192, 100, 3, 8, pk1[:44]), (192, 108, 3, 8, pk1[44:]), (192, 116, 3, 8, pk2[:44]), (192, 124, 3, 8, pk2[44:]),
         ] 
-    qr = QRCode(data='http://xn--0caa.eu/pp/%s/%s' % (msg, sig))
+    pagec = [
+        (145, 203, 1, 6, '.7 .7 .7', 'Aide ou question:'), (204, 203, 6, 9, '.7 .7 .7', 'contact@pingpongcash.net'),
+        (190, 182, 1, 240, '.84 .84 .84', '\001'),
+        (5, 213, 1, 6, '.05 .46 .80', info), 
+        ]
+
+    qr1 = QRCode(data='http://xn--0caa.eu/pp/%s/%s' % (msg, sig))
+    qr2 = QRCode(data='http://xn--0caa.eu/pp/%s' % src)
     a = updf(496, 227) # 175x80
-    return a.gen([page], qr.pdf(17, 132, 2))
+    return a.gen(page, pagec, qr1.pdf(17, 135, 2, True), qr2.pdf(424, 156, 2))
 
 #################### QR CODE ################
 
@@ -1371,10 +1422,11 @@ class QRCode:
             o += '<text x="%s" y="%s" style="font-size:32;fill:gray" >%s</text>\n' % (ox, oy + 40 + d*mc, txt)
         return o + '</svg>\n'
 
-    def pdf(self, ox=0, oy=0, d=10):
+    def pdf(self, ox=0, oy=0, d=10, size=False):
         "_"
         o, mc = b'0 0 0 rg ', self.m_count
-        o += bytes('0 0 0 rg BT 1 0 0 1 153 6 Tm /F1 4 Tf (%d) Tj ET 0 0 0 rg ' % self.m_count, 'ascii')
+        if size:
+            o += bytes('BT 1 0 0 1 4 6 Tm /F1 4 Tf (%d) Tj ET ' % self.m_count, 'ascii')
         for r in range(mc):
             k = 0
             for c in range(mc):
