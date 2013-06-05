@@ -104,7 +104,7 @@ def app_update(host):
     out, err = subprocess.Popen((cd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
     o = '<html><pre>Application Update...\n'
     o += 'Error: %s\n' % err.decode('utf8') if err else 'Message:%s\n' % out.decode('utf8')
-    o += '</pre><br/><a href="%s">Reload the new version</a></html>' % __app__
+    o += '</pre><br/><a href="/">Reload the new version</a></html>'
     return o
 
 def get_image(img):
@@ -587,13 +587,13 @@ def pubkey_match(dusr, gr):
                 #del(dusr[cm])
                 cm = cm1
             t = dusr[cm].decode('utf8').split('/')
-            if t[_PBK1].encode('ascii') == '': 
+            if t[_PBK1] == '': 
                 t[_PBK1], t[_PBK2] = pk1, pk2 
                 dusr[cm] = '/'.join(t)
                 cid = '%s/%s' % (t[_NBNK], t[_IBAN])
                 dusr[cid] = dusr[cid].decode('ascii') + '/%s' % cm.decode('ascii') if cid.encode('ascii') in dusr.keys() else cm.decode('ascii')
             else:
-                o = 'PubKey already exists |%s|' % t[_PBK1].encode('ascii')
+                o = 'PubKey already exists'
         else:
             o = 'Wrong signature!'
     else:
@@ -708,7 +708,7 @@ def application(environ, start_response):
             o += 'not valid args %s' % arg
     else:
         log(raw, environ['REMOTE_ADDR'])
-        if raw.lower() == '_update':
+        if raw.lower() == 'update':
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif raw.lower() == '_log':
             o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
