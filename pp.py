@@ -132,24 +132,25 @@ def help_register():
     o += '<p>Pour vérifier que vous utilisez la dernière version du site, vous pouvez comparer le code du condensé : <b>%s</b> avec celui affiché sur <a href="https://github.com/pelinquin/pingpongcash">github</a>. Notez enfin que cette page ne contient aucun code <i>JavaScript</i>, ni <i>cookies</i>.</p>\n' % __digest__.decode('ascii')
     return o
 
+def style_html():
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,p,li,i,b,a,div,input{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:110;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.bigorange{font-size:32;color:#F87217;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{border:1px solid #666;padding:2pt;}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:DodgerBlue;font-size:22;margin:20 0 0 20;}</style>'
+    return o
 
-def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
+def front_html(dusr, dtrx, cm='', pub=False, total='', msg=''):
     "_"
+    nb = [dusr['__N'], dtrx['__N']]
+    t = dusr[cm].decode('utf8').split('/') if cm else []
     today = '%s' % datetime.datetime.now()
-    o = '<?xml version="1.0" encoding="utf8"?>\n' 
-    o += '<html>\n<link rel="shortcut icon" type="www/image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAIAAAABc2X6AAAABmJLR0QA/wD/AP+gvaeTAAAAoklEQVR4nO3csQ0CMRAAQR6R0wk1URo1UYnpgA4M0iNA65n0kltdankbYxxWcvz1At8muE5wneA6wXWn+fhyO0+m9+vjo8u8a89Wy11YcJ3gOsF1gusE1wmuE1wnuE5wneA6wXWC6wTXCa4TXCe4TnCd4DrBdYLrBNcJrhNcJ7juxYv4ufnL9P+03IUF1wmuE1wnuG7zy0Oc4DrBdYLrBNc9AUj0DSD4QMJ7AAAAAElFTkSuQmCC"/>'
-    o += '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);p,li,i,b,a,div,input {font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:100;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.bigorange{font-size:32;color:#F87217;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left; width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{border:1px solid #666;padding:2pt;}</style>'
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
     o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
-    #data = 'àà.eu/pp/to2TyF' # give the real one!
-    #o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
-
+    data = 'pingpongcash.net/to2TyF' # give the real one!
+    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     dmsg = ' %s' % msg if msg else ''
     if t and not pub:
         dmsg = 'Bonjour %s %s, ' % (t[_FRST], t[_LAST]) + dmsg 
         o += '<p class="msg">%s</p>' % dmsg
-
     o += '<div id="wrap">'
     if cm == '':
         if not pub:
@@ -164,13 +165,13 @@ def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
             o += '<input class="txt" type="text" name="first" placeholder="Prénom(s)" title="liste complète" required="yes"/><br/>'
             o += '<input class="txt" type="text" name="last" placeholder="Nom de famille" required="yes"/><br/>'
             o += '<input class="txt" type="text" name="name" placeholder="E-mail" title="n\'est pas communiqué" required="yes"/><br/>'
-            o += '<input class="txt" type="text" name="iban" placeholder="IBAN" required="yes"/><br/>'
-            o += '<input class="txt" type="text" name="bic" placeholder="Code BIC" pattern="[A-Z0-9]{8,11}" title="pour vérification" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="iban" placeholder="IBAN" title="voir un RIB pour retrouver l\'IBAN" required="yes"/><br/>'
+            o += '<input class="txt" type="text" name="bic" placeholder="Code BIC" pattern="[A-Z0-9]{8,11}" title="pour vérification seulement" required="yes"/><br/>'
             o += '<input class="txt" type="text" name="ssid" placeholder="[Optionel] Numéro de sécurité sociale"/><br/>'
             o += '<input class="txt" type="text" name="dname" placeholder="[Optionel] Nom affiché de marchand"/><br/>'
             o += '<input class="txt" type="password" name="pw" placeholder="Mot de passe" title="de plus de 4 caractères" required="yes"/><br/>'
             o += '<input class="txt" type="password" name="pw2" placeholder="Confirmation de mot de passe" required="yes"/><br/>'
-            o += '<input class="txt" type="checkbox" name="read" title="j\'ai lu les avertissements ci contre" required="yes"/>'
+            o += '<input class="txt" type="checkbox" name="read" title="j\'ai lu les avertissements (CGU) ci contre" required="yes"/>'
             o += '<input class="sh" type="submit" value="S\'enregistrer"/>\n'
             o += '</form>\n'
             o += '</div>'
@@ -188,8 +189,7 @@ def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
             o += '</form>\n'
             o += '</div>'
             o += '<div id="rcol">'
-            if t[_PUBN] != '':
-                o += '<b class="bigorange" title="Nom affiché de marchand">\"%s\"</b>' % t[_PUBN]
+            if t[_PUBN] != '': o += '<b class="bigorange" title="Nom affiché de marchand">\"%s\"</b>' % t[_PUBN]
             total = re.sub('€', '', total)
             data = '%s?%06.2f€' % (cm, float(total)) if total != '' else cm
             o += '<p title="...code marchand \'%s\' en QRcode">%s</p>\n' % (data, QRCode(data=data).svg(100, 50, 12, data))    
@@ -220,13 +220,85 @@ def front_html(nb, cm='', t=[], pub=False, total='', msg=''):
             o += '</form>\n'
             o += '</div>'
             o += '<div id="rcol">%s</div>' % help_private(cm)
-            o += '<table title="historique des opérations"><tr><th width="100">Date</th><th width="20">+/-</th><th width="150">Opération</th><th width="280">Message</th><th width="100">Montant</th></tr><tr><td colspan="5"><p align="center">Aucune opération</p></td></tr></table>'
-
+            
+            o += '<table title="historique des opérations"><tr><th width="150">Date</th><th width="20">+/-</th><th width="250">Opération</th><th width="120">Signature</th><th width="100">Montant</th></tr>'
+            if cm.encode('utf8') in dtrx.keys():
+                t = dtrx[cm].decode('utf8').split('/')
+                for x in t:
+                    dat, dest = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(x))), ''
+                    l = dtrx['%s/%s' % (x,cm)].decode('utf8').split('/')
+                    if l[0].encode('utf8') in dusr.keys():
+                        t1 = dusr[l[0]].decode('utf8').split('/')
+                        dest = t1[_PUBN]
+                    o += '<tr><td>%s</td><td>-</td><td>%s [%s]</td><td>%s...</td><td align="right">%6.2f €</td></tr>' % (dat, l[0], dest, l[3][:10], float(l[1])/100)
+            o += '</table>\n'              
             o += '</div>'
-
     o += '</div>'
-    o += '<div id="footer">Contact: <a href="mailto:contact@pingpongcash.net">contact@pingpongcash.net</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>'
-    return o + '</html>'
+    return o + footer() + '</html>'
+
+def text_particulier():
+    return """Déposez pour encaissement à votre banque tout <a href="specimen">chèque</a> <a class="ppc">Ping-Pong&nbsp;</a> imprimé. Vérifiez à tout moment sa validité avec toute application mobile qui flash les QRcodes. <a href="login">Inscrivez vous</a> pour obtenir votre <i>code marchand</i> et recevoir des chèques numériques. Plus besoin de vous déplacer, tout est transmis à votre banque. Pour émettre des chèques <a class="ppc">Ping-Pong&nbsp;</a>, utilisez l'application gratuite (bientôt disponible) pour <i>iPhone</i>. Crééz vos clés (déconnecté de l'Internet) et demandez un certificat à votre banquier afin qu'il associe votre numéro de compte à vos clés. Vous pouvez alors payer avec votre téléphone tout autre particulier, commerçant ou administration, même par Internet.<br/> 
+Pas besoin de <i>cartes de crédit</i> (<i>CB</i>, <i>Visa</i>, <i>Mastercard</i>). Nous proposons un mécanisme de virement interbancaire automatisé (SEPA CT), sans passer par <i>Bitcoin</i>, sans puce NFC, sans vous géolocaliser, et sans vous inonder de publicités.
+"""
+def text_prix():
+    return """C'est simplement gratuit !
+L'investissement pour ce service est très faible, aucun terminal de paiement à développer, aucune carte, ni puce à produire, aucune publicité, ni structure commerciale couteuse. L'authentification forte des utilisateurs est directement assurée par leur smartphone, sans NFS. Les signatures numériques sont basées sur un algorithme fiable et reconnu; ECDSA-521P et les noeuds des serveurs sont conçus sur une distribution Linux+Apache épurée et sécurisée. La maintenance/recherche en sécurité/cryptographie est financée par des aides publiques de programmes de recherche et soutenue par des partenaires académiques.<br/>
+Ainsi, la très importante économie réalisée permet de proposer aux citoyens, particuliers ou commerçants, un service de paiement numérique gratuit. Une cotisation annuelle de 3€65 est demandée (un centime par jour), pour la fondation <a href="http://cupfoundation.net">⊔FOUNDATION</a>. Face aux grands groupes spécialisés dans la monétique et disposant de moyens gigantesques de communication, notre petite structure ne peut offrir <a class="ppc">Ping-Pong&nbsp;</a> que si les internautes le demandent, l'utilisent et le font savoir sur le Net.
+Pour autant, la <b>qualité de service et la sécurité</b> ne sont jamais impactées par ce prix.
+"""
+
+def text_commercant():
+    return """Vous êtes les plus avantagés, car <a class="ppc">Ping-Pong&nbsp;</a> n'impose aucun terminal de paiement et ne demande aucune commission quels que soient le nombre de transactions et leur fréquence. Vous êtes même libres d'offrir à vos clients des avantages compte tenu des commissions <i>CB</i> évitées. Bien entendu, <i href="login">l'inscription</i> est requise pour avoir votre <i>code marchand</i> et le nom public que vous désirez donner à votre commerce. Si un client vous donne un chèque <a class="ppc">Ping-Pong&nbsp;</a> imprimé, un simple scan du QRcode valide la transaction, mais le plus souvent, elle est directement envoyée à votre banque depuis le téléphone du client parallèlement à votre ordinateur de caisse.
+Pensez à avertir votre clientèle (autocollants disponibles gratuitement en nous contactant), que vous offrez un service de paiement <a class="ppc">Ping-Pong&nbsp;</a>.
+"""
+
+def text_banque():
+    return """Nous sommes vos partenaires pour offrir un moyen de paiement numérique à tous vos clients. Pour les clients non encore inscrits, le chèque  
+<a class="ppc">Ping-Pong&nbsp;</a> imprimé est traité comme tout autre chèque avec saisie manuelle du numéro de compte au dos et  le simple flash du QRcode lance la transaction SEPA, sans erreur possible de somme manuscriptes. Pour vos clients inscrits, tout est numérisé et automatisé à partir de l'instant où l'identité numérique du client associée à son compte a été certifiée par un des conseillers financiers. L'impression du chèque PDF et son dépos en banque est inutile. <a class="ppc">Ping-Pong&nbsp;</a> fait diminuer l'usage des chèques papiers (cout de environ 30€/an/client) et donc des économies plus importantes que le baisse éventuelle de versement du GIE à votre agence, en fonction du montant d'opération CB, qui lui aussi diminue à l'usage de <a class="ppc">Ping-Pong&nbsp;</a>. 
+"""
+
+def text_administration():
+    return """En plus d'être un moyen de paiement numérique, <a class="ppc">Ping-Pong&nbsp;</a> est une solution de création d'une identité numérique citoyenne. Une simple validation <a class="ppc">Ping-Pong&nbsp;</a> par un agent adminnistratif habilité, avec présence physique obligatoire et papiers d'identités, permet de certifier de l'unicité du citoyen (personne ne peut disposer de deux identités valides). L'identité numérique peut servir à de futures opérations de vote par Internet (non opérationel en 2013) et au déploiement d'une monnaie dédié aux <i>biens immatériels</i> (voir <a href="http://cupfoundation.net">⊔FOUNDATION</a>). Chaque citoyen créant seul et déconnecté du Net, son jeu de clé cryptographique, aucun tiers, même un agent de l'Etat ne peux usurper son identité numérique. La perte ou le vol du téléphone implique simplement de repasser l'enregistrement administratif.
+"""
+
+def text_securite():
+    return """L'argument <i>sécurité</i> est avancé par toutes les solutions <i>Visa</i>, <i>Mastercard</i>, <i>Paypal</i>, <i>Gemalto</i>, ou <i>Google wallet</i> alors même que leur sécurité réelle reste très faible par rapport à l'état de l'art en cryptographie. Cette situation est volontaire pour justifier, proposer et vendre des services et contrats d'assurance inclus dans les frais de gestion. Votre numéro de carte (+ date d'expiration + cryptogramme) peut se retrouver facilement sur un marché frauduleux. Ces organismes gèrent en plus à votre place, votre mot de passe et votre PIN, donc leurs serveurs sont la cible d'attaques. Avec <a class="ppc">Ping-Pong&nbsp;</a>, l'utilisateur choisit son <i class="red0">alpha-pin</i> seul, chez lui, déconnecté de l'<i>Internet</i>, ni le banquier, ni l'opérateur téléphonique, ni l'Etat ne peut le retrouver. Il faudrait en plus voler physiquement le téléphone pour faire une transaction car un seul équipement n'est associé au même compte. De plus, le réseau de noeuds <a class="box">ping-pong&nbsp;</a> est fortement distribué si bien qu'il est impossible de s'attaquer au réseau entier au même moment. Enfin, seul votre conseiller financier à une vue sur les opérations effectuées et il ne gère qu'un nombre limité de comptes. Il n'y a donc pas de groupe d'administrateurs informatique ayant un pouvoir d'accès à une base de données centralisée. A l'inverse, <i>Visa</i> et <i>Mastercard</i> doivent protéger un mot de passe maître au niveau mondial. Les cartes RFID/NFC pour de petites transactions sont très facilement piratées avec un simple lecteur qui scanne les poches des gens dans une foule alors qu'avec <a class="ppc">Ping-Pong&nbsp;</a>, même pour acheter une baguette de pain, vous devez saisir votre <i class="red0">alpha-pin</i> de quatre caractères sur votre smartphone. La transaction complète <a class="ppc">Ping-Pong&nbsp;</a> s'effectue entre une et cinq secondes selon la dextérité des intervenants."""
+
+def text_ethique():
+    return """
+De même que l'utilisation d'un billet de banque est gratuit, un paiement à l'aire du numérique doit aussi être gratuit. Ce sont les ordinateurs qui travaillent et ils ont été ammortis par d'autres activités. Nous restons une très petite équipe, en contact privilégier avec le milieu académique et recherche en cryptographie et sécurité informatique, afin de maintenir une offre de qualité. Nous pensons que l'arrivée du numérique ne doit pas créer de nouveaux services complexes, artificiels et financés par le citoyen. Dans le pur état d'esprit de l'Internet à sa conception, chacun a le droit de donner ou recevoir de l'argent par un moyen électronique, sans verser une commision, ni aux banques, ni aux opérateurs de télécommunication, ni aux groupes de la grande distribution. La petite contribution que nous demandons (3,65€/an TTC) permet justement de maintenir une fondation garante de la protection de ce droit, independamment de l'Etat. Parce que l'<i>Internet</i> est un bien commun, offrir au citoyen un moyen de paiement gratuit, ouvert et sécurisé est simplement une <b>nouvelle exigence démocratique</b>."""
+
+def text_propos():
+    return """Notre métier initial est la recherche en informatique. Historiquement, nous travaillons avec des industriels de l'<i>aéronautique</i> et des académiques du domaine du <i>temps réel embarqué critique</i>. Bien que <a class="ppc">Ping-Pong&nbsp;</a> utilise des algorithmes cryptographiques et des protocoles éprouvés, nous sommes principalement sensibles à la sécurité informatique du système complet. Nos développements sont obligatoirement open-source pour rassurer les utilisateurs et nos clients et pour nous décharger d'un quelconque secret à protéger.<br/>Notre petite structure est en pleine phase de recrutement sur toute la France. <a href="mailto:contact@pingpongcash.net">Contactez nous</a> pour savoir si nos besoins peuvent correspondre à vos compétences, votre expérience et vos motivations.Nous envisageons à terme une internationalisation, avec le support de taux de change entre monnaies, mais nos efforts se concentrent actuellement sur la couverture de <a class="ppc">Ping-Pong&nbsp;</a> en €, en France, puis en Europe (zone SEPA).
+"""
+
+
+def index_html(nb):
+    "_"
+    today = '%s' % datetime.datetime.now()
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
+    o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
+    o += '<p class="alpha" title="still in security test phase!">Beta</p>'
+    data = 'pingpongcash.net/to2TyF' # give the real one!
+    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
+    o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
+    #o += '<p>Enregistrement <a href="login">ici</a></p>\n'
+
+    o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte. Nous offons un petit chèque symbolique aux premiers inscrits. En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile. La version <i>iOS</i> pour <i>iPhone</i> est actuellement en phase de test. <a href="mailto:contact@pingpongcash.net">Contactez nous</a> pour participer.</p>'
+
+    o += '<div id="wrap">'
+    o += '<div id="c1"><h1>Particulier</h1><p>%s</p></div>' % text_particulier()
+    o += '<div id="c2"><h1>Commerçant</h1><p>%s</p></div>' % text_commercant()
+    o += '<div id="c3"><h1>Banque</h1><p>%s</p></div>' % text_banque()
+    o += '<div id="c4"><h1>Administration</h1><p>%s</p></div>' % text_administration()
+    o += '</div>'
+    o += '<div id="wrap">'
+    o += '<div id="c1"><h1>Prix</h1><p>%s</p></div>' % text_prix()
+    o += '<div id="c2"><h1>Sécurité</h1><p>%s</p></div>' % text_securite()
+    o += '<div id="c3"><h1>Ethique</h1><p>%s</p></div>' % text_ethique()
+    o += '<div id="c4"><h1>A propos</h1><p>%s</p></div>' % text_propos()
+    o += '</div>'
+    return o + footer() + '</html>'
 
 def compact (iban):
     "_"
@@ -378,8 +450,7 @@ _PAT_PUBKEY_ = r'PK/1/(([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})/([^/]{80,100})/([^
 _PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(B|C|\d{5}))/(\S{160,200})$'
 _PAT_AGENCY_ = r'AG/(([^/]{6})/(\d{5}/\d{5})/([^/]{,40}/[^/]{,60}/\d{5}/[^/]{,60}/\d{10}/[^/]{,60}))/(\S{160,200})$'
 _PAT_VERIF_  = r'((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(\d{5}))/(\S{160,200})$'
-
-#/1370343740/to2TyF/Dorian Litvine/00013/AYJqnqRzJkYZxSw5b_C20zWnx9xgLojXAPbPHoWSGyksCoj8uZk1XNil_yNIx6wxmvR-f4u3P4MYxZF-H_HLyZIr/WXSfFLrqqIUZGy_cfzQl2FnOtxTTdBmNJ2nqayjHaEYVCwfBsoudGtdDeY-ZYeWEhJiMn13stEVXocvkML28s5I
+_PAT_LIST_   = r'LD/(([^/]{6})/([\d-]{10}))/(\S{160,200})$'
 
 def transaction_match(dusr, dtrx, gr):
     "_"
@@ -387,20 +458,20 @@ def transaction_match(dusr, dtrx, gr):
     today = '%s' % datetime.datetime.now()
     trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6] 
     if src.encode('ascii') in dusr.keys():
-        if dst.encode('utf8') in dusr.keys(): 
-            tb, ts, k = dusr[src].decode('utf8').split('/'),dusr[dst].decode('utf8').split('/'), ecdsa()
-            k.pt = Point(curve_521, b64toi(tb[_PBK1].encode('ascii')), b64toi(tb[_PBK2].encode('ascii')))
-            if k.verify(sig, msg):
+        tb, k = dusr[src].decode('utf8').split('/'), ecdsa()
+        k.pt = Point(curve_521, b64toi(tb[_PBK1].encode('ascii')), b64toi(tb[_PBK2].encode('ascii')))
+        if k.verify(sig, msg):
+            if dst.encode('utf8') in dusr.keys(): 
+                ts = dusr[dst].decode('utf8').split('/')
                 if trvd == 'VD' and tb[_STAT] == 'A': ts[_STAT] = 'B'
-                dusr[src], dusr[dst] = '/'.join(tb), '/'.join(ts)
-                dtrx['__N'] = '%d' % (int(dtrx['__N']) + 1)
-                dtrx['%s/%s' % (epoch, src)] = '/'.join([dst, val, val, sig])
-                x, tx = '%s/%s' % (today[:10], tb[_NBNK]), '/'.join([epoch, src])
-                dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
-            else:
-                o = 'Wrong signature!'
+                dusr[src], dusr[dst] = '/'.join(tb), '/'.join(ts)                
+            dtrx['__N'] = '%d' % (int(dtrx['__N']) + 1)
+            dtrx['%s/%s' % (epoch, src)] = '/'.join([dst, val, val, sig])
+            dtrx[src] = dtrx[src] + b'/' + epoch.encode('ascii') if src.encode('ascii') in dtrx.keys() else epoch
+            x, tx = '%s/%s' % (today[:10], tb[_NBNK]), '/'.join([epoch, src])
+            dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
         else:
-            pass
+            o = 'Wrong signature!'
     else:
         o = 'unknown cm'
     return o
@@ -419,6 +490,43 @@ def agency_match(dusr, dags, gr):
             o = 'operation not allowed'
     else:
         o = 'user not known'
+    return o
+
+def listday_match(dusr, dtrx, gr):
+    "_"
+    o = ''
+    msg, src, dat, sig = gr[0], gr[1], gr[2], gr[3]
+    if src.encode('ascii') in dusr.keys(): 
+        t, k = dusr[src].decode('utf8').split('/'), ecdsa()
+        pk1, pk2, status = t[_PBK1], t[_PBK2], t[_STAT] 
+        k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
+        if status in ('A','B'):
+            if k.verify(sig, msg):
+                x = '%s/%s' % (dat, t[_NBNK])
+                if x.encode('ascii') in dtrx.keys():
+                    l = dtrx[x].decode('utf8').split('/')
+                    o = 'Date:%s\n' % dat
+                    for a in range(len(l)//2):
+                        src = l[2*a+1]
+                        y = dusr[src].decode('utf8').split('/')
+                        acc = '%s' % b64toi(bytes(y[_IBAN],'ascii'))
+                        z = '%s/%s' % (l[2*a], l[2*a+1])
+                        he =  time.strftime('%H:%M:%S', time.localtime(float(l[2*a])))
+                        j = dtrx[z].decode('utf8').split('/')
+                        bnk2, acc2 = '?'*14, '?'*10
+                        if j[0].encode('utf8') in dusr.keys():
+                            v = dusr[j[0]].decode('utf8').split('/')
+                            acc2 = '%s' % b64toi(bytes(v[_IBAN],'ascii'))
+                            bnk2 = 'FR76%s' % b32toi(bytes(v[_NBNK][2:],'ascii'))
+                        o += '%s %s[%s]->%30s[%s%s] %s...\t%6.2f€\n' % (he, l[2*a+1], acc, j[0], bnk2, acc2, j[3][:10], float(j[1])/100)
+                else:
+                    o = 'no operation for this day'
+            else:
+                o = 'bad signature'
+        else:
+            o = 'not allowed'
+    else:
+        o = 'unknown user'
     return o
 
 def verif_match(dusr, gr):
@@ -470,11 +578,21 @@ def pubkey_match(dusr, gr):
         t, k = dusr[dusr[mail]].decode('utf8').split('/'), ecdsa()
         k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
         msg = '/'.join([today[:10], t[_PAWD], raw])
-        if k.verify(sig, msg): 
-            cm = dusr[mail] # ! CAN SOMEONE CHANGE PUBKEY?
+        if k.verify(sig, msg):
+            cm1, cm = pk2[-6:], dusr[mail] 
+            if cm1.encode('utf8') not in dusr.keys():
+                dusr[mail] = cm1
+                dusr[cm1] = dusr[cm]
+                del(dusr[cm])
+                cm = cm1
             t = dusr[cm].decode('utf8').split('/')
-            t[_PBK1], t[_PBK2] = pk1, pk2 
-            dusr[cm] = '/'.join(t)
+            if t[_PBK1].encode('ascii') == '': 
+                t[_PBK1], t[_PBK2] = pk1, pk2 
+                dusr[cm] = '/'.join(t)
+                cid = '%s/%s' % (t[_NBNK], t[_IBAN])
+                dusr[cid] = dusr[cid].decode('ascii') + '/%s' % cm.decode('ascii') if cid.encode('ascii') in dusr.keys() else cm.decode('ascii')
+            else:
+                o = 'PubKey already exists'
         else:
             o = 'Wrong signature!'
     else:
@@ -495,7 +613,7 @@ def register_match(dusr, gr):
                 if k not in dusr.keys(): break
             dusr['__N'] = '%d' % (int(dusr['__N']) + 1)
             dusr[mail] = k
-            dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
+            #dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
             st = 'A' if mail == __email__ else 'X'
             dusr[k] = '/'.join([  
                     st,             #_STAT
@@ -548,38 +666,28 @@ def application(environ, start_response):
     init_dbs(dbs)
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base = environ['PATH_INFO'][1:]
-    dusr, dtrx, dags = dbm.open('/cup/pp/usr', 'c'), dbm.open('/cup/pp/trx', 'c'), dbm.open('/cup/pp/ags', 'c')
+    dusr, dtrx, dags, dbic = dbm.open('/cup/pp/usr', 'c'), dbm.open('/cup/pp/trx', 'c'), dbm.open('/cup/pp/ags', 'c'), dbm.open('/cup/pp/bic', 'c')
     nb = [dusr['__N'], dtrx['__N']]
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
         if reg(re.match(_PAT_LOGIN_, arg)):
             #smail ('pelinquin@gmail.com', 'LOGIN OK \n')
             cm, res = login_match(dusr, reg.v.groups())
-            if cm:
-                t = dusr[cm].decode('utf8').split('/')
-                o, mime = front_html(nb, cm.decode('ascii'), t), 'text/html; charset=utf8'
-            else:
-                o += res
+            if cm: o, mime = front_html(dusr, dtrx, cm.decode('ascii')), 'text/html; charset=utf8'
+            else: o += res
         elif reg(re.match(_PAT_LOST_, arg)):
             o = 'you will receive an e-mail to reset your password !'
         elif reg(re.match(_PAT_CHPWD_, arg)):
             cm, res = login_match(dusr, reg.v.groups())
-            if cm:
-                t = dusr[cm].decode('utf8').split('/')
-                o, mime = front_html(nb, cm.decode('ascii'), t, False, '', 'votre mot de passe a été changé!'), 'text/html; charset=utf8'
-            else:
-                o += res
+            if cm: o, mime = front_html(dusr, dtrx, cm.decode('ascii'), False, '', 'votre mot de passe a été changé!'), 'text/html; charset=utf8'
+            else: o += res
         elif reg(re.match(_PAT_REG_, arg)):
             k, res = register_match(dusr, reg.v.groups())
-            if k:
-                t = dusr[k].decode('utf8').split('/')
-                o, mime = front_html(nb, k, t), 'text/html; charset=utf8'
-            else:
-                o += res
+            if k: o, mime = front_html(dusr, dtrx, k), 'text/html; charset=utf8'
+            else: o += res
         elif reg(re.match(_PAT_INCOME_, arg)):
             o = 'facture! %s' % base
-            t = dusr[base].decode('utf8').split('/')
-            o, mime = front_html(nb, base, t, True, reg.v.group(1), 'Facture'), 'text/html; charset=utf8'
+            o, mime = front_html(dusr, dtrx, base, True, reg.v.group(1), 'Facture'), 'text/html; charset=utf8'
         elif reg(re.match(_PAT_PUBKEY_, arg)):
             res = pubkey_match(dusr, reg.v.groups())
             if res: o += res
@@ -593,6 +701,8 @@ def application(environ, start_response):
             res = agency_match(dusr, dags, reg.v.groups())
             if res: o += res
             else: o = 'AGENCY OK' 
+        elif reg(re.match(_PAT_LIST_, arg)):
+            o = listday_match(dusr, dtrx, reg.v.groups())
         else:
             o += 'not valid args %s' % arg
     else:
@@ -609,29 +719,39 @@ def application(environ, start_response):
             os.remove('/cup/pp/%s.db' % raw.lower()[7:])
             o = 'reset database %s OK' % raw.lower()[7:]
         elif base == '': # public pages
-            o, mime = front_html(nb), 'text/html; charset=utf8'
+            o, mime = index_html(nb), 'text/html; charset=utf8'
+        elif base == 'login': # public pages
+            o, mime = front_html(dusr, dtrx), 'text/html; charset=utf8'
+        elif base == 'specimen': # public pages
+            here = os.path.dirname(os.path.abspath(__file__))
+            o, mime = open('%s/www/specimen.pdf' % here, 'rb').read(), 'application/pdf'
         elif reg(re.match(_PAT_VERIF_, base)):
             res = verif_match(dusr, reg.v.groups())
             if res: o += res
             else: o = do_sepa(dusr, reg.v.groups())
         else:
-            if base.encode('ascii') in dusr.keys():
-                t = dusr[base].decode('utf8').split('/')
-                o, mime = front_html(nb, base, t, True, raw, 'Facture'), 'text/html; charset=utf8'
-            else:
-                o += 'Request not valid!'
+            if base.encode('ascii') in dusr.keys(): o, mime = front_html(dusr, dtrx, base, True, raw, 'Facture'), 'text/html; charset=utf8'
+            else: o += 'Request not valid!'
+    dbic.close()
     dags.close()
     dtrx.close()
-    dusr.close()    
+    dusr.close()
     start_response('200 OK', [('Content-type', mime)])
-    #start_response('200 OK', [('Content-type', mime), ('Content-Disposition', 'filename={}'.format(fname))])
     return [o if mime == 'application/pdf' else o.encode('utf8')] 
 
 def favicon():
     "_"
+    return '<link rel="shortcut icon" type="www/image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAIAAAABc2X6AAAABmJLR0QA/wD/AP+gvaeTAAAAoklEQVR4nO3csQ0CMRAAQR6R0wk1URo1UYnpgA4M0iNA65n0kltdankbYxxWcvz1At8muE5wneA6wXWn+fhyO0+m9+vjo8u8a89Wy11YcJ3gOsF1gusE1wmuE1wnuE5wneA6wXWC6wTXCa4TXCe4TnCd4DrBdYLrBNcJrhNcJ7juxYv4ufnL9P+03IUF1wmuE1wnuG7zy0Oc4DrBdYLrBNc9AUj0DSD4QMJ7AAAAAElFTkSuQmCC"/>'
+
+def favicon_svg():
+    "_"
     code = '<svg %s n="%s"><path stroke-width="4" fill="none" stroke="Dodgerblue" d="M3,1L3,14L13,14L13,1"/></svg>' % (_SVGNS, datetime.datetime.now())
     tmp = base64.b64encode(code.encode('utf8'))
     return '<link %s rel="shortcut icon" type="image/svg+xml" href="data:image/svg+xml;base64,%s"/>\n' % (_XHTMLNS, tmp.decode('utf8'))
+
+def footer():
+    "_"
+    return '<div id="footer">Contact: <a href="mailto:contact@pingpongcash.net">contact@pingpongcash.net</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>'
 
 def itob64(n):
     " utility to transform int to base64"
@@ -977,28 +1097,40 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     tab = msg.split('/')
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page = [
-        (145, 144, 1, 8, 'Date:'), (185, 144, 1, 12, date_gen),
-        (400, 26, 1, 16, '%s,%s \001' % (v1,v2)), 
-        (380, 147, 1, 10, 'Digital Signature:'), (380, 138, 1, 4, 'EC-DSA-521P'),
+        (185, 144, 1, 12, date_gen),
+        #(400, 26, 1, 16, '%s,%s \001' % (v1,v2)), 
+        (400, 26, 1, 18, '%s \001' % v1), (450, 22, 1, 12, v2), 
         (145, 158, 3, 9, sig[:59]), 
         (145, 168, 3, 9, sig[59:118]), 
         (145, 178, 3, 9, sig[118:]), 
-        (145, 191, 1, 8, 'Signed message:'), (214, 191, 3, 9, msg),
-        (418, 56, 1, 5, 'Anti-Phishing URL:'), (414, 124, 1, 6, 'http://\002\002.eu/pp/%s' % src),
-        (30, 40, 1, 10, 'PAY: '), (80, 40, 1, 16, dst), (170, 40, 8, 12, pubname),
+        (214, 193, 3, 9, msg),
+        (398, 54, 1, 6, 'http://pingpongcash.net/%s' % src),
+        (80, 40, 1, 16, dst), (170, 40, 8, 12, pubname),
         (0, 60, 6, 11, num2word_fr(int(v1), int(v2))),
         (0, 69, 3, 8, num2word(int(v1), int(v2))),
-        (145, 90, 1, 10, 'FROM: '), (200, 90, 1, 16, src), (296, 90, 8, 12, tb[_PUBN]), 
-        (145, 100, 1, 8, 'Public key:'), 
-        (192, 100, 3, 8, pk1[:44]), (192, 108, 3, 8, pk1[44:]), (192, 116, 3, 8, pk2[:44]), (192, 124, 3, 8, pk2[44:]),
+        (200, 90, 1, 16, src), (296, 90, 8, 12, tb[_PUBN]), 
+        (192, 100, 3, 8, pk1[:44]), (192, 108, 3, 8, pk1[44:]), 
+        (192, 116, 3, 8, pk2[:44]), (192, 124, 3, 8, pk2[44:-6]), (371, 124, 6, 8, pk2[-6:]),
         ] 
+    gray = '.7 .7 .7'
     pagec = [
-        (145, 203, 1, 6, '.7 .7 .7', 'Aide ou question:'), (204, 203, 6, 9, '.7 .7 .7', 'contact@pingpongcash.net'),
+        (30, 40, 1, 10, gray, 'PAY: '),
+        (145, 90, 1, 10, gray, 'FROM: '), 
+        (420, 125, 1, 5, gray, 'Anti-Phishing URL'), 
+        (145, 144, 1, 8, gray, 'Date:'), 
+        (380, 138, 1, 4, gray, 'EC-DSA-521P'),
+        (380, 147, 1, 10, gray, 'Digital Signature:'), 
+        (145, 5, 1, 6, gray, 'Enregistrement, aide ou question:'), 
+        (240, 1, 6, 8, gray, 'http://pingpongcash.net'),
+        (240, 10, 6, 8, gray, 'contact@pingpongcash.net'), 
+        (145, 100, 1, 8, gray, 'Public key:'),
+        (145, 193, 1, 8, gray, 'Signed message:'),  
         (190, 182, 1, 240, '.84 .84 .84', '\001'),
-        (5, 213, 1, 6, '.05 .46 .80', info), 
+        (5, 213, 1, 6, '.05 .46 .8', info), 
+        (465, 0, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ]
-    qr1 = QRCode(data='http://xn--0caa.eu/pp/%s/%s' % (msg, sig))
-    qr2 = QRCode(data='http://xn--0caa.eu/pp/%s' % src)
+    qr1 = QRCode(data='http://pingpongcash.net/%s/%s' % (msg, sig))
+    qr2 = QRCode(data='http://pingpongcash.net/%s' % src)
     a = updf(496, 227) # 175x80
     return a.gen(page, pagec, qr1.pdf(17, 135, 2, True), qr2.pdf(424, 156, 2))
 
