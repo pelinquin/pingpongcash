@@ -56,6 +56,7 @@ __app__    = os.path.basename(__file__)[:-3]
 __ppc__    = 'pingpongcash'
 __email__  = 'contact@%s.net' % __ppc__
 __url__    = 'http://%s.net' % __ppc__
+__acm__    = 'Nu-Xdc'
 _XHTMLNS   = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 _XLINKNS   = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
@@ -144,7 +145,7 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg=''):
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
     o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
-    data = 'pingpongcash.net/to2TyF' # give the real one!
+    data = 'pingpongcash.net/%s' % __acm__ 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     dmsg = ' %s' % msg if msg else ''
@@ -583,7 +584,7 @@ def pubkey_match(dusr, gr):
             if cm1.encode('utf8') not in dusr.keys():
                 dusr[mail] = cm1
                 dusr[cm1] = dusr[cm]
-                del(dusr[cm])
+                #del(dusr[cm])
                 cm = cm1
             t = dusr[cm].decode('utf8').split('/')
             if t[_PBK1].encode('ascii') == '': 
@@ -592,7 +593,7 @@ def pubkey_match(dusr, gr):
                 cid = '%s/%s' % (t[_NBNK], t[_IBAN])
                 dusr[cid] = dusr[cid].decode('ascii') + '/%s' % cm.decode('ascii') if cid.encode('ascii') in dusr.keys() else cm.decode('ascii')
             else:
-                o = 'PubKey already exists'
+                o = 'PubKey already exists |%s|' % t[_PBK1].encode('ascii')
         else:
             o = 'Wrong signature!'
     else:
