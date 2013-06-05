@@ -145,7 +145,8 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg=''):
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
     o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
-    data = 'pingpongcash.net/%s' % __acm__ 
+    #data = 'pingpongcash.net/%s' % __acm__ 
+    data = 'àà.eu/%s' % __acm__ 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     dmsg = ' %s' % msg if msg else ''
@@ -708,7 +709,7 @@ def application(environ, start_response):
             o += 'not valid args %s' % arg
     else:
         log(raw, environ['REMOTE_ADDR'])
-        if raw.lower() == 'update':
+        if raw.lower() == '_update':
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif raw.lower() == '_log':
             o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
@@ -1100,14 +1101,14 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     page = [
         (185, 144, 1, 12, date_gen),
         #(400, 26, 1, 16, '%s,%s \001' % (v1,v2)), 
-        (400, 26, 1, 18, '%s \001' % v1), (450, 22, 1, 12, v2), 
+        (403, 26, 1, 18, '%s' % v1), (450, 22, 1, 12, v2), 
         (145, 158, 3, 9, sig[:59]), 
         (145, 168, 3, 9, sig[59:118]), 
         (145, 178, 3, 9, sig[118:]), 
         (214, 193, 3, 9, msg),
-        (398, 54, 1, 6, 'http://pingpongcash.net/%s' % src),
+        (398, 66, 1, 6, 'http://pingpongcash.net/%s' % src),
         (80, 40, 1, 16, dst), (170, 40, 8, 12, pubname),
-        (0, 60, 6, 11, num2word_fr(int(v1), int(v2))),
+        (0, 59, 6, 11, num2word_fr(int(v1), int(v2))),
         (0, 69, 3, 8, num2word(int(v1), int(v2))),
         (200, 90, 1, 16, src), (296, 90, 8, 12, tb[_PUBN]), 
         (192, 100, 3, 8, pk1[:44]), (192, 108, 3, 8, pk1[44:]), 
@@ -1116,8 +1117,9 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     gray = '.7 .7 .7'
     pagec = [
         (30, 40, 1, 10, gray, 'PAY: '),
+        (437, 26, 1, 18, '.1 .2 .7', '\001'),
         (145, 90, 1, 10, gray, 'FROM: '), 
-        (420, 125, 1, 5, gray, 'Anti-Phishing URL'), 
+        (422, 136, 1, 5, gray, 'Anti-Phishing URL'), 
         (145, 144, 1, 8, gray, 'Date:'), 
         (380, 138, 1, 4, gray, 'EC-DSA-521P'),
         (380, 147, 1, 10, gray, 'Digital Signature:'), 
@@ -1126,14 +1128,14 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (240, 10, 6, 8, gray, 'contact@pingpongcash.net'), 
         (145, 100, 1, 8, gray, 'Public key:'),
         (145, 193, 1, 8, gray, 'Signed message:'),  
-        (190, 182, 1, 240, '.84 .84 .84', '\001'),
+        (190, 188, 1, 240, '.9 .9 .9', '\001'),
         (5, 213, 1, 6, '.05 .46 .8', info), 
         (465, 0, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ]
     qr1 = QRCode(data='http://pingpongcash.net/%s/%s' % (msg, sig))
     qr2 = QRCode(data='http://pingpongcash.net/%s' % src)
     a = updf(496, 227) # 175x80
-    return a.gen(page, pagec, qr1.pdf(17, 135, 2, True), qr2.pdf(424, 156, 2))
+    return a.gen(page, pagec, qr1.pdf(17, 135, 2, True), qr2.pdf(424, 145, 2))
 
 #################### QR CODE ################
 
