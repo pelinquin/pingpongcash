@@ -78,6 +78,8 @@ __embedded_fonts__ = ('cmr10', 'cmr17')
 __fonts__ = ('Helvetica', 'Times-Roman', 'Courier', 'Times-Bold', 'Helvetica-Bold', 'Courier-Bold', 'Times-Italic', 'Helvetica-Oblique', 
              'Courier-Oblique', 'Times-BoldItalic', 'Helvetica-BoldOblique', 'Courier-BoldOblique', 'Symbol') + __embedded_fonts__
 
+__e__ = '/Euro /ccedilla /' + ' /'.join(['%s%s' % (x,y) for x in ('a','e','i','o','u','y') for y in ('acute', 'grave', 'circumflex', 'dieresis')])
+
 """
 Small is beautiful!
 """
@@ -86,10 +88,6 @@ def reg(value):
     " function attribute is a way to access matching group in one line test "
     reg.v = value
     return value
-
-def qr_admin():
-    "_"
-    return 'iVBORw0KGgoAAAANSUhEUgAAAIwAAACMCAIAAAAhotZpAAACJklEQVR42u3d623DIBQG0OyRUbpW928maOTclyGcT/3pyIETyXAN9PEny+ehCyAJJEgCSSBBEkgCCZJAgiSQBBIkgSTFSM+f36a/K3fJf8n/LptvIyRIkCBBqkRKPhIDDbj4kWSX5Xu2sMcgQYIECdLHt8yPDgKNbOrxwIgmMDyBBAkSJEiQIBUhJV1r2wIJEiRIkCB9VkWeKYVAggQJEqQNkGb64mK1u2/g4FUFJEiQIC2KNLNaqG/+a0kXJEiQIEGC1Iw0k0CVYWZAOB9IkCBBglQ5fy6sKAfAZgZB25eFIEGCBGl3pMDa0tq9lQH+wuFJX+EcEiRIkCDdXGAt7MraHk9eBgkSJEiQIB2MVFhlyP8sAh8PlELmqyeQIEGCBKlMJX+ET7Jh9x7Kd//WF0iQIEE6BKlvUc46k9m+lwCQIEGCBGmhyezMnLFvajm/ABYSJEiQIEE6ACmAlzyVPXCXwnHjV23HhAQJEqRdkAqn3H3vTGe2vkCCBAkSpONOROnbLVO4tfSrJrOQIEGCtAvSskepFc6s+/5LMSRIkCBBgnQwUu0QrqnyXbsAeH5rJiRIkCBBqvyWM7seay+bP+IAEiRIkCAtitQ3opl58i/0+hwSJEiQIBUibfF4P3EyCwkSJEiQIK1YBU/+YmZGepAgQYIE6Wak+aPk8pP85A7OZLdAggQJEqRKJBkOJEgCCZJAEkiQBJJAgiSQIAkkgQRJIMm7vAC6a+kW1XzFvQAAAABJRU5ErkJg'
 
 def log(s, ip=''):
     "Append to head log file"
@@ -1056,25 +1054,31 @@ class updf:
 
     def gen(self, page, pagec, code1, code2):
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
-        self.add('/Type /Catalog /Pages 2 0 R')
-        self.add('/Type /Pages /MediaBox [ 0 0 %d %d ] /Count 1 /Kids [ 3 0 R ]' % (self.pw, self.ph))
+        self.add('/Type/Catalog/Pages 2 0 R/PageMode /UseOutlines ')
+        self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.pw, self.ph))
         ft = (1, 3, 6, 8)
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f,i+4)  for i,f in enumerate(ft)]) + ' >>'
-        img = '/ColorSpace << /pgfprgb [/Pattern /DeviceRGB] >> /XObject << /Im1 8 0 R >>'
-        self.add('/Type/Page/Parent 2 0 R/Resources <<%s %s >>/Contents 10 0 R' % (fonts, img))
-        enc = ' /Encoding << /Type /Encoding /Differences [ 1 /Euro /agrave /eacute /egrace /ccedilla] >> '
-        for f in ft: self.add('/Type /Font /Subtype /Type1 /BaseFont /%s %s' % (__fonts__[f-1], enc))
+        img = '/ColorSpace<</pgfprgb [/Pattern /DeviceRGB]>>/XObject<</Im1 8 0 R>>'
+        self.add('/Type/Page/Parent 2 0 R/Annots [11 0 R 12 0 R]/Resources <<%s %s >>/Contents 10 0 R' % (fonts, img))
+        enc = '/Encoding<</Type/Encoding /Differences [ 1 %s]>> ' % __e__
+        for f in ft: self.add('/Type/Font /Subtype /Type1 /BaseFont /%s %s' % (__fonts__[f-1], enc))
         here = os.path.dirname(os.path.abspath(__file__))
         self.addimg('%s/www/header.img' % here, 9) 
-        self.addmsk('%s/www/header.msk' % here) 
+        self.addmsk('%s/www/header.msk' % here)
         o = bytes('.5 .5 .5 RG 1 1 .9 rg 0 0 %s %s re b ' % (self.pw, self.ph), 'ascii') 
         o += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402, 184, 78, 25), 'ascii')
         o += self.ctext(pagec) + self.text(page) + code1 + code2 
-        self.adds( o + b'144 0 0 40.8 1 184 cm /Im1 Do ')
+        self.adds(o + b'144 0 0 40.8 1 184 cm /Im1 Do ')
+        self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI (http://pingpongcash.net)/Type/Action /S/URI>>/Type/Annot/Rect[17 14 143 135]/H/I')
+        self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI (http://google.net)/Type/Action /S/URI>>/Type/Annot/Rect[424 85 480 150]/H/I')
         n, size = len(self.pos), len(self.o)
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
         self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
         return self.o
+
+def sanity(s):
+    __o__ = r'([çáàâäéèêëíìîïóòôöúùûü])'
+    return re.sub(__o__, lambda m: r'\%03d' % __o__.index(m.group(1)), s)
 
 def pdf_digital_check(dusr, dtrx, dags, gr):
     "_"
@@ -1086,39 +1090,43 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         ts = dusr[dst].decode('utf8').split('/')
         pubname = ts[_PUBN]
     else:
-        dst = re.sub('é', '\003', dst)
-        msg = re.sub('é', '\003', msg)
+        dst, msg = sanity(dst), sanity(msg)
         bnk = '%s' % b32toi(bytes(tb[_NBNK][2:],'ascii'))
         key = '%s/%s' % (bnk[:5], bnk[5:])
         if key.encode('utf8') in dags.keys():
-            v = dags[key].decode('utf8')
-            v = re.sub('é', '\003', v)
+            v = sanity(dags[key].decode('utf8'))
             info = '%s %s \'%s\' FR76%s%s %s - %s' % (tb[_FRST], tb[_LAST], tb[_PUBN], bnk, b64toi(bytes(tb[_IBAN],'ascii')), tb[_CBIC], v)
             info = re.sub('/', ' ', info)
-    v1, v2 = val[:3], val[3:]
+    if trvd == 'TR':
+        v1, v2 = val[:3], val[3:]
+        (vv1, vv2) = ((403, 26, 1, 18, v1), (450, 22, 1, 12, v2)) 
+        nanu_fr, manu_en = num2word_fr(int(v1), int(v2)), num2word(int(v1), int(v2))
+    else:
+        v1, v2 = '000', '000'
+        manu_fr, manu_en = sanity('Preuve de signature électronique'),'Proof of Digital Signature'
+        (vv1, vv2) = ((403, 26, 1, 18, ''), (450, 22, 1, 12, '')) 
     tab = msg.split('/')
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page = [
         (185, 144, 1, 12, date_gen),
-        #(400, 26, 1, 16, '%s,%s \001' % (v1,v2)), 
-        (403, 26, 1, 18, '%s' % v1), (450, 22, 1, 12, v2), 
+        vv1, vv2,
         (145, 158, 3, 9, sig[:59]), 
         (145, 168, 3, 9, sig[59:118]), 
         (145, 178, 3, 9, sig[118:]), 
         (214, 193, 3, 9, msg),
         (398, 66, 1, 6, 'http://pingpongcash.net/%s' % src),
         (80, 40, 1, 16, dst), (170, 40, 8, 12, pubname),
-        (0, 59, 6, 11, num2word_fr(int(v1), int(v2))),
-        (0, 69, 3, 8, num2word(int(v1), int(v2))),
+        (0, 59, 6, 11, manu_fr), (0, 69, 3, 8, manu_en),
         (200, 90, 1, 16, src), (296, 90, 8, 12, tb[_PUBN]), 
         (192, 100, 3, 8, pk1[:44]), (192, 108, 3, 8, pk1[44:]), 
         (192, 116, 3, 8, pk2[:44]), (192, 124, 3, 8, pk2[44:-6]), (371, 124, 6, 8, pk2[-6:]),
         ] 
     gray = '.7 .7 .7'
+    sign = (190, 188, 1, 240, '.9 .9 .9', '\001') if trvd == 'TR' else (175, 94, 1, 64, '.9 .9 .9', 'PROOF') 
+    eurs = (437, 26, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (437, 28, 1, 20, '.1 .2 .7', val)
     pagec = [
-        (30, 40, 1, 10, gray, 'PAY: '),
-        (437, 26, 1, 18, '.1 .2 .7', '\001'),
-        (145, 90, 1, 10, gray, 'FROM: '), 
+        (30, 40, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
+        (145, 90, 1, 10, gray, 'FROM:'), 
         (422, 136, 1, 5, gray, 'Anti-Phishing URL'), 
         (145, 144, 1, 8, gray, 'Date:'), 
         (380, 138, 1, 4, gray, 'EC-DSA-521P'),
@@ -1128,7 +1136,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (240, 10, 6, 8, gray, 'contact@pingpongcash.net'), 
         (145, 100, 1, 8, gray, 'Public key:'),
         (145, 193, 1, 8, gray, 'Signed message:'),  
-        (190, 188, 1, 240, '.9 .9 .9', '\001'),
+        sign,
         (5, 213, 1, 6, '.05 .46 .8', info), 
         (465, 0, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ]
@@ -1351,7 +1359,7 @@ def lost_point1(modules):
     return lost_point
 
 class QRData:
-    """ Data held in a QR compatible format. """
+    "_"
     def __init__(self, data, mode=None):
         """ If ``mode`` isn't provided, the most compact QR data type possible is chosen. """
         if data.isdigit(): auto_mode = MODE_NUMBER
@@ -1360,10 +1368,8 @@ class QRData:
         if mode is None:
             self.mode = auto_mode
         else:
-            if mode not in (MODE_NUMBER, MODE_ALPHA_NUM, MODE_8BIT_BYTE):
-                raise TypeError("Invalid mode (%s)" % mode)
-            if mode < auto_mode:
-                raise ValueError("Provided data can not be represented in mode %s" % mode)
+            if mode not in (MODE_NUMBER, MODE_ALPHA_NUM, MODE_8BIT_BYTE): raise TypeError("Invalid mode (%s)" % mode)
+            if mode < auto_mode: raise ValueError("Provided data can not be represented in mode %s" % mode)
             self.mode = mode
         self.data = data
 
@@ -1379,10 +1385,8 @@ class QRData:
         elif self.mode == MODE_ALPHA_NUM:
             for i in range(0, len(self.data), 2):
                 chars = self.data[i:i + 2]
-                if len(chars) > 1:
-                    buffer.put(ALPHA_NUM.find(chars[0]) * 45 + ALPHA_NUM.find(chars[1]), 11)
-                else:
-                    buffer.put(ALPHA_NUM.find(chars), 6)
+                if len(chars) > 1: buffer.put(ALPHA_NUM.find(chars[0]) * 45 + ALPHA_NUM.find(chars[1]), 11)
+                else: buffer.put(ALPHA_NUM.find(chars), 6)
         else:
             for c in self.data:
                 buffer.put(ord(c), 8)
@@ -1449,27 +1453,20 @@ def create_data(version, error_correction, data_list):
     buffer = BitBuffer()
     for data in data_list:
         buffer.put(data.mode, 4)
-        buffer.put(len(data),
-            length_in_bits(data.mode, version))
+        buffer.put(len(data), length_in_bits(data.mode, version))
         data.write(buffer)
-    # calc num max data.
     total_data_count = 0
     for block in rs_b:
         total_data_count += block.data_count
     if len(buffer) > total_data_count * 8:
         raise DataOverflowError("Code length overflow. Data size (%s) > size available (%s)" % (len(buffer), total_data_count * 8))
-    # end code
     if len(buffer) + 4 <= total_data_count * 8: buffer.put(0, 4)
-    # padding
     while len(buffer) % 8: buffer.put_bit(False)
-    # padding
     PAD0, PAD1 = 0xEC, 0x11
     while True:
-        if len(buffer) >= total_data_count * 8:
-            break
+        if len(buffer) >= total_data_count * 8: break
         buffer.put(PAD0, 8)
-        if len(buffer) >= total_data_count * 8:
-            break
+        if len(buffer) >= total_data_count * 8: break
         buffer.put(PAD1, 8)
     return create_bytes(buffer, rs_b)
 
@@ -1484,8 +1481,7 @@ class Poly:
         offset = 0
         while offset < len(num) and num[offset] == 0: offset += 1
         self.num = [0] * (len(num) - offset + shift)
-        for i in range(len(num) - offset):
-            self.num[i] = num[i + offset]
+        for i in range(len(num) - offset): self.num[i] = num[i + offset]
 
     def __getitem__(self, index):
         return self.num[index]
@@ -1496,18 +1492,15 @@ class Poly:
     def __mul__(self, e):
         num = [0] * (len(self) + len(e) - 1)
         for i in range(len(self)):
-            for j in range(len(e)):
-                num[i + j] ^= gexp(glog(self[i]) + glog(e[j]))
+            for j in range(len(e)): num[i + j] ^= gexp(glog(self[i]) + glog(e[j]))
         return Poly(num, 0)
 
     def __mod__(self, e):
         if len(self) - len(e) < 0: return self
         ratio = glog(self[0]) - glog(e[0])
         num = [0] * len(self)
-        for i in range(len(self)):
-            num[i] = self[i]
-        for i in range(len(e)):
-            num[i] ^= gexp(glog(e[i]) + ratio)
+        for i in range(len(self)): num[i] = self[i]
+        for i in range(len(e)): num[i] ^= gexp(glog(e[i]) + ratio)
         return Poly(num, 0) % e
 
 class RSBlock:
@@ -1674,49 +1667,6 @@ class QRCode:
                     inc = -inc
                     break
 
-############### TEST ############
-
-def test_crypto():
-    k = ecdsa()
-    msg = 'Hello World!'
-    s = k.sign(msg) 
-    print (s, len(s))
-    print(k.verify(s, msg))
-    BPUB = compact('FR76 1780 7000 1445 6208 6047 866')
-    d = dbm.open('/cup/ppc/keys')
-    kBPUB = [b64toi(x) for x in d[BPUB].split(b'/')][2:]
-    d.close()
-    s = sign(kBPUB[0], kBPUB[1], msg)
-    print (s, len(s))    
-    print (verify(RSA_E, kBPUB[1], msg, s))    
-
-############################################
-
-def print_db():
-    arg, o = '/cup/%s/trx.db' % __app__, ''
-    if os.path.isfile(arg):
-        m = re.search(r'^(.+)\.(dat|db)', arg)
-        if m:
-            d = dbm.open(m.group(1))
-            nt = 0
-            for x in d.keys():
-                tv, tk = d[x].decode('utf8').split('/'), x.decode('utf8').split('/')
-                if reg(re.match(r'^\d{10,16}/[^/]{%s}$' % ID_SIZE, x.decode('ascii'))):
-                    nt += 1
-                    trx = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(tk[0])))
-                    o += '>%s %s %s %s\n' % (trx, tk[1], tv[0], tv[1])
-                elif reg(re.match(r'^.{%s}$' % ID_SIZE, x.decode('ascii'))):
-                    o += 'USER %s -> %s "%s" %s %s\n'  % (x.decode('utf8') , tv[0], tv[3], tv[4], tv[5])
-                elif reg(re.match(r'^[\d\-]{10}/.{%s}$' % ID_SIZE, x.decode('ascii'))):
-                    o += 'NB_TR %s -> %s\n'  % (x.decode('utf8') , len(tv))
-                elif reg(re.match(r'^\w{5,10}$', x.decode('ascii'))):
-                    o += 'AGENCY %s -> %s\n'  % (x.decode('utf8') , len(tv))
-                else:
-                    o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
-            o += 'NB_TRANSACTIONS: %s\n' % nt 
-            d.close()
-    return o
-
 def num2word(n, c):
     elm = {1:'one', 2:'two', 3:'three', 4:'four', 5:'five', 6:'six', 7:'seven', 8:'eight', 9:'nine', 10:'ten', 
            11:'eleven', 12:'twelve', 13:'thirteen', 14:'fourteen', 15:'fifteen', 16:'sixteen', 17:'seventeen', 18:'eighteen', 
@@ -1782,9 +1732,8 @@ def test_num():
             print (x)
     print (m, s)
 
+
 if __name__ == '__main__':
-    #print (print_db())
-    #test_crypto()
     #test_num()
     sys.exit()
 
