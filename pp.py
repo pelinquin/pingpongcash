@@ -61,7 +61,6 @@ _XHTMLNS   = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 _XLINKNS   = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
 
-RSA_E       = 65537
 MAX_TR_ADAY = 200
 FREE_DAYS   = 30
 ID_SIZE     = 7
@@ -358,21 +357,6 @@ def same_bic(d, biban, siban):
     ps = d[siban].decode('utf8').split('/')
     return bs[1] == ps[1]
 
-def old_daylist(d, msg, day, iban, sig):
-    "_"
-    o, pb = '', d[iban].decode('utf8').split('/')
-    if verify(RSA_E, b64toi(pb[_PK_].encode('ascii')), msg, sig):
-        bic = pb[_BIC_]
-        for x in d[bic].decode('ascii').split('/'):
-            ee = hiban('%s/%s' % (bic, x))
-            cc = '%s/%s' % (day, ee)
-            if cc.encode('ascii') in d.keys():
-                for t in d[cc].decode('ascii').split('/'):
-                    o += '%s/%s\n' % (t, d['%s/%s' % (t, ee)].decode('ascii'))
-    else:
-        o = 'Error:Bad signature'
-    return o
-
 def smail(dest, content):
     s = smtplib.SMTP('cup')
     print (dest)
@@ -387,7 +371,7 @@ def old_transaction (d, msg, epoch, s_biban, s_siban, val, s_sig):
         pb = d[biban].decode('utf8').split('/')
         if '%s/%s' % (epoch, s_biban) in d.keys():
             o += 'already send'
-        elif verify(RSA_E, b64toi(pb[_PK_].encode('ascii')), msg, sig):
+        elif True: #verify(RSA_E, b64toi(pb[_PK_].encode('ascii')), msg, sig):
             if siban in d.keys():
                 ps = d[siban].decode('utf8').split('/')
                 if pb[_ST_] == 'Y' and ps[_ST_] in ['A', 'B'] and val == 0: # Y show how to sign to Admin or to Banquer
@@ -522,7 +506,7 @@ def listday_match(dusr, dtrx, gr):
                 else:
                     o = 'no operation for this day'
             else:
-                o = 'bad signature'
+                o = 'bad signature listday'
         else:
             o = 'not allowed'
     else:
@@ -538,7 +522,7 @@ def verif_match(dusr, gr):
         pk1, pk2 = t[_PBK1], t[_PBK2] 
         k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
         if not k.verify(sig, msg):
-            o = 'bad signature'
+            o = 'bad signature verif'
     else:
         o = 'unknown user'
     return o
@@ -666,6 +650,7 @@ def application(environ, start_response):
     init_dbs(dbs)
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base = environ['PATH_INFO'][1:]
+    base1 = urllib.parse.unquote(environ['REQUEST_URI'])[1:]
     dusr, dtrx, dags, dbic = dbm.open('/cup/pp/usr', 'c'), dbm.open('/cup/pp/trx', 'c'), dbm.open('/cup/pp/ags', 'c'), dbm.open('/cup/pp/bic', 'c')
     nb = [dusr['__N'], dtrx['__N']]
     if way == 'post':
@@ -725,13 +710,15 @@ def application(environ, start_response):
         elif base == 'specimen': # public pages
             here = os.path.dirname(os.path.abspath(__file__))
             o, mime = open('%s/www/specimen.pdf' % here, 'rb').read(), 'application/pdf'
-        elif reg(re.match(_PAT_VERIF_, base)):
+        elif reg(re.match(_PAT_VERIF_, base1)):
             res = verif_match(dusr, reg.v.groups())
             if res: o += res
             else: o = do_sepa(dusr, reg.v.groups())
+        elif reg(re.match(r'zz(.)', base)):
+            o = 'é %s' % urllib.parse.unquote(environ['REQUEST_URI'])
         else:
             if base.encode('ascii') in dusr.keys(): o, mime = front_html(dusr, dtrx, base, True, raw, 'Facture'), 'text/html; charset=utf8'
-            else: o += 'Request not valid!'
+            else: o += 'Request not valid! %s' % base1
     dbic.close()
     dags.close()
     dtrx.close()
@@ -1052,7 +1039,7 @@ class updf:
         for (x, y, ft, sz, c, s) in tab: o += bytes('%s rg 1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (c, x+self.mx, self.ph-self.my-y, ft, sz, s), 'ascii')
         return o + b' 0 0 0 rg ET '
 
-    def gen(self, page, pagec, code1, code2):
+    def gen(self, page, pagec, code1, code2, url):
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
         self.add('/Type/Catalog/Pages 2 0 R/PageMode /UseOutlines ')
         self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.pw, self.ph))
@@ -1069,8 +1056,10 @@ class updf:
         o += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402, 184, 78, 25), 'ascii')
         o += self.ctext(pagec) + self.text(page) + code1 + code2 
         self.adds(o + b'144 0 0 40.8 1 184 cm /Im1 Do ')
-        self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI (http://pingpongcash.net)/Type/Action /S/URI>>/Type/Annot/Rect[17 14 143 135]/H/I')
-        self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI (http://google.net)/Type/Action /S/URI>>/Type/Annot/Rect[424 85 480 150]/H/I')
+        x1, y1, w1, x2, y2, w2 = 17, 14, 122, 424, 89, 58
+        hyp = ('%s %s %s %s' % (x1, y1, x1+w1, y1+w1), '%s %s %s %s' % (x2, y2, x2+w2, y2+w2))
+        self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (url[0], hyp[0]))
+        self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (url[1], hyp[1]))
         n, size = len(self.pos), len(self.o)
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
         self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
@@ -1086,6 +1075,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     tb = dusr[src].decode('utf8').split('/')
     pubname, info = '',''
+    msgraw = msg
     if dst.encode('utf8') in dusr.keys(): 
         ts = dusr[dst].decode('utf8').split('/')
         pubname = ts[_PUBN]
@@ -1100,7 +1090,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     if trvd == 'TR':
         v1, v2 = val[:3], val[3:]
         (vv1, vv2) = ((403, 26, 1, 18, v1), (450, 22, 1, 12, v2)) 
-        nanu_fr, manu_en = num2word_fr(int(v1), int(v2)), num2word(int(v1), int(v2))
+        manu_fr, manu_en = num2word_fr(int(v1), int(v2)), num2word(int(v1), int(v2))
     else:
         v1, v2 = '000', '000'
         manu_fr, manu_en = sanity('Preuve de signature électronique'),'Proof of Digital Signature'
@@ -1140,10 +1130,11 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (5, 213, 1, 6, '.05 .46 .8', info), 
         (465, 0, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ]
-    qr1 = QRCode(data='http://pingpongcash.net/%s/%s' % (msg, sig))
-    qr2 = QRCode(data='http://pingpongcash.net/%s' % src)
+    url = (urllib.parse.quote('http://pingpongcash.net/%s/%s' % (msgraw, sig)), 'http://pingpongcash.net/%s' % src)
+    url = (urllib.parse.quote('localhost/%s/%s' % (msgraw, sig)), 'localhost/%s' % src)
+    qr1, qr2 = QRCode(data=url[0]), QRCode(data=url[1])
     a = updf(496, 227) # 175x80
-    return a.gen(page, pagec, qr1.pdf(17, 135, 2, True), qr2.pdf(424, 145, 2))
+    return a.gen(page, pagec, qr1.pdf(17, 135, 2, True), qr2.pdf(424, 145, 2), url)
 
 #################### QR CODE ################
 
