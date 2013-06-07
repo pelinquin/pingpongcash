@@ -309,7 +309,18 @@ def gen():
     print ('%s file generated' % db)
 
 def reg(mail, host):
-    k = get_k(mail)
+    db = 'keys.db'
+    d = dbm.open(db[:-3])
+    if mail.encode('utf8') not in d.keys(): return 'email not known!'
+    pp = getpass.getpass('Pass Phrase ?')
+    k = ecdsa()
+    tab = d[mail].split(b'/')
+    k.pt = Point(curve_521, b64toi(tab[1]), b64toi(tab[2]))
+    cipher = AES.new(hashlib.sha256(pp.encode('utf8')).digest())
+    DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
+    k.privkey = int(DecodeAES(cipher, tab[3]))
+    d.close()
+
     today = '%s' % datetime.datetime.now()
     raw = '/'.join([mail, tab[1].decode('ascii'), tab[2].decode('ascii')])    
     msg = '/'.join([today[:10], h10(tab[0].decode('ascii')), raw])
@@ -367,6 +378,7 @@ def test():
 
 if __name__ == '__main__':
     host = 'localhost'
+    host = 'pingpongcash.net'
     cm = 'JHTmFk'
     if len(sys.argv)==2 and sys.argv[1] == 'gen': gen()
     elif len(sys.argv)>2: 
