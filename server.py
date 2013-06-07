@@ -1160,7 +1160,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (5, 213, 1, 6, '.05 .46 .8', info), 
         (465, 0, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ]
-    url = (urllib.parse.quote('http://pingpongcash.net/%s/%s' % (msgraw, sig)), 'http://pingpongcash.net/%s' % src)
+    url = (urllib.parse.quote('pingpongcash.net/%s/%s' % (msgraw, sig)), 'pingpongcash.net/%s' % src)
     qr1, qr2 = QRCode(data=url[0]), QRCode(data=url[1])
     a = updf(496, 227) # 175x80
     return a.gen(page, pagec, qr1.pdf(17, 135, 2, True), qr2.pdf(424, 145, 2), url)

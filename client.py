@@ -385,9 +385,9 @@ if __name__ == '__main__':
         if sys.argv[1] == 'reg': 
             print(reg(sys.argv[2], host))
         elif sys.argv[1] == 'tr': 
-            tr(sys.argv[2], cm, cm, 94375, 'test', host)
+            tr(sys.argv[2], cm, cm, 66675, 'test', host)
         elif sys.argv[1] == 'vd': 
-            vd(sys.argv[2], cm, 'François', 'B', 'certif', host)
+            vd(sys.argv[2], cm, 'François', 'C', 'certif', host)
         elif sys.argv[1] == 'ag': 
             print (agency(sys.argv[2], cm, host))
         elif sys.argv[1] == 'ld': 
