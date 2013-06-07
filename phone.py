@@ -22,7 +22,8 @@
 This code simulates the iPhone
 """
 
-import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, time, smtplib, unidecode
+import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, time, smtplib, getpass
+from Crypto.Cipher import AES
 
 # NIST Curve P-521:
 
@@ -265,19 +266,6 @@ def gen_pwd ():
     code = '%s' % time.mktime(time.gmtime())
     return base64.urlsafe_b64encode(hashlib.sha1(code.encode('ascii')).digest())[:4]
 
-def generate(name):
-    "_"
-    db = 'secret.db'
-    if not os.path.isfile(db):
-        d = dbm.open(db[:-3], 'c')
-        d['__N'] = '0'
-        d.close()
-        os.chmod(db, 511)
-    d = dbm.open(db[:-3], 'c')
-    k = ecdsa()
-    d[name] = gen_pwd() + b'/' + b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y(), k.privkey]])
-    d.close()
-
 def cmd(post, cd, host='localhost', binary=False):
     "_"
     co, serv = http.client.HTTPConnection(host), '/cup/' if host == 'àà.eu' else '/'
@@ -287,109 +275,110 @@ def cmd(post, cd, host='localhost', binary=False):
         co.request('GET', serv + '?' + urllib.parse.quote(cd))
     return co.getresponse().read() if binary else co.getresponse().read().decode('utf8')    
 
-def register(mail, host):
+def agency(mail, src, host):
     "_"
-    today = '%s' % datetime.datetime.now()
-    db = 'secret.db'
-    d, k = dbm.open(db[:-3]), ecdsa()
-    tab = d[mail].split(b'/')
-    k.pt, k.privkey = Point(curve_521, b64toi(tab[1]), b64toi(tab[2])), b64toi(tab[3]) 
+    k = get_k(mail)
+    # for instance:
+    n, v = '10278/02233', 'Crédit Mutuel/6, Route de Castres/31130/Quint Fonsegrives/0562572138/02233@creditmutuel.fr'
+    msg = '/'.join([src, n, v])    
+    return cmd(True, '/'.join(['AG', msg, k.sign(msg)]), host)
+
+def listday(mail, src, host):
+    "_"
+    k = get_k(mail)
+    d = ('%s' % datetime.datetime.now())[:10]
+    msg = '/'.join([src, d])    
+    return cmd(True, '/'.join(['LD', msg, k.sign(msg)]), host)    
+
+def gen():
+    email = input('E-mail: ')
+    pp1, pp2 = '', ''
+    print ('Enter a PassPhrase > 6 characters: ')
+    while pp1 != pp2 or len(pp1) < 6:
+        pp1 = getpass.getpass('Pass Phrase ?')
+        pp2 = getpass.getpass('Retype Pass Phrase ?')
+    db = 'keys.db'
+    d = dbm.open(db[:-3], 'c')
+    k = ecdsa()
+    cipher = AES.new(hashlib.sha256(pp1.encode('utf8')).digest())
+    pad = lambda s:s+(32-len(s)%32)*'@'
+    EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
+    d[email] = gen_pwd() + b'/' + b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + EncodeAES(cipher, '%s' % k.privkey)
     d.close()
+    os.chmod(db, 511)  
+    print ('%s file generated' % db)
+
+def reg(mail, host):
+    k = get_k(mail)
+    today = '%s' % datetime.datetime.now()
     raw = '/'.join([mail, tab[1].decode('ascii'), tab[2].decode('ascii')])    
     msg = '/'.join([today[:10], h10(tab[0].decode('ascii')), raw])
-    print (cmd(True, '/'.join(['PK', '1', raw, k.sign(msg)]), host))    
+    return cmd(True, '/'.join(['PK', '1', raw, k.sign(msg)]), host)    
 
-def transaction(mail, src, dest, value, fi, host):
-    "_"
-    epoch = '%s' % time.mktime(time.gmtime())
-    db = 'secret.db'
-    d, k = dbm.open(db[:-3]), ecdsa()
+def get_k(mail):
+    db = 'keys.db'
+    d = dbm.open(db[:-3])
+    if mail.encode('utf8') not in d.keys(): return 'email not known!'
+    pp = getpass.getpass('Pass Phrase ?')
+    k = ecdsa()
     tab = d[mail].split(b'/')
-    k.pt, k.privkey = Point(curve_521, b64toi(tab[1]), b64toi(tab[2])), b64toi(tab[3]) 
+    k.pt = Point(curve_521, b64toi(tab[1]), b64toi(tab[2]))
+    cipher = AES.new(hashlib.sha256(pp.encode('utf8')).digest())
+    DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
+    k.privkey = int(DecodeAES(cipher, tab[3]))
     d.close()
+    return k
+
+def tr(mail, src, dest, value, fi, host):
+    "_"
+    k = get_k(mail)
+    epoch = '%s' % time.mktime(time.gmtime())
     msg = '/'.join([epoch[:-2], src, dest, '%05d' % value])
-    sig = k.sign(msg)
-    o = cmd(True, '/'.join(['TR', '1', msg, sig]), host, True)
-    assert k.verify(sig, msg) # for utf8!
+    o = cmd(True, '/'.join(['TR', '1', msg, k.sign(msg)]), host, True)
     if o[:5].decode('ascii') == 'Error':
         print (o.decode('utf8'))
     else:
         open('%s.pdf' % fi, 'bw').write(o)    
         print ('%s.pdf GENERATED' % fi)
 
-def validate(mail, src, dest, status, fi, host):
+def vd(mail, src, dest, status, fi, host):
     "_"
+    k = get_k(mail)
     epoch = '%s' % time.mktime(time.gmtime())
-    db = 'secret.db'
-    d, k = dbm.open(db[:-3]), ecdsa()
-    tab = d[mail].split(b'/')
-    k.pt, k.privkey = Point(curve_521, b64toi(tab[1]), b64toi(tab[2])), b64toi(tab[3]) 
-    d.close()
-    msg = '/'.join([epoch[:-2], src, dest, status])    
-    o = cmd(True, '/'.join(['VD', '1', msg, k.sign(msg)]), host, True)    
+    msg = '/'.join([epoch[:-2], src, dest, status])
+    o = cmd(True, '/'.join(['VD', '1', msg, k.sign(msg)]), host, True)
     if o[:5].decode('ascii') == 'Error':
         print (o.decode('utf8'))
     else:
         open('%s.pdf' % fi, 'bw').write(o)    
         print ('%s.pdf CERTIFICATE GENERATED' % fi)
 
-def agency(mail, src, host):
-    "_"
-    db = 'secret.db'
-    d, k = dbm.open(db[:-3]), ecdsa()
-    tab = d[mail].split(b'/')
-    k.pt, k.privkey = Point(curve_521, b64toi(tab[1]), b64toi(tab[2])), b64toi(tab[3]) 
-    d.close()
-    n, v = '10278/02233', 'Crédit Mutuel/6, Route de Castres/31130/Quint Fonsegrives/0562572138/02233@creditmutuel.fr'
-    msg = '/'.join([src, n, v])    
-    print (cmd(True, '/'.join(['AG', msg, k.sign(msg)]), host))    
-
-def listday(mail, src, host):
-    "_"
-    db = 'secret.db'
-    d, k = dbm.open(db[:-3]), ecdsa()
-    tab = d[mail].split(b'/')
-    k.pt, k.privkey = Point(curve_521, b64toi(tab[1]), b64toi(tab[2])), b64toi(tab[3]) 
-    d.close()
-    msg = '/'.join([src, '2013-06-05'])    
-    print (cmd(True, '/'.join(['LD', msg, k.sign(msg)]), host))    
-
-def run_local():
-    host = 'cup'
-    #agency('contact@pingpongcash.net', 'to2TyF', host)
-    #register('ct@àà.eu', host)
-    #register('contact@pingpongcash.net', host)
-    #register('tom.fournier@free.fr', host)
-    #transaction('ct@àà.eu', 'Sxlhri', 'Sxlhri', 375, host) 
-    transaction('contact@pingpongcash.net', 'BkN5g0', 'BkN5g0', 94375, 'test', host)
-    transaction('contact@pingpongcash.net', 'BkN5g0', 'Valérie Fournier', 99999, 'mac', host) 
-    validate('contact@pingpongcash.net', 'BkN5g0', 'BkN5g0', 'B', 'certif', host) 
-    
-    #transaction('contact@pingpongcash.net', 'BkN5g0', 'é ç è à ä â î ï ô öûü', 1, 'accent', host) 
-    #transaction('contact@pingpongcash.net', 'BkN5g0', 'Spécimen XXXX Annulé', 12318, 'specimen', host) 
-    listday('contact@pingpongcash.net', 'BkN5g0', host) 
-
-def run_rpi():
-    host = 'àà.eu'
-    agency('contact@pingpongcash.net', 'CwPJa4', host)
-    #register('ct@àà.eu', host)
-    #register('contact@pingpongcash.net', host)
-    #transaction('ct@àà.eu', 'Sxlhri', 'Sxlhri', 375, host) 
-    #transaction('contact@pingpongcash.net', 'to2TyF', 'to2TyF', 94375, 'test', host)
-    transaction('contact@pingpongcash.net', 'CwPJa4', 'éèàçêùï', 311, 'mac1', host) 
-
-    #transaction('contact@pingpongcash.net', 'to2TyF', 'Dorian Litvine', 13, 'dorian', host) 
+def test():
+    mdp, msg = 'Mon password', 'a long ascii msg'
+    secret = os.urandom(32)
+    print (len(secret))
+    secret = hashlib.sha256(mdp.encode('utf8')).digest()[:16]
+    print (len(secret))
+    cipher = AES.new(hashlib.sha256(mdp.encode('utf8')).digest())
+    pad = lambda s:s+(16-len(s)%16)*'@'
+    EncodeAES = lambda c,s: base64.b64encode(c.encrypt(pad(s)))
+    DecodeAES = lambda c,e: c.decrypt(base64.b64decode(e)).rstrip(b'@')
+    assert msg == DecodeAES(cipher,EncodeAES(cipher, msg)).decode('utf8')
 
 if __name__ == '__main__':
-    #test_ecdsa()
-    #generate('contact@pingpongcash.net')
-    #generate('pelinquin@gmail.com')
-    #generate('lfournier@free.fr')
-    #generate('ct@àà.eu')
-    #generate('tom.fournier@free.fr')
-
-    run_local()
-    #run_rpi()
-    print (unidecode.unidecode('éçeràù'))
+    host = 'localhost'
+    cm = 'JHTmFk'
+    if len(sys.argv)==2 and sys.argv[1] == 'gen': gen()
+    elif len(sys.argv)>2: 
+        if sys.argv[1] == 'reg': 
+            print(reg(sys.argv[2], host))
+        elif sys.argv[1] == 'tr': 
+            tr(sys.argv[2], cm, cm, 94375, 'test', host)
+        elif sys.argv[1] == 'vd': 
+            vd(sys.argv[2], cm, 'François', 'B', 'certif', host)
+        elif sys.argv[1] == 'ag': 
+            print (agency(sys.argv[2], cm, host))
+        elif sys.argv[1] == 'ld': 
+            print (listday(sys.argv[2], cm, host))
     sys.exit()
 # End ⊔net!

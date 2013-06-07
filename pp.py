@@ -49,7 +49,7 @@ _PAWD = 15
 _PBK1 = 16
 _PBK2 = 17
 
-import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time, smtplib
+import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time, smtplib, operator
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:5]
 __app__    = os.path.basename(__file__)[:-3]
@@ -131,10 +131,10 @@ def help_register():
     return o
 
 def style_html():
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,p,li,i,b,a,div,input{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:110;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.bigorange{font-size:32;color:#F87217;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{border:1px solid #666;padding:2pt;}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:DodgerBlue;font-size:22;margin:20 0 0 20;}</style>'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono{font-family:"Lucida Concole", Courier}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:110;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.bigorange{font-size:32;color:#F87217;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{border:1px solid #666;padding:2pt;}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:DodgerBlue;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}</style>'
     return o
 
-def front_html(dusr, dtrx, cm='', pub=False, total='', msg=''):
+def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
     "_"
     nb = [dusr['__N'], dtrx['__N']]
     t = dusr[cm].decode('utf8').split('/') if cm else []
@@ -142,8 +142,8 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg=''):
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
     o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
-    #data = 'pingpongcash.net/%s' % __acm__ 
-    data = 'àà.eu/%s' % __acm__ 
+    data = 'pingpongcash.net/%s' % __acm__ 
+    #data = 'àà.eu/%s' % __acm__ 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     dmsg = ' %s' % msg if msg else ''
@@ -174,7 +174,18 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg=''):
             o += '<input class="sh" type="submit" value="S\'enregistrer"/>\n'
             o += '</form>\n'
             o += '</div>'
-            o += '<div id="rcol">%s</div>' % help_register()
+            o += '<div id="rcol">'
+
+            o += '<form method="post">\n'
+            o += '<input class="txt" type="text" name="req" placeholder="" title="tapez un nom de marchand ou un code marchand" required="yes"/>'
+            o += '<input class="sh" type="submit" value="Recherche" title="code marchand"/> '
+            o += '</form>\n'
+            if listcm:
+                for x in listcm:
+                    o += '<h2><a class="mono" href="./%s">%s</a> <a class="name" href="./%s">%s</a></h2>' % (x[0], x[0], x[0], x[1])
+            else:
+                o += help_register() 
+            o += '</div>'
     else:
         if pub:
             o += '<div id="lcol">'
@@ -229,7 +240,8 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg=''):
                     if l[0].encode('utf8') in dusr.keys():
                         t1 = dusr[l[0]].decode('utf8').split('/')
                         dest = t1[_PUBN]
-                    o += '<tr><td>%s</td><td>-</td><td>%s [%s]</td><td>%s...</td><td align="right">%6.2f €</td></tr>' % (dat, l[0], dest, l[3][:10], float(l[1])/100)
+                        val = '%6.2f €' % float(int(l[1])/100) if re.match(r'\d+$', l[1]) else l[1]  
+                        o += '<tr><td>%s</td><td>-</td><td>%s [%s]</td><td><p class="mono">%s...</p></td><td align="right">%s</td></tr>' % (dat, l[0], dest, l[3][:16], val)
             o += '</table>\n'              
             o += '</div>'
     o += '</div>'
@@ -278,7 +290,7 @@ def index_html(nb):
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
     o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
-    data = 'pingpongcash.net/to2TyF' # give the real one!
+    data = 'pingpongcash.net/%s' % __acm__ 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     #o += '<p>Enregistrement <a href="login">ici</a></p>\n'
@@ -435,6 +447,7 @@ _PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(B|C|\d{5}))
 _PAT_AGENCY_ = r'AG/(([^/]{6})/(\d{5}/\d{5})/([^/]{,40}/[^/]{,60}/\d{5}/[^/]{,60}/\d{10}/[^/]{,60}))/(\S{160,200})$'
 _PAT_VERIF_  = r'((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(\d{5}))/(\S{160,200})$'
 _PAT_LIST_   = r'LD/(([^/]{6})/([\d-]{10}))/(\S{160,200})$'
+_PAT_REQ_    = r'req=(.{1,200})$'
 
 def transaction_match(dusr, dtrx, gr):
     "_"
@@ -476,6 +489,19 @@ def agency_match(dusr, dags, gr):
         o = 'user not known'
     return o
 
+def req_match(dusr, dags, gr):
+    "_"
+    req, r, n = gr[0], {}, len(gr[0])
+    for x in dusr.keys():
+        if re.match('\w{6}$', x.decode('utf8')):
+            t = dusr[x].decode('utf8').split('/')
+            a, b = x.decode('utf8'), t[_PUBN]
+            if a == req or b == req: r[a] = (1, b)
+            elif a[:n] == req or b[:n] == req: r[a] = (2, b)
+            elif a[:n].lower() == req.lower() or b[:n].lower() == req.lower(): r[a] = (3, b)
+            else: r[a] = (4, b)
+    return [(a[0],a[2]) for a in sorted([(y, r[y][0], r[y][1]) for y in r], key=operator.itemgetter(1))]
+
 def listday_match(dusr, dtrx, gr):
     "_"
     o = ''
@@ -502,7 +528,8 @@ def listday_match(dusr, dtrx, gr):
                             v = dusr[j[0]].decode('utf8').split('/')
                             acc2 = '%s' % b64toi(bytes(v[_IBAN],'ascii'))
                             bnk2 = 'FR76%s' % b32toi(bytes(v[_NBNK][2:],'ascii'))
-                        o += '%s %s[%s]->%30s[%s%s] %s...\t%6.2f€\n' % (he, l[2*a+1], acc, j[0], bnk2, acc2, j[3][:10], float(j[1])/100)
+                        val = '%6.2f €' % float(int(j[1])/100) if re.match(r'\d+$', j[1]) else j[1]  
+                        o += '%s %s[%s]->%30s[%s%s] %s...\t%s\n' % (he, l[2*a+1], acc, j[0], bnk2, acc2, j[3][:10], val)
                 else:
                     o = 'no operation for this day'
             else:
@@ -574,7 +601,7 @@ def pubkey_match(dusr, gr):
                 t[_PBK1], t[_PBK2] = pk1, pk2 
                 dusr[cm] = '/'.join(t)
                 cid = '%s/%s' % (t[_NBNK], t[_IBAN])
-                dusr[cid] = dusr[cid].decode('ascii') + '/%s' % cm.decode('ascii') if cid.encode('ascii') in dusr.keys() else cm.decode('ascii')
+                dusr[cid] = dusr[cid].decode('ascii') + '/%s' % cm.decode('ascii') if cid.encode('ascii') in dusr.keys() else cm
             else:
                 o = 'PubKey already exists'
         else:
@@ -688,6 +715,9 @@ def application(environ, start_response):
             else: o = 'AGENCY OK' 
         elif reg(re.match(_PAT_LIST_, arg)):
             o = listday_match(dusr, dtrx, reg.v.groups())
+        elif reg(re.match(_PAT_REQ_, arg)):
+            v = req_match(dusr, dtrx, reg.v.groups())
+            o, mime = front_html(dusr, dtrx, listcm=v), 'text/html; charset=utf8'
         else:
             o += 'not valid args %s' % arg
     else:
@@ -703,7 +733,7 @@ def application(environ, start_response):
         elif raw.lower() in ['_reset_%s' % x for x in dbs]: # Do not allow that in production!
             os.remove('/cup/pp/%s.db' % raw.lower()[7:])
             o = 'reset database %s OK' % raw.lower()[7:]
-        elif base == '': # public pages
+        elif base == '':
             o, mime = index_html(nb), 'text/html; charset=utf8'
         elif base == 'login': # public pages
             o, mime = front_html(dusr, dtrx), 'text/html; charset=utf8'
@@ -1074,7 +1104,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6]
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     tb = dusr[src].decode('utf8').split('/')
-    pubname, info = '',''
+    pubname, info = '',sanity('Reçu - Receipt')
     msgraw = msg
     if dst.encode('utf8') in dusr.keys(): 
         ts = dusr[dst].decode('utf8').split('/')
@@ -1726,6 +1756,9 @@ def test_num():
 
 if __name__ == '__main__':
     #test_num()
+    d = {'A':3, 'B':1, 'C':2, 'D':2, 'E':5, 'F':1}
+    r = [x[0] for x in sorted([(y,d[y]) for y in d], key=operator.itemgetter(1))]
+    print(r)
     sys.exit()
 
 # End ⊔net!
