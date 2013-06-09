@@ -25,14 +25,14 @@ This code simulates the iPhone
 import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, time, smtplib, getpass
 from Crypto.Cipher import AES
 
-# NIST Curve P-521:
+__db__ = 'keys.db'
 
+# NIST Curve P-521:
 _B = b'UZU-uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex-k3sWUsC9O7G_BzVz34g9LDTx70Uf1GtQPwA'
 _GX = b'xoWOBrcEBOnNnj7LZiOVtEKcZIE5BT-1Ifgor2BrTT26oUted-_nWSj-HcEnov-o3jNIs8GFakKb-X5-McLlvWY'
 _GY = b'ARg5KWp4mjvABFyKX7QsfRvZmPVESVebRGgXr70XJz5mLJfucple9CZAxVC5AT-tB2E1PHCGonLCQIi-lHaf0WZQ'
 _P = b'Af' + b'_'*86
 _R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
-
 
 def reg(value):
     " function attribute is a way to access matching group in one line test "
@@ -268,24 +268,25 @@ def gen_pwd ():
 
 def cmd(post, cd, host='localhost', binary=False):
     "_"
-    co, serv = http.client.HTTPConnection(host), '/cup/' if host == 'àà.eu' else '/'
+    #print (cd, host)
+    co, serv = http.client.HTTPConnection(host), '/'
     if post:
         co.request('POST', serv, urllib.parse.quote(cd))
     else:
         co.request('GET', serv + '?' + urllib.parse.quote(cd))
     return co.getresponse().read() if binary else co.getresponse().read().decode('utf8')    
 
-def agency(mail, src, host):
+def agency(src):
     "_"
-    k = get_k(mail)
+    k, host, user, fi = get_k()
     # for instance:
     n, v = '10278/02233', 'Crédit Mutuel/6, Route de Castres/31130/Quint Fonsegrives/0562572138/02233@creditmutuel.fr'
     msg = '/'.join([src, n, v])    
-    return cmd(True, '/'.join(['AG', msg, k.sign(msg)]), host)
+    return cmd(True, '/'.join(['AG', msg, k.sign(msg)]), host.decode('utf8'))
 
 def listday(mail, src, host):
     "_"
-    k = get_k(mail)
+    k, host, user, fi = get_k()
     d = ('%s' % datetime.datetime.now())[:10]
     msg = '/'.join([src, d])    
     return cmd(True, '/'.join(['LD', msg, k.sign(msg)]), host)    
@@ -308,61 +309,60 @@ def gen():
     os.chmod(db, 511)  
     print ('%s file generated' % db)
 
-def reg(mail, host):
-    db = 'keys.db'
-    d = dbm.open(db[:-3])
-    if mail.encode('utf8') not in d.keys(): return 'email not known!'
-    pp = getpass.getpass('Pass Phrase ?')
-    k = ecdsa()
-    tab = d[mail].split(b'/')
-    k.pt = Point(curve_521, b64toi(tab[1]), b64toi(tab[2]))
-    cipher = AES.new(hashlib.sha256(pp.encode('utf8')).digest())
-    DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
-    k.privkey = int(DecodeAES(cipher, tab[3]))
-    d.close()
-
+def register():
+    k, host, user, fi, t1, t2 = get_k(True)
     today = '%s' % datetime.datetime.now()
-    raw = '/'.join([mail, tab[1].decode('ascii'), tab[2].decode('ascii')])    
+    raw = '/'.join([user, t1.decode('ascii'), t2.decode('ascii')])    
     msg = '/'.join([today[:10], h10(tab[0].decode('ascii')), raw])
     return cmd(True, '/'.join(['PK', '1', raw, k.sign(msg)]), host)    
 
-def get_k(mail):
-    db = 'keys.db'
-    d = dbm.open(db[:-3])
-    if mail.encode('utf8') not in d.keys(): return 'email not known!'
+def get_k(pk=False):
+    d = dbm.open(__db__[:-3])
+    user = d['user'].decode('utf8')
     pp = getpass.getpass('Pass Phrase ?')
     k = ecdsa()
-    tab = d[mail].split(b'/')
+    tab = d[user].split(b'/')
     k.pt = Point(curve_521, b64toi(tab[1]), b64toi(tab[2]))
     cipher = AES.new(hashlib.sha256(pp.encode('utf8')).digest())
     DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
     k.privkey = int(DecodeAES(cipher, tab[3]))
+    host, fi = d['host'], d['file']
     d.close()
-    return k
+    return (k, host, user, fi, tab[1], tab[2]) if pk else (k, host, user, fi)
 
-def tr(mail, src, dest, value, fi, host):
+def set(k, h):
+    d = dbm.open(__db__[:-3], 'c')
+    d[k] = h
+    d.close()
+
+def info():
+    d = dbm.open(__db__[:-3])
+    print ('user:%s host:%s file:%s' % (d['user'].decode('utf8'), d['host'].decode('utf8'), d['file'].decode('utf8')))
+    d.close()
+    
+def buy(src, dest, value):
     "_"
-    k = get_k(mail)
+    k, host, user, fi = get_k()
     epoch = '%s' % time.mktime(time.gmtime())
-    msg = '/'.join([epoch[:-2], src, dest, '%05d' % value])
-    o = cmd(True, '/'.join(['TR', '1', msg, k.sign(msg)]), host, True)
+    msg = '/'.join([epoch[:-2], src, dest, '%05d' % int(value)])
+    o = cmd(True, '/'.join(['TR', '1', msg, k.sign(msg)]), host.decode('utf8'), True)
     if o[:5].decode('ascii') == 'Error':
         print (o.decode('utf8'))
     else:
-        open('%s.pdf' % fi, 'bw').write(o)    
-        print ('%s.pdf GENERATED' % fi)
+        open(fi.decode('utf8'), 'bw').write(o)    
+        print ('%s GENERATED' % fi.decode('utf8'))
 
-def vd(mail, src, dest, status, fi, host):
+def proof(src, dest, status):
     "_"
-    k = get_k(mail)
+    k, host, user, fi = get_k()
     epoch = '%s' % time.mktime(time.gmtime())
     msg = '/'.join([epoch[:-2], src, dest, status])
-    o = cmd(True, '/'.join(['VD', '1', msg, k.sign(msg)]), host, True)
+    o = cmd(True, '/'.join(['VD', '1', msg, k.sign(msg)]), host.decode('utf8'), True)
     if o[:5].decode('ascii') == 'Error':
         print (o.decode('utf8'))
     else:
-        open('%s.pdf' % fi, 'bw').write(o)    
-        print ('%s.pdf CERTIFICATE GENERATED' % fi)
+        open(fi.decode('utf8'), 'bw').write(o)    
+        print ('%s CERTIFICATE GENERATED' % fi.decode('utf8'))
 
 def test():
     mdp, msg = 'Mon password', 'a long ascii msg'
@@ -380,17 +380,20 @@ if __name__ == '__main__':
     host = 'localhost'
     host = 'pingpongcash.net'
     cm = 'JHTmFk'
-    if len(sys.argv)==2 and sys.argv[1] == 'gen': gen()
-    elif len(sys.argv)>2: 
-        if sys.argv[1] == 'reg': 
-            print(reg(sys.argv[2], host))
-        elif sys.argv[1] == 'tr': 
-            tr(sys.argv[2], cm, cm, 66675, 'test', host)
-        elif sys.argv[1] == 'vd': 
-            vd(sys.argv[2], cm, 'François', 'C', 'certif', host)
-        elif sys.argv[1] == 'ag': 
-            print (agency(sys.argv[2], cm, host))
+    if len(sys.argv)==2:
+        if sys.argv[1] == 'gen': gen()
+        elif sys.argv[1] == 'info' : info()
+        elif sys.argv[1] == 'register' : register()
+        elif sys.argv[1] == 'agency' : agency(cm)
+    elif len(sys.argv)== 3: 
+        if sys.argv[1] == 'vd': 
+            vd(sys.argv[2], cm, 'Anna', 'C')
         elif sys.argv[1] == 'ld': 
             print (listday(sys.argv[2], cm, host))
+        elif sys.argv[1] in ('host', 'user', 'file'): set(sys.argv[1], sys.argv[2])
+    elif len(sys.argv) == 4: 
+        if sys.argv[1] == 'buy': buy(cm, sys.argv[2], sys.argv[3])
+        elif sys.argv[1] == 'proof': proof(cm, sys.argv[2], sys.argv[3])
+
     sys.exit()
 # End ⊔net!

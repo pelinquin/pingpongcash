@@ -73,9 +73,9 @@ IBAN_FORMAT = {
     'PT': 8,
 }
 
-__embedded_fonts__ = ('cmr10', 'cmr17')
+
 __fonts__ = ('Helvetica', 'Times-Roman', 'Courier', 'Times-Bold', 'Helvetica-Bold', 'Courier-Bold', 'Times-Italic', 'Helvetica-Oblique', 
-             'Courier-Oblique', 'Times-BoldItalic', 'Helvetica-BoldOblique', 'Courier-BoldOblique', 'Symbol') + __embedded_fonts__
+             'Courier-Oblique', 'Times-BoldItalic', 'Helvetica-BoldOblique', 'Courier-BoldOblique', 'Symbol')
 
 __e__ = '/Euro /ccedilla /' + ' /'.join(['%s%s' % (x,y) for x in ('a','e','i','o','u','y') for y in ('acute', 'grave', 'circumflex', 'dieresis')])
 
@@ -443,11 +443,14 @@ _PAT_INCOME_ = r'total=(\d{3}\.\d{2})&income=Editer une facture$'
 _PAT_CHPWD_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
 _PAT_REG_    = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 _PAT_PUBKEY_ = r'PK/1/(([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})/([^/]{80,100})/([^/]{80,100}))/(\S{160,200})$'
-_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(B|C|\d{5}))/(\S{160,200})$'
+_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/([A-Za-z]{5}|\d{5}))/(\S{160,200})$'
 _PAT_AGENCY_ = r'AG/(([^/]{6})/(\d{5}/\d{5})/([^/]{,40}/[^/]{,60}/\d{5}/[^/]{,60}/\d{10}/[^/]{,60}))/(\S{160,200})$'
 _PAT_VERIF_  = r'((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(\d{5}))/(\S{160,200})$'
 _PAT_LIST_   = r'LD/(([^/]{6})/([\d-]{10}))/(\S{160,200})$'
 _PAT_REQ_    = r'req=(.{1,200})$'
+
+
+# TR/1/1370757094/JHTmFk/aaa/00100/y7mClcbQ1e0EkX4VO8-Xsx7oXGBtV__NtYsrs5x7jG7-DTsqOU-qw5yJmDOo3_dL6KHHnTRGOYv1UmLfWGIm5Pc/AQZPosnZz0q6IbHTAmGITsB61s5Gl7pr6UzKaymBkxnuaJia9bi7gRf_oD7rLx9XgoFKzLKvUU0fGH3hK0cHFNWx
 
 def transaction_match(dusr, dtrx, gr):
     "_"
@@ -928,16 +931,22 @@ class Curve:
         self.encoded_oid = encode_oid(*oid)
 
 # NIST Curve P-521:
-_p = 6864797660130609714981900799081393217269435300143305409394463459185543183397656052122559640661454554977296311391480858037121987999716643812574028291115057151
-_r = 6864797660130609714981900799081393217269435300143305409394463459185543183397655394245057746333217197532963996371363321113864768612440380340372808892707005449
-_b = 0x051953eb9618e1c9a1f929a21a0b68540eea2da725b99b315f3b8b489918ef109e156193951ec7e937b1652c0bd3bb1bf073573df883d2c34f1ef451fd46b503f00
-_Gx = 0xc6858e06b70404e9cd9e3ecb662395b4429c648139053fb521f828af606b4d3dbaa14b5e77efe75928fe1dc127a2ffa8de3348b3c1856a429bf97e7e31c2e5bd66
-_Gy = 0x11839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e662c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650
+_B = b'UZU-uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex-k3sWUsC9O7G_BzVz34g9LDTx70Uf1GtQPwA'
+_GX = b'xoWOBrcEBOnNnj7LZiOVtEKcZIE5BT-1Ifgor2BrTT26oUted-_nWSj-HcEnov-o3jNIs8GFakKb-X5-McLlvWY'
+_GY = b'ARg5KWp4mjvABFyKX7QsfRvZmPVESVebRGgXr70XJz5mLJfucple9CZAxVC5AT-tB2E1PHCGonLCQIi-lHaf0WZQ'
+_P = b'Af' + b'_'*86
+_R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
+
+#_p = 6864797660130609714981900799081393217269435300143305409394463459185543183397656052122559640661454554977296311391480858037121987999716643812574028291115057151
+#_r = 6864797660130609714981900799081393217269435300143305409394463459185543183397655394245057746333217197532963996371363321113864768612440380340372808892707005449
+#_b = 0x051953eb9618e1c9a1f929a21a0b68540eea2da725b99b315f3b8b489918ef109e156193951ec7e937b1652c0bd3bb1bf073573df883d2c34f1ef451fd46b503f00
+#_Gx = 0xc6858e06b70404e9cd9e3ecb662395b4429c648139053fb521f828af606b4d3dbaa14b5e77efe75928fe1dc127a2ffa8de3348b3c1856a429bf97e7e31c2e5bd66
+#_Gy = 0x11839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e662c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650
 
 INFINITY = Point( None, None, None )  
-curve_521 = CurveFp( _p, -3, _b )
+curve_521 = CurveFp( b64toi(_P), -3, b64toi(_B) )
 encoded_oid_ecPublicKey = encode_oid(*(1, 2, 840, 10045, 2, 1))
-NIST521p = Curve("NIST521p", curve_521, Point( curve_521, _Gx, _Gy, _r ), (1, 3, 132, 0, 35))
+NIST521p = Curve("NIST521p", curve_521, Point( curve_521, b64toi(_GX), b64toi(_GY), b64toi(_R) ), (1, 3, 132, 0, 35))
 
 class ecdsa:
     def __init__(self):
@@ -1014,9 +1023,9 @@ def cmd(post, cd, host='localhost'):
 ####### PDF #########
 
 class updf:
-    def __init__(self, pagew, pageh, binary=True):
-        self.pw = pagew
-        self.ph = pageh
+    def __init__(self, pagew, pageh, letterw=595, letterh=842, binary=True):
+        self.lw, self.lh= letterw, letterh
+        self.pw, self.ph = pagew, pageh
         self.mx, self.my = 10, 10
         self.binary = binary
         self.i = 0
@@ -1072,7 +1081,8 @@ class updf:
     def gen(self, page, pagec, code1, code2, url):
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
         self.add('/Type/Catalog/Pages 2 0 R/PageMode /UseOutlines ')
-        self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.pw, self.ph))
+        #self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.pw, self.ph))
+        self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.lw, self.lh))
         ft = (1, 3, 6, 8)
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f,i+4)  for i,f in enumerate(ft)]) + ' >>'
         img = '/ColorSpace<</pgfprgb [/Pattern /DeviceRGB]>>/XObject<</Im1 8 0 R>>'
@@ -1086,7 +1096,7 @@ class updf:
         o += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402, 184, 78, 25), 'ascii')
         o += self.ctext(pagec) + self.text(page) + code1 + code2 
         self.adds(o + b'144 0 0 40.8 1 184 cm /Im1 Do ')
-        x1, y1, w1, x2, y2, w2 = 17, 14, 122, 424, 89, 58
+        x1, y1, w1, x2, y2, w2 = 17, 14, 122, 424, 86, 50
         hyp = ('%s %s %s %s' % (x1, y1, x1+w1, y1+w1), '%s %s %s %s' % (x2, y2, x2+w2, y2+w2))
         self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (url[0], hyp[0]))
         self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (url[1], hyp[1]))
@@ -1104,7 +1114,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6]
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     tb = dusr[src].decode('utf8').split('/')
-    pubname, info = '',sanity('Reçu - Receipt')
+    pubname, info = '', sanity('Reçu - Receipt')
     msgraw = msg
     if dst.encode('utf8') in dusr.keys(): 
         ts = dusr[dst].decode('utf8').split('/')
@@ -1115,8 +1125,8 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         key = '%s/%s' % (bnk[:5], bnk[5:])
         if key.encode('utf8') in dags.keys():
             v = sanity(dags[key].decode('utf8'))
-            info = '%s %s \'%s\' FR76%s%s %s - %s' % (tb[_FRST], tb[_LAST], tb[_PUBN], bnk, b64toi(bytes(tb[_IBAN],'ascii')), tb[_CBIC], v)
-            info = re.sub('/', ' ', info)
+            #info = '%s %s \'%s\' FR76%s%s %s - %s' % (tb[_FRST], tb[_LAST], tb[_PUBN], bnk, b64toi(bytes(tb[_IBAN],'ascii')), tb[_CBIC], v)
+            #info = re.sub('/', ' ', info)
     if trvd == 'TR':
         v1, v2 = val[:3], val[3:]
         (vv1, vv2) = ((403, 26, 1, 18, v1), (450, 22, 1, 12, v2)) 
@@ -1134,7 +1144,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (145, 168, 3, 9, sig[59:118]), 
         (145, 178, 3, 9, sig[118:]), 
         (214, 193, 3, 9, msg),
-        (398, 66, 1, 6, 'http://pingpongcash.net/%s' % src),
+        (395, 74, 1, 6, 'http://pingpongcash.net/%s' % src),
         (80, 40, 1, 16, dst), (170, 40, 8, 12, pubname),
         (0, 59, 6, 11, manu_fr), (0, 69, 3, 8, manu_en),
         (200, 90, 1, 16, src), (296, 90, 8, 12, tb[_PUBN]), 
@@ -1147,7 +1157,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     pagec = [
         (30, 40, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
         (145, 90, 1, 10, gray, 'FROM:'), 
-        (422, 136, 1, 5, gray, 'Anti-Phishing URL'), 
+        (348, 74, 1, 5, gray, 'Anti-Phishing URL:'), 
         (145, 144, 1, 8, gray, 'Date:'), 
         (380, 138, 1, 4, gray, 'EC-DSA-521P'),
         (380, 147, 1, 10, gray, 'Digital Signature:'), 
@@ -1163,7 +1173,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     url = (urllib.parse.quote('pingpongcash.net/%s/%s' % (msgraw, sig)), 'pingpongcash.net/%s' % src)
     qr1, qr2 = QRCode(data=url[0]), QRCode(data=url[1])
     a = updf(496, 227) # 175x80
-    return a.gen(page, pagec, qr1.pdf(17, 135, 2, True), qr2.pdf(424, 145, 2), url)
+    return a.gen(page, pagec, qr1.pdf(17, 135, 2, True), qr2.pdf(424, 135, 2), url)
 
 #################### QR CODE ################
 
@@ -1715,17 +1725,18 @@ def num2word(n, c):
 def cent(n):
     elm = {1:'un', 2:'deux', 3:'trois', 4:'quatre', 5:'cinq', 6:'six', 7:'sept', 8:'huit', 9:'neuf', 10:'dix', 
            11:'onze', 12:'douze', 13:'treize', 14:'quatorze', 15:'quinze', 16:'seize', 17:'dix-sept', 18:'dix-huit', 
-           19:'dix-neuf', 20:'vingt', 30:'trente', 40:'quarante', 50:'cinquante', 60:'soixante', 80:'quatre-vingts'}
+           19:'dix-neuf', 20:'vingt', 30:'trente', 40:'quarante', 50:'cinquante', 60:'soixante', 80:'quatre-vingt'}
     op, o = 'et', ''
-    if n in elm: o += '%s' % (elm[n])
-    elif n == 71: o += '%s %s %s' % (elm[60], op, elm[11])
-    elif n in range(22,30): o += '%s %s' % (elm[20], elm[n-20])
-    elif n in range(32,40): o += '%s %s' % (elm[30], elm[n-30])
-    elif n in range(42,50): o += '%s %s' % (elm[40], elm[n-40])
-    elif n in range(52,60): o += '%s %s' % (elm[50], elm[n-50])
-    elif n in range(62,80): o += '%s %s' % (elm[60], elm[n-60])
-    elif n in range(81,100): o += '%s %s' % (elm[80], elm[n-80])
-    elif n%10 == 1: o += '%s %s %s' % (elm[n-1], op, elm[1])
+    if n == 80: o += '%ss' % elm[80]
+    elif n in elm: o += '%s' % (elm[n])
+    elif n == 71: o += '%s-%s-%s' % (elm[60], op, elm[11])
+    elif n in range(22,30): o += '%s-%s' % (elm[20], elm[n-20])
+    elif n in range(32,40): o += '%s-%s' % (elm[30], elm[n-30])
+    elif n in range(42,50): o += '%s-%s' % (elm[40], elm[n-40])
+    elif n in range(52,60): o += '%s-%s' % (elm[50], elm[n-50])
+    elif n in range(62,80): o += '%s-%s' % (elm[60], elm[n-60])
+    elif n in range(81,100): o += '%s-%s' % (elm[80], elm[n-80])
+    elif n%10 == 1: o += '%s-%s-%s' % (elm[n-1], op, elm[1])
     return o
 
 def num2word_fr(n, c):
@@ -1744,6 +1755,7 @@ def num2word_fr(n, c):
     return o.capitalize()
 
 def test_num():
+    "max at 494.94€: 73bites"
     m,s = 0, None
     for e in range(1000):
         for i in range(100):
@@ -1754,10 +1766,6 @@ def test_num():
 
 
 if __name__ == '__main__':
-    #test_num()
-    d = {'A':3, 'B':1, 'C':2, 'D':2, 'E':5, 'F':1}
-    r = [x[0] for x in sorted([(y,d[y]) for y in d], key=operator.itemgetter(1))]
-    print(r)
-    sys.exit()
+    test_num()
 
 # End ⊔net!
