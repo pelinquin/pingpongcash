@@ -1068,14 +1068,16 @@ class updf:
         self.o += stream
         self.o += b'endstream endobj\n'
 
-    def text(self, tab):
+    def text(self, tab, dx=0, dy=0):
         o = b'BT '
-        for (x, y, ft, size, s) in tab: o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (x+self.mx, self.ph-self.my-y, ft, size, s), 'ascii')
+        for (x, y, ft, size, s) in tab: 
+            o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (x+self.mx+dx, self.ph-self.my-y-dy, ft, size, s), 'ascii')
         return o + b' ET '
 
-    def ctext(self, tab):
+    def ctext(self, tab, dx=0, dy=0):
         o = b'BT '
-        for (x, y, ft, sz, c, s) in tab: o += bytes('%s rg 1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (c, x+self.mx, self.ph-self.my-y, ft, sz, s), 'ascii')
+        for (x, y, ft, sz, c, s) in tab: 
+            o += bytes('%s rg 1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (c, x+self.mx+dx, self.ph-self.my-y-dy, ft, sz, s), 'ascii')
         return o + b' 0 0 0 rg ET '
 
     def gen(self, page, pagec, code1, code2, url):
@@ -1092,11 +1094,13 @@ class updf:
         here = os.path.dirname(os.path.abspath(__file__))
         self.addimg('%s/www/header.img' % here, 9) 
         self.addmsk('%s/www/header.msk' % here)
-        o = bytes('.5 .5 .5 RG 1 1 .9 rg 0 0 %s %s re b ' % (self.pw, self.ph), 'ascii') 
-        o += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402, 184, 78, 25), 'ascii')
-        o += self.ctext(pagec) + self.text(page) + code1 + code2 
-        self.adds(o + b'144 0 0 40.8 1 184 cm /Im1 Do ')
-        x1, y1, w1, x2, y2, w2 = 17, 14, 122, 424, 86, 50
+        dx = 99
+        o = bytes('.5 .5 .5 RG 1 1 .9 rg %s 0 %s %s re b ' % (dx, self.pw+dx, self.ph), 'ascii') 
+        o += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402+dx, 184, 78, 25), 'ascii')
+        o += self.ctext(pagec, dx, 0) + self.text(page, dx, 0) + code1 + code2
+        o += bytes('144 0 0 40.8 %d 184 cm /Im1 Do ' % (1+dx), 'ascii')
+        self.adds(o)
+        x1, y1, w1, x2, y2, w2 = 17+dx, 14, 122, 424+dx, 86, 50
         hyp = ('%s %s %s %s' % (x1, y1, x1+w1, y1+w1), '%s %s %s %s' % (x2, y2, x2+w2, y2+w2))
         self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (url[0], hyp[0]))
         self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (url[1], hyp[1]))
@@ -1114,7 +1118,8 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6]
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     tb = dusr[src].decode('utf8').split('/')
-    pubname, info = '', sanity('Reçu - Receipt')
+    pubname, info = '', sanity('Reçu - Receipt - '*10)
+    info = info[:-3]
     msgraw = msg
     if dst.encode('utf8') in dusr.keys(): 
         ts = dusr[dst].decode('utf8').split('/')
@@ -1125,8 +1130,8 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         key = '%s/%s' % (bnk[:5], bnk[5:])
         if key.encode('utf8') in dags.keys():
             v = sanity(dags[key].decode('utf8'))
-            #info = '%s %s \'%s\' FR76%s%s %s - %s' % (tb[_FRST], tb[_LAST], tb[_PUBN], bnk, b64toi(bytes(tb[_IBAN],'ascii')), tb[_CBIC], v)
-            #info = re.sub('/', ' ', info)
+            info = '%s %s \'%s\' FR76%s%s %s - %s' % (tb[_FRST], tb[_LAST], tb[_PUBN], bnk, b64toi(bytes(tb[_IBAN],'ascii')), tb[_CBIC], v)
+            info = re.sub('/', ' ', info)
     if trvd == 'TR':
         v1, v2 = val[:3], val[3:]
         (vv1, vv2) = ((403, 26, 1, 18, v1), (450, 22, 1, 12, v2)) 
@@ -1149,15 +1154,15 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (0, 59, 6, 11, manu_fr), (0, 69, 3, 8, manu_en),
         (200, 90, 1, 16, src), (296, 90, 8, 12, tb[_PUBN]), 
         (192, 100, 3, 8, pk1[:44]), (192, 108, 3, 8, pk1[44:]), 
-        (192, 116, 3, 8, pk2[:44]), (192, 124, 3, 8, pk2[44:-6]), (371, 124, 6, 8, pk2[-6:]),
+        (192, 116, 3, 8, pk2[:44]), (192, 124, 3, 8, pk2[44:-6]), (375, 124, 6, 8, pk2[-6:]),
         ] 
     gray = '.7 .7 .7'
     sign = (190, 188, 1, 240, '.9 .9 .9', '\001') if trvd == 'TR' else (175, 94, 1, 64, '.9 .9 .9', 'PROOF') 
-    eurs = (437, 26, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (437, 28, 1, 20, '.1 .2 .7', val)
+    eurs = (435, 26, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (437, 28, 1, 20, '.1 .2 .7', val)
     pagec = [
         (30, 40, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
         (145, 90, 1, 10, gray, 'FROM:'), 
-        (348, 74, 1, 5, gray, 'Anti-Phishing URL:'), 
+        (350, 74, 1, 5, gray, 'Anti-Phishing URL:'), 
         (145, 144, 1, 8, gray, 'Date:'), 
         (380, 138, 1, 4, gray, 'EC-DSA-521P'),
         (380, 147, 1, 10, gray, 'Digital Signature:'), 
@@ -1167,13 +1172,15 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (145, 100, 1, 8, gray, 'Public key:'),
         (145, 193, 1, 8, gray, 'Signed message:'),  
         sign,
+        (315, 108, 1, 120, '.9 .9 .9', '/'), (330, 108, 1, 120, '.9 .9 .9', '/'),
         (5, 213, 1, 6, '.05 .46 .8', info), 
         (465, 0, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ]
     url = (urllib.parse.quote('pingpongcash.net/%s/%s' % (msgraw, sig)), 'pingpongcash.net/%s' % src)
     qr1, qr2 = QRCode(data=url[0]), QRCode(data=url[1])
     a = updf(496, 227) # 175x80
-    return a.gen(page, pagec, qr1.pdf(17, 135, 2, True), qr2.pdf(424, 135, 2), url)
+    dx = 99
+    return a.gen(page, pagec, qr1.pdf(17+dx, 135, 2, True), qr2.pdf(424+dx, 135, 2), url)
 
 #################### QR CODE ################
 
@@ -1720,7 +1727,7 @@ def num2word(n, c):
         else: 
             p, r = (c//10)*10, c%10
             o += '%s %s %s' % (elm[p], elm[r], u2)
-    return o.title()
+    return o.title() + ' ' + '-'*(71-len(o))
 
 def cent(n):
     elm = {1:'un', 2:'deux', 3:'trois', 4:'quatre', 5:'cinq', 6:'six', 7:'sept', 8:'huit', 9:'neuf', 10:'dix', 
@@ -1752,7 +1759,7 @@ def num2word_fr(n, c):
     if c > 0:
         if m > 0: o += op
         o += '%s %s' % (cent(c), u2)
-    return o.capitalize()
+    return o.capitalize() + ' ' + '-'*(71-len(o))
 
 def test_num():
     "max at 494.94€: 73bites"
