@@ -916,7 +916,7 @@ class Point( object ):
         return self.__order
 
 def orderlen(order):
-    return (1+len("%x"%order))//2 # bytes
+    return (1+len("%x" % order))//2 # bytes
 
 class Curve:
     def __init__(self, name, curve, generator, oid):
@@ -1024,7 +1024,6 @@ def cmd(post, cd, host='localhost'):
 
 class updf:
     def __init__(self, pagew, pageh, letterw=595, letterh=842, binary=True):
-        self.lw, self.lh= letterw, letterh
         self.pw, self.ph = pagew, pageh
         self.mx, self.my = 10, 10
         self.binary = binary
@@ -1068,49 +1067,56 @@ class updf:
         self.o += stream
         self.o += b'endstream endobj\n'
 
-    def text(self, tab, dx=0, dy=0):
+    def text(self, tab, r):
         o = b'BT '
         for (x, y, ft, size, s) in tab: 
-            o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (x+self.mx+dx, self.ph-self.my-y-dy, ft, size, s), 'ascii')
+            o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (x+self.mx+r[0], r[3]-self.my-y+r[1], ft, size, s), 'ascii')
         return o + b' ET '
 
-    def ctext(self, tab, dx=0, dy=0):
+    def ltext(self, tab, r):
+        o = b'BT '
+        for (x, y, ft, size, s) in tab: 
+            o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf %s TL ' % (x+self.mx+r[0], r[3]-self.my-y+r[1], ft, size, 1.2*size), 'ascii')
+            for l in s.split('\n'): o += bytes('(%s) Tj T* ' % (l), 'ascii')
+            o = o[:-3]
+        return o + b' ET '
+
+    def ctext(self, tab, r):
         o = b'BT '
         for (x, y, ft, sz, c, s) in tab: 
-            o += bytes('%s rg 1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (c, x+self.mx+dx, self.ph-self.my-y-dy, ft, sz, s), 'ascii')
+            o += bytes('%s rg 1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (c, x+self.mx+r[0], r[3]-self.my-y+r[1], ft, sz, s), 'ascii')
         return o + b' 0 0 0 rg ET '
 
-    def gen(self, page, pagec, code1, code2, url, dx):
+    def gen(self, pages, qrt, dx=0, dy=0):
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
         self.add('/Type/Catalog/Pages 2 0 R/PageMode /UseOutlines ')
-        #self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.pw, self.ph))
-        self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.lw, self.lh))
+        self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.pw, self.ph))
         ft = (1, 3, 6, 8)
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f,i+4)  for i,f in enumerate(ft)]) + ' >>'
         img = '/ColorSpace<</pgfprgb [/Pattern /DeviceRGB]>>/XObject<</Im1 8 0 R>>'
         self.add('/Type/Page/Parent 2 0 R/Annots [11 0 R 12 0 R]/Resources <<%s %s >>/Contents 10 0 R' % (fonts, img))
-        enc = '/Encoding<</Type/Encoding /Differences [ 1 %s]>> ' % __e__
+        enc = '/Encoding<</Type/Encoding /Differences [ 1 %s ]>> ' % __e__
         for f in ft: self.add('/Type/Font /Subtype /Type1 /BaseFont /%s %s' % (__fonts__[f-1], enc))
         here = os.path.dirname(os.path.abspath(__file__))
         self.addimg('%s/www/header.img' % here, 9) 
         self.addmsk('%s/www/header.msk' % here)
-        o = bytes('.5 .5 .5 RG 1 1 .9 rg %s 0 %s %s re b ' % (dx, self.pw, self.ph), 'ascii') 
-        o += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402+dx, 184, 78, 25), 'ascii')
-        o += self.ctext(pagec, dx, 0) + self.text(page, dx, 0) + code1 + code2
-        o += bytes('144 0 0 40.8 %d 184 cm /Im1 Do ' % (1+dx), 'ascii')
+        o, urlink = b'', []
+        for (pa, pc, gr, rect) in pages: o += gr + self.ctext(pc, rect) + self.ltext(pa, rect)
+        for (q, h, ur) in qrt:
+            o += q
+            urlink.append('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (ur, h))
+        o += bytes('q 144 0 0 40.8 %d 184 cm /Im1 Do Q ' % (1+dx), 'ascii')
+        o += b'q 288 0 0 81.6 30 730 cm /Im1 Do Q '
         self.adds(o)
-        x1, y1, w1, x2, y2, w2 = 17+dx, 14, 122, 424+dx, 86, 50
-        hyp = ('%s %s %s %s' % (x1, y1, x1+w1, y1+w1), '%s %s %s %s' % (x2, y2, x2+w2, y2+w2))
-        self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (url[0], hyp[0]))
-        self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (url[1], hyp[1]))
+        for ur in urlink: self.add(ur)
         n, size = len(self.pos), len(self.o)
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
         self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
         return self.o
 
 def sanity(s):
-    __o__ = r'([çáàâäéèêëíìîïóòôöúùûü])'
-    return re.sub(__o__, lambda m: r'\%03d' % __o__.index(m.group(1)), s)
+    __o__ = r'([çáàâäéèêëíìîïóòôöúùûüŷÿ])'
+    return re.sub(__o__, lambda m: r'\%03o' % __o__.index(m.group(1)), s)
 
 def pdf_digital_check(dusr, dtrx, dags, gr):
     "_"
@@ -1131,7 +1137,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
             v = sanity(dags[key].decode('utf8'))
             info = '%s %s \'%s\' FR76%s%s %s - %s' % (tb[_FRST], tb[_LAST], tb[_PUBN], bnk, b64toi(bytes(tb[_IBAN],'ascii')), tb[_CBIC], v)
             info = re.sub('/', ' ', info)
-    pubname += ' ' + '*'*(30-len(pubname))
+    dpubname = pubname + ' ' + '*'*(30-len(pubname))
     if trvd == 'TR':
         v1, v2 = val[:3], val[3:]
         (vv1, vv2) = ((403, 26, 1, 18, v1), (450, 22, 1, 12, v2)) 
@@ -1142,7 +1148,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (vv1, vv2) = ((403, 26, 1, 18, ''), (450, 22, 1, 12, '')) 
     tab = msg.split('/')
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
-    page = [
+    page1 = [
         (185, 144, 1, 12, date_gen),
         vv1, vv2,
         (145, 158, 3, 9, sig[:59]), 
@@ -1150,16 +1156,37 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (145, 178, 3, 9, sig[118:]), 
         (214, 193, 3, 9, msg),
         (395, 74, 1, 6, 'http://pingpongcash.net/%s' % src),
-        (80, 40, 1, 16, dst), (150, 40, 6, 12, pubname),
+        (80, 40, 1, 16, dst), (150, 40, 6, 12, dpubname),
         (0, 59, 6, 11, manu_fr), (0, 69, 3, 8, manu_en),
         (200, 90, 1, 16, src), (296, 90, 8, 12, tb[_PUBN]), 
         (192, 100, 3, 8, pk1[:44]), (192, 108, 3, 8, pk1[44:]), 
         (192, 116, 3, 8, pk2[:44]), (192, 124, 3, 8, pk2[44:-6]), (375, 124, 6, 8, pk2[-6:]),
         ] 
+
+    rtxt = """Vous touverez ci dessous un chèque Ping-Pong-cash.
+Signé le %s par "%s" de code marchard "%s".\n
+Vous pouvez l'encaisser en ligne sur le site Internet.
+Mais vous pouvez aussi l'utiliser comme un chèque classique
+Découpez le et déposez-le à votre banque après l'avoir signé au verso.
+Vous pouvez utiliser le formulaire de remise après avoir renseigné 
+- votre numéro de compte\n- la date de dépos.
+afin de faciliter l'encaissement par votre banque.\n\n
+Pour vous aussi payer avec un chèque Ping-Pong-Cash, 
+il vous suffit de faire valider l'enregistrement par votre conseiller financier.
+Celui-ci nous contactera au besoin pour valider l'agence.\n
+Ensuite envoyez par e-mail ou imprimez vos chèques émis.
+Le nom du bénéficiaire doit obligatoirement être mentionné.
+
+Merci pour l'utilisation de Ping-Pong-cash,
+N'hésitez pas à nous poser des questions ou nous faire part de vos remarques.\n\n
+Pour un véritable moyen de paiement numérique citoyen!
+\n\n\n\nwww.pingpongcash.net\ncontact@pingpongcash.net
+""" % (date_gen[:10], tb[_PUBN], src)
+    page2l = [(75, 120, 1, 10, 'Bonjour %s,' % pubname ), (20, 160, 1, 10, sanity(rtxt))]
     gray = '.7 .7 .7'
     sign = (190, 188, 1, 240, '.9 .9 .9', '\001') if trvd == 'TR' else (175, 94, 1, 64, '.9 .9 .9', 'PROOF') 
     eurs = (435, 26, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (437, 28, 1, 20, '.1 .2 .7', val)
-    pagec = [
+    pagec1 = [
         (30, 40, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
         (145, 90, 1, 10, gray, 'FROM:'), 
         (350, 74, 1, 5, gray, 'Anti-Phishing URL:'), 
@@ -1176,11 +1203,27 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (5, 213, 1, 6, '.05 .46 .8', info), 
         (465, 0, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ]
+    pagec3 = [(10, 20, 1, 20, '.7 .7 .7', 'Encart publicitaire'),] 
     url = (urllib.parse.quote('pingpongcash.net/%s/%s' % (msgraw, sig)), 'pingpongcash.net/%s' % src)
     qr1, qr2 = QRCode(data=url[0]), QRCode(data=url[1])
-    a = updf(496, 227, 496, 227) # 175mmx80mm
-    dx = 0
-    return a.gen(page, pagec, qr1.pdf(17+dx, 135, 2, True), qr2.pdf(424+dx, 135, 2), url, dx)
+    dx1, dy1 = 99, 0
+    dx2, dy2 = 0, 600
+    dx3, dy3, w3, h3 = 393, 229, 200, 611
+    graph1  = bytes('.5 .5 .5 RG 1 1 .9 rg %s %s %s %s re b ' % (dx1, dy1, 496, 227), 'ascii') 
+    graph1 += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (dx1+402, dy1+184, 78, 25), 'ascii')
+    graph2  = bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (0, 0, 99, 227), 'ascii')
+    graph3  = bytes('3w .7 .8 1 RG 1 1 .96 rg %s %s %s %s re B 0 0 0 RG 0 0 0 rg 1w ' % (dx3, dy3, w3, h3), 'ascii')
+    pas = 2
+    x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+424, dy1+86, (25*pas)
+    qrt = ( (qr1.pdf(x1, y1+121, pas, True), '%s %s %s %s' % (x1-1, y1-1, x1+w1+2, y1+w1+2), url[0]),
+            (qr2.pdf(x2, y1+121, pas), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]) )
+    pages = ((page1, pagec1, graph1, (dx1, dy1, 496, 227)), 
+             (page2l, [], graph2, (dx2, dy2, 496, 227)),
+             ([], pagec3, graph3, (dx3, dy3, w3, h3)),
+             )
+    #a = updf(496, 227) # 175mmx80mm
+    a = updf(595, 842) # A4
+    return a.gen(pages, qrt, dx1, dy1)
 
 #################### QR CODE ################
 
@@ -1774,6 +1817,7 @@ def test_num():
 
 
 if __name__ == '__main__':
-    test_num()
-
+    #test_num()
+    print (sanity("chèque"))
+    print (__e__)
 # End ⊔net!

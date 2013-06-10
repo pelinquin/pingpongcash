@@ -276,9 +276,10 @@ def cmd(post, cd, host='localhost', binary=False):
         co.request('GET', serv + '?' + urllib.parse.quote(cd))
     return co.getresponse().read() if binary else co.getresponse().read().decode('utf8')    
 
-def agency(src):
+def agency():
     "_"
-    k, host, user, fi = get_k()
+    k, host, user, fi, t1, t2 = get_k(True)
+    src = t2[-6:].decode('utf8')
     # for instance:
     n, v = '10278/02233', 'Crédit Mutuel/6, Route de Castres/31130/Quint Fonsegrives/0562572138/02233@creditmutuel.fr'
     msg = '/'.join([src, n, v])    
@@ -379,11 +380,11 @@ def test():
     assert msg == DecodeAES(cipher,EncodeAES(cipher, msg)).decode('utf8')
 
 if __name__ == '__main__':
-    if len(sys.argv)==2:
+    if len(sys.argv)==1: info()
+    elif len(sys.argv)==2:
         if sys.argv[1] == 'gen': gen()
-        elif sys.argv[1] == 'info' : info()
         elif sys.argv[1] == 'register' : register()
-        elif sys.argv[1] == 'agency' : agency(cm)
+        elif sys.argv[1] == 'agency' : agency()
     elif len(sys.argv)== 3: 
         cm = 'JHTmFk'
         if sys.argv[1] == 'ld': 
