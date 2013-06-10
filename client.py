@@ -340,11 +340,13 @@ def info():
     print ('user:%s host:%s file:%s' % (d['user'].decode('utf8'), d['host'].decode('utf8'), d['file'].decode('utf8')))
     d.close()
     
-def buy(src, dest, value):
+def buy(dest, value):
     "_"
-    k, host, user, fi = get_k()
+    k, host, user, fi , t1, t2 = get_k(True)
+    src = t2[-6:].decode('utf8')
+    print (src)
     epoch = '%s' % time.mktime(time.gmtime())
-    msg = '/'.join([epoch[:-2], src, dest, '%05d' % int(value)])
+    msg = '/'.join([epoch[:-2], src, dest, '%05d' % int(float(value)*100)])
     o = cmd(True, '/'.join(['TR', '1', msg, k.sign(msg)]), host.decode('utf8'), True)
     if o[:5].decode('ascii') == 'Error':
         print (o.decode('utf8'))
@@ -377,23 +379,18 @@ def test():
     assert msg == DecodeAES(cipher,EncodeAES(cipher, msg)).decode('utf8')
 
 if __name__ == '__main__':
-    host = 'localhost'
-    host = 'pingpongcash.net'
-    cm = 'JHTmFk'
     if len(sys.argv)==2:
         if sys.argv[1] == 'gen': gen()
         elif sys.argv[1] == 'info' : info()
         elif sys.argv[1] == 'register' : register()
         elif sys.argv[1] == 'agency' : agency(cm)
     elif len(sys.argv)== 3: 
-        if sys.argv[1] == 'vd': 
-            vd(sys.argv[2], cm, 'Anna', 'C')
-        elif sys.argv[1] == 'ld': 
+        cm = 'JHTmFk'
+        if sys.argv[1] == 'ld': 
             print (listday(sys.argv[2], cm, host))
         elif sys.argv[1] in ('host', 'user', 'file'): set(sys.argv[1], sys.argv[2])
     elif len(sys.argv) == 4: 
-        if sys.argv[1] == 'buy': buy(cm, sys.argv[2], sys.argv[3])
-        elif sys.argv[1] == 'proof': proof(cm, sys.argv[2], sys.argv[3])
-
+        if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3])
+        elif sys.argv[1] == 'proof': proof(sys.argv[2], sys.argv[3])
     sys.exit()
 # End ⊔net!

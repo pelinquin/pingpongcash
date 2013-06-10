@@ -145,7 +145,7 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
     data = 'pingpongcash.net/%s' % __acm__ 
     #data = 'àà.eu/%s' % __acm__ 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
-    o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
+    o += '<p class="stat">%s inscrits | %s transactions courantes</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     dmsg = ' %s' % msg if msg else ''
     if t and not pub:
         dmsg = 'Bonjour %s %s, ' % (t[_FRST], t[_LAST]) + dmsg 
@@ -1080,7 +1080,7 @@ class updf:
             o += bytes('%s rg 1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (c, x+self.mx+dx, self.ph-self.my-y-dy, ft, sz, s), 'ascii')
         return o + b' 0 0 0 rg ET '
 
-    def gen(self, page, pagec, code1, code2, url):
+    def gen(self, page, pagec, code1, code2, url, dx):
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
         self.add('/Type/Catalog/Pages 2 0 R/PageMode /UseOutlines ')
         #self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.pw, self.ph))
@@ -1094,8 +1094,7 @@ class updf:
         here = os.path.dirname(os.path.abspath(__file__))
         self.addimg('%s/www/header.img' % here, 9) 
         self.addmsk('%s/www/header.msk' % here)
-        dx = 99
-        o = bytes('.5 .5 .5 RG 1 1 .9 rg %s 0 %s %s re b ' % (dx, self.pw+dx, self.ph), 'ascii') 
+        o = bytes('.5 .5 .5 RG 1 1 .9 rg %s 0 %s %s re b ' % (dx, self.pw, self.ph), 'ascii') 
         o += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (402+dx, 184, 78, 25), 'ascii')
         o += self.ctext(pagec, dx, 0) + self.text(page, dx, 0) + code1 + code2
         o += bytes('144 0 0 40.8 %d 184 cm /Im1 Do ' % (1+dx), 'ascii')
@@ -1125,13 +1124,14 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         ts = dusr[dst].decode('utf8').split('/')
         pubname = ts[_PUBN]
     else:
-        dst, msg = sanity(dst), sanity(msg)
+        dst, msg, pubname = 'X'*6, sanity(msg), sanity(dst)
         bnk = '%s' % b32toi(bytes(tb[_NBNK][2:],'ascii'))
         key = '%s/%s' % (bnk[:5], bnk[5:])
         if key.encode('utf8') in dags.keys():
             v = sanity(dags[key].decode('utf8'))
             info = '%s %s \'%s\' FR76%s%s %s - %s' % (tb[_FRST], tb[_LAST], tb[_PUBN], bnk, b64toi(bytes(tb[_IBAN],'ascii')), tb[_CBIC], v)
             info = re.sub('/', ' ', info)
+    pubname += ' ' + '*'*(30-len(pubname))
     if trvd == 'TR':
         v1, v2 = val[:3], val[3:]
         (vv1, vv2) = ((403, 26, 1, 18, v1), (450, 22, 1, 12, v2)) 
@@ -1150,7 +1150,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (145, 178, 3, 9, sig[118:]), 
         (214, 193, 3, 9, msg),
         (395, 74, 1, 6, 'http://pingpongcash.net/%s' % src),
-        (80, 40, 1, 16, dst), (170, 40, 8, 12, pubname),
+        (80, 40, 1, 16, dst), (150, 40, 6, 12, pubname),
         (0, 59, 6, 11, manu_fr), (0, 69, 3, 8, manu_en),
         (200, 90, 1, 16, src), (296, 90, 8, 12, tb[_PUBN]), 
         (192, 100, 3, 8, pk1[:44]), (192, 108, 3, 8, pk1[44:]), 
@@ -1178,9 +1178,9 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         ]
     url = (urllib.parse.quote('pingpongcash.net/%s/%s' % (msgraw, sig)), 'pingpongcash.net/%s' % src)
     qr1, qr2 = QRCode(data=url[0]), QRCode(data=url[1])
-    a = updf(496, 227) # 175x80
-    dx = 99
-    return a.gen(page, pagec, qr1.pdf(17+dx, 135, 2, True), qr2.pdf(424+dx, 135, 2), url)
+    a = updf(496, 227, 496, 227) # 175mmx80mm
+    dx = 0
+    return a.gen(page, pagec, qr1.pdf(17+dx, 135, 2, True), qr2.pdf(424+dx, 135, 2), url, dx)
 
 #################### QR CODE ################
 
@@ -1712,7 +1712,8 @@ def num2word(n, c):
     q, r = n//100, n%100
     if q > 0:
         o = '%s hundred' % elm[q] 
-        o += op if (r>0 or c>0) else ''
+        if r == 0: o+= ' %s' % u1
+        if r>0 or c>0: o += op 
     n -= 100*q
     if n in elm:
         o += '%s %s' % (elm[n], u1)
@@ -1766,7 +1767,7 @@ def test_num():
     m,s = 0, None
     for e in range(1000):
         for i in range(100):
-            x = num2word_fr(e, i)
+            x = num2word(e, i)
             if len(x) > m: m,s = len(x),x
             print (x)
     print (m, s)
