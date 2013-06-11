@@ -285,12 +285,13 @@ def agency():
     msg = '/'.join([src, n, v])    
     return cmd(True, '/'.join(['AG', msg, k.sign(msg)]), host.decode('utf8'))
 
-def listday(mail, src, host):
+def listday(theday):
     "_"
-    k, host, user, fi = get_k()
+    k, host, user, fi, t1, t2 = get_k(True)
+    src = t2[-6:].decode('utf8')
     d = ('%s' % datetime.datetime.now())[:10]
     msg = '/'.join([src, d])    
-    return cmd(True, '/'.join(['LD', msg, k.sign(msg)]), host)    
+    return cmd(True, '/'.join(['LD', msg, k.sign(msg)]), host.decode('utf8'))    
 
 def gen():
     email = input('E-mail: ')
@@ -311,11 +312,11 @@ def gen():
     print ('%s file generated' % db)
 
 def register():
-    k, host, user, fi, t1, t2 = get_k(True)
+    k, host, user, fi, t = get_k0()
     today = '%s' % datetime.datetime.now()
-    raw = '/'.join([user, t1.decode('ascii'), t2.decode('ascii')])    
-    msg = '/'.join([today[:10], h10(tab[0].decode('ascii')), raw])
-    return cmd(True, '/'.join(['PK', '1', raw, k.sign(msg)]), host)    
+    raw = '/'.join([user, t[1].decode('ascii'), t[2].decode('ascii')])    
+    msg = '/'.join([today[:10], h10(t[0].decode('ascii')), raw])
+    return cmd(True, '/'.join(['PK', '1', raw, k.sign(msg)]), host.decode('utf8'))    
 
 def get_k(pk=False):
     d = dbm.open(__db__[:-3])
@@ -330,6 +331,20 @@ def get_k(pk=False):
     host, fi = d['host'], d['file']
     d.close()
     return (k, host, user, fi, tab[1], tab[2]) if pk else (k, host, user, fi)
+
+def get_k0():
+    d = dbm.open(__db__[:-3])
+    user = d['user'].decode('utf8')
+    pp = getpass.getpass('Pass Phrase ?')
+    k = ecdsa()
+    tab = d[user].split(b'/')
+    k.pt = Point(curve_521, b64toi(tab[1]), b64toi(tab[2]))
+    cipher = AES.new(hashlib.sha256(pp.encode('utf8')).digest())
+    DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
+    k.privkey = int(DecodeAES(cipher, tab[3]))
+    host, fi = d['host'], d['file']
+    d.close()
+    return (k, host, user, fi, tab)
 
 def set(k, h):
     d = dbm.open(__db__[:-3], 'c')
@@ -355,9 +370,10 @@ def buy(dest, value):
         open(fi.decode('utf8'), 'bw').write(o)    
         print ('%s GENERATED' % fi.decode('utf8'))
 
-def proof(src, dest, status):
+def proof(dest, status):
     "_"
-    k, host, user, fi = get_k()
+    k, host, user, fi, t1, t2 = get_k(True)
+    src = t2[-6:].decode('utf8')
     epoch = '%s' % time.mktime(time.gmtime())
     msg = '/'.join([epoch[:-2], src, dest, status])
     o = cmd(True, '/'.join(['VD', '1', msg, k.sign(msg)]), host.decode('utf8'), True)
@@ -379,19 +395,29 @@ def test():
     DecodeAES = lambda c,e: c.decrypt(base64.b64decode(e)).rstrip(b'@')
     assert msg == DecodeAES(cipher,EncodeAES(cipher, msg)).decode('utf8')
 
+def usage():
+    print ('usage')
+
 if __name__ == '__main__':
     if len(sys.argv)==1: info()
     elif len(sys.argv)==2:
-        if sys.argv[1] == 'gen': gen()
+        if sys.argv[1] == 'generate': gen()
         elif sys.argv[1] == 'register' : register()
         elif sys.argv[1] == 'agency' : agency()
+        else: usage()
     elif len(sys.argv)== 3: 
-        cm = 'JHTmFk'
-        if sys.argv[1] == 'ld': 
-            print (listday(sys.argv[2], cm, host))
+        if sys.argv[1] == 'ld': print (listday(sys.argv[2]))
         elif sys.argv[1] in ('host', 'user', 'file'): set(sys.argv[1], sys.argv[2])
+        else: usage()
     elif len(sys.argv) == 4: 
         if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3])
         elif sys.argv[1] == 'proof': proof(sys.argv[2], sys.argv[3])
+        else: usage()
+    else:
+        usage()
+    s, f = 'Jun 1 2005', '%b %d %Y'
+    z1 = time.strptime(s, f)
+    z2 = datetime.datetime.strptime(s, f).date() + datetime.timedelta(days=1)
+    print (int(time.mktime(z1)), z2)
     sys.exit()
 # End ⊔net!

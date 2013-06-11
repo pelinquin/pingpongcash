@@ -112,8 +112,7 @@ def get_image(img):
 def help_private(cm):
     "_"
     o = "<p>Cette page est votre page privée. Elle contient des informations qui ne sont pas divulguées aux personnes ou commerçants avec qui vous faites des transactions financières <a class=\"ppc\">Ping-Pong&nbsp;</a>.</p>"
-    
-    o += "<p>Votre page puplique est <a href=\"pp/%s\">ici</a>. Elle est accessible directement depuis le code marchand en QRcode. Diffusez cette page publique ou ce QRcode à toute personne susceptible de vous verser de l'argent.</p>" % cm
+    o += "<p>Votre page puplique est <a href=\"%s\">ici</a>. Elle est accessible directement depuis le code marchand en QRcode. Diffusez cette page publique ou ce QRcode à toute personne susceptible de vous verser de l'argent.</p>" % cm
     o += '<p></p>'
     o += "<p>Attention: le bloquage du compte doit être utilisé si vous perdez ou vous faites voler votre <i>iPhone</i> et il n'a de sens que si vous avez autorisation d'achât délivrée par votre banquier.</p>"
     o += "<p>Nous n'avons pas accès au solde de votre compte. La limite des montants d'achât est encadrée par les deux valeurs de seuils fournies par votre banquier. Vous pouvez le contacter votre négocier des valeur différentes.</p>"
@@ -143,7 +142,6 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
     o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
     data = 'pingpongcash.net/%s' % __acm__ 
-    #data = 'àà.eu/%s' % __acm__ 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
     o += '<p class="stat">%s inscrits | %s transactions courantes</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     dmsg = ' %s' % msg if msg else ''
@@ -215,6 +213,10 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
             o += '<p>Seuils d\'achâts : <b class="green">%d€/jour</b> maximum <b class="green">%d€</b></p>' % (int(t[_THR1]), int(t[_THR2])) 
             o += '<p>Montant autorisé le <b class="green">%s</b> : <b class="green">%d€</b></p>' % (today[:10],0) 
             o += '<p>Code marchand: <b class="green">%s</b></p>' % cm
+            ti = 'FR76%d%d ' % (b32toi(bytes(t[_NBNK][2:],'ascii')), b64toi(bytes(t[_IBAN],'ascii')))
+            tiban = ' '.join([ti[4*i:4*(i+1)] for i in range(6)]) 
+            o += '<p>IBAN : <b class="green">%s</b></p>' % tiban            
+            o += '<p>BIC : <b class="green">%s</b></p>' % t[_CBIC]            
             o += '<p>Nom affiché de marchand: <b class="green">%s</b></p>' % t[_PUBN]
             o += '<p>Date d\'enregistrement: <b class="green">%s</b></p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(t[_DREG])))
             o += '<form method="post">\n'
@@ -240,8 +242,9 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
                     if l[0].encode('utf8') in dusr.keys():
                         t1 = dusr[l[0]].decode('utf8').split('/')
                         dest = t1[_PUBN]
-                        val = '%6.2f €' % float(int(l[1])/100) if re.match(r'\d+$', l[1]) else l[1]  
-                        o += '<tr><td>%s</td><td>-</td><td>%s [%s]</td><td><p class="mono">%s...</p></td><td align="right">%s</td></tr>' % (dat, l[0], dest, l[3][:16], val)
+                    val = '%6.2f €' % float(int(l[1])/100) if re.match(r'\d+$', l[1]) else l[1]  
+                    o += '<tr><td>%s</td><td>-</td><td>%s [%s]</td><td><p class="mono">%s...</p></td><td align="right">%s</td></tr>' % (dat, l[0], dest, l[3][:16], val)
+                        
             o += '</table>\n'              
             o += '</div>'
     o += '</div>'
@@ -439,6 +442,7 @@ def log(s, ip=''):
 
 _PAT_LOGIN_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})$'
 _PAT_LOST_   = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=&lost=Mot de passe oublié$'
+#name=contact@pingpongcash.net&pw=XJq6&lost=Mot de passe oublié
 _PAT_INCOME_ = r'total=(\d{3}\.\d{2})&income=Editer une facture$'
 _PAT_CHPWD_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
 _PAT_REG_    = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
@@ -448,9 +452,6 @@ _PAT_AGENCY_ = r'AG/(([^/]{6})/(\d{5}/\d{5})/([^/]{,40}/[^/]{,60}/\d{5}/[^/]{,60
 _PAT_VERIF_  = r'((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(\d{5}))/(\S{160,200})$'
 _PAT_LIST_   = r'LD/(([^/]{6})/([\d-]{10}))/(\S{160,200})$'
 _PAT_REQ_    = r'req=(.{1,200})$'
-
-
-# TR/1/1370757094/JHTmFk/aaa/00100/y7mClcbQ1e0EkX4VO8-Xsx7oXGBtV__NtYsrs5x7jG7-DTsqOU-qw5yJmDOo3_dL6KHHnTRGOYv1UmLfWGIm5Pc/AQZPosnZz0q6IbHTAmGITsB61s5Gl7pr6UzKaymBkxnuaJia9bi7gRf_oD7rLx9XgoFKzLKvUU0fGH3hK0cHFNWx
 
 def transaction_match(dusr, dtrx, gr):
     "_"
@@ -463,8 +464,16 @@ def transaction_match(dusr, dtrx, gr):
         if k.verify(sig, msg):
             if dst.encode('utf8') in dusr.keys(): 
                 ts = dusr[dst].decode('utf8').split('/')
-                if trvd == 'VD' and tb[_STAT] == 'A': ts[_STAT] = 'B'
-                dusr[src], dusr[dst] = '/'.join(tb), '/'.join(ts)                
+                if trvd == 'VD' and tb[_STAT] == 'A' and ts[_STAT] == 'X': ts[_STAT] = 'B'
+                if src != dst:
+                    dusr[src], dusr[dst] = '/'.join(tb), '/'.join(ts)            
+                if trvd == 'VD' and tb[_STAT] == 'A':
+                    a = '@'+dst
+                    if a.encode('utf8') in dusr.keys():
+                        if src.encode('ascii') not in dusr[a].decode('utf8').split('/'): 
+                            dusr[a] = dusr[a] + b'/' + src.encode('ascii')
+                    else:
+                        dusr[a] = src  
             dtrx['__N'] = '%d' % (int(dtrx['__N']) + 1)
             dtrx['%s/%s' % (epoch, src)] = '/'.join([dst, val, val, sig])
             dtrx[src] = dtrx[src] + b'/' + epoch.encode('ascii') if src.encode('ascii') in dtrx.keys() else epoch
@@ -681,7 +690,7 @@ def application(environ, start_response):
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base = environ['PATH_INFO'][1:]
     base1 = urllib.parse.unquote(environ['REQUEST_URI'])[1:]
-    dusr, dtrx, dags, dbic = dbm.open('/cup/pp/usr', 'c'), dbm.open('/cup/pp/trx', 'c'), dbm.open('/cup/pp/ags', 'c'), dbm.open('/cup/pp/bic', 'c')
+    [dtrx, dags, dbic, dusr] = [dbm.open('/cup/%s/%s' % (__app__, b), 'c') for b in dbs]
     nb = [dusr['__N'], dtrx['__N']]
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
@@ -691,7 +700,10 @@ def application(environ, start_response):
             if cm: o, mime = front_html(dusr, dtrx, cm.decode('ascii')), 'text/html; charset=utf8'
             else: o += res
         elif reg(re.match(_PAT_LOST_, arg)):
-            o = 'you will receive an e-mail to reset your password !'
+            url = itob64(int('0x' + hashlib.sha256(os.urandom(32)).hexdigest(), 16))
+            today = '%s' % datetime.datetime.now()
+            dusr ['%' + reg.v.group(1)] = url + b'/' + bytes(today[:10], 'ascii')
+            o = 'url: %s' % url.decode('ascii')
         elif reg(re.match(_PAT_CHPWD_, arg)):
             cm, res = login_match(dusr, reg.v.groups())
             if cm: o, mime = front_html(dusr, dtrx, cm.decode('ascii'), False, '', 'votre mot de passe a été changé!'), 'text/html; charset=utf8'
@@ -710,7 +722,6 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_TRANS_, arg)):
             res = transaction_match(dusr, dtrx, reg.v.groups())
             if res: o += res
-            #else: o += 'http://àà/pp/%s/%s' % (reg.v.group(2), reg.v.group(7))
             else: o, mime = pdf_digital_check(dusr, dtrx, dags, reg.v.groups()), 'application/pdf'
         elif reg(re.match(_PAT_AGENCY_, arg)):
             res = agency_match(dusr, dags, reg.v.groups())
@@ -730,12 +741,13 @@ def application(environ, start_response):
         elif raw.lower() == '_log':
             o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
         elif raw.lower() in ['_%s' % x for x in dbs]: # Just for debug!
-            d, o = dbm.open('/cup/pp/%s' % raw.lower()[1:]), ''
+            d, o = dbm.open('/cup/%s/%s' % (__app__, raw.lower()[1:])), ''
             for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
             d.close()
         elif raw.lower() in ['_reset_%s' % x for x in dbs]: # Do not allow that in production!
-            os.remove('/cup/pp/%s.db' % raw.lower()[7:])
-            o = 'reset database %s OK' % raw.lower()[7:]
+            #os.remove('/cup/%s/%s.db' % (__app__, raw.lower()[7:]))
+            #o = 'reset database %s OK' % raw.lower()[7:]
+            o = 'reset database %s NOT ALLOWED !' % raw.lower()[7:]
         elif base == '':
             o, mime = index_html(nb), 'text/html; charset=utf8'
         elif base == 'login': # public pages
@@ -937,14 +949,8 @@ _GY = b'ARg5KWp4mjvABFyKX7QsfRvZmPVESVebRGgXr70XJz5mLJfucple9CZAxVC5AT-tB2E1PHCG
 _P = b'Af' + b'_'*86
 _R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
 
-#_p = 6864797660130609714981900799081393217269435300143305409394463459185543183397656052122559640661454554977296311391480858037121987999716643812574028291115057151
-#_r = 6864797660130609714981900799081393217269435300143305409394463459185543183397655394245057746333217197532963996371363321113864768612440380340372808892707005449
-#_b = 0x051953eb9618e1c9a1f929a21a0b68540eea2da725b99b315f3b8b489918ef109e156193951ec7e937b1652c0bd3bb1bf073573df883d2c34f1ef451fd46b503f00
-#_Gx = 0xc6858e06b70404e9cd9e3ecb662395b4429c648139053fb521f828af606b4d3dbaa14b5e77efe75928fe1dc127a2ffa8de3348b3c1856a429bf97e7e31c2e5bd66
-#_Gy = 0x11839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e662c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650
-
-INFINITY = Point( None, None, None )  
-curve_521 = CurveFp( b64toi(_P), -3, b64toi(_B) )
+INFINITY = Point(None, None, None)  
+curve_521 = CurveFp(b64toi(_P), -3, b64toi(_B))
 encoded_oid_ecPublicKey = encode_oid(*(1, 2, 840, 10045, 2, 1))
 NIST521p = Curve("NIST521p", curve_521, Point( curve_521, b64toi(_GX), b64toi(_GY), b64toi(_R) ), (1, 3, 132, 0, 35))
 
@@ -1074,31 +1080,38 @@ class updf:
         return o + b' ET '
 
     def ltext(self, tab, r):
+        "_"
         o = b'BT '
-        for (x, y, ft, size, s) in tab: 
-            o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf %s TL ' % (x+self.mx+r[0], r[3]-self.my-y+r[1], ft, size, 1.2*size), 'ascii')
+        for (x, y, ft, sz, s) in tab: 
+            s = re.sub('@ppc@', ') Tj .1 .1 .6 rg /F5 9 Tf (Ping-Pong) Tj /F1 9 Tf ( Cash) Tj 0 0 0 rg /F%d %d Tf (' % (ft, sz), s)
+            o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf %s TL ' % (x+self.mx+r[0], r[3]-self.my-y+r[1], ft, sz, 1.2*sz), 'ascii')
             for l in s.split('\n'): o += bytes('(%s) Tj T* ' % (l), 'ascii')
             o = o[:-3]
         return o + b' ET '
 
     def ctext(self, tab, r):
+        "_"
         o = b'BT '
         for (x, y, ft, sz, c, s) in tab: 
-            o += bytes('%s rg 1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (c, x+self.mx+r[0], r[3]-self.my-y+r[1], ft, sz, s), 'ascii')
+            if c == None: # vertical
+                o += bytes('.8 .8 .8 rg 0 -1 1 0 %d %d Tm /F%d %d Tf (%s) Tj ' % (x+self.mx+r[0], r[3]-self.my-y+r[1], ft, sz, s), 'ascii')
+            else:
+                o += bytes('%s rg 1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (c, x+self.mx+r[0], r[3]-self.my-y+r[1], ft, sz, s), 'ascii')
         return o + b' 0 0 0 rg ET '
 
     def gen(self, pages, qrt, dx=0, dy=0):
+        "_"
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
         self.add('/Type/Catalog/Pages 2 0 R/PageMode /UseOutlines ')
         self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.pw, self.ph))
-        ft = (1, 3, 6, 8)
-        fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f,i+4)  for i,f in enumerate(ft)]) + ' >>'
-        img = '/ColorSpace<</pgfprgb [/Pattern /DeviceRGB]>>/XObject<</Im1 8 0 R>>'
-        self.add('/Type/Page/Parent 2 0 R/Annots [11 0 R 12 0 R]/Resources <<%s %s >>/Contents 10 0 R' % (fonts, img))
+        ft = (1, 3, 5, 6, 8)
+        fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + ' >>'
+        img = '/ColorSpace<</pgfprgb [/Pattern /DeviceRGB]>>/XObject<</Im1 9 0 R>>'
+        self.add('/Type/Page/Parent 2 0 R/Annots [12 0 R 13 0 R]/Resources <<%s %s >>/Contents 11 0 R' % (fonts, img))
         enc = '/Encoding<</Type/Encoding /Differences [ 1 %s ]>> ' % __e__
         for f in ft: self.add('/Type/Font /Subtype /Type1 /BaseFont /%s %s' % (__fonts__[f-1], enc))
         here = os.path.dirname(os.path.abspath(__file__))
-        self.addimg('%s/www/header.img' % here, 9) 
+        self.addimg('%s/www/header.img' % here, 10) 
         self.addmsk('%s/www/header.msk' % here)
         o, urlink = b'', []
         for (pa, pc, gr, rect) in pages: o += gr + self.ctext(pc, rect) + self.ltext(pa, rect)
@@ -1121,7 +1134,11 @@ def sanity(s):
 def pdf_digital_check(dusr, dtrx, dags, gr):
     "_"
     trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6]
+    #import locale
+    #locale.setlocale(locale.LC_TIME, ('fr_FR', 'IS8859-15'))
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
+    date_en = time.strftime('%c', time.localtime(float(epoch)))
+    
     tb = dusr[src].decode('utf8').split('/')
     pubname, info = '', sanity('Reçu - Receipt - '*10)
     info = info[:-3]
@@ -1163,7 +1180,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (192, 116, 3, 8, pk2[:44]), (192, 124, 3, 8, pk2[44:-6]), (375, 124, 6, 8, pk2[-6:]),
         ] 
 
-    rtxt = """Vous touverez ci dessous un chèque Ping-Pong-cash.
+    rtxt = """Vous touverez ci dessous un chèque @ppc@.
 Signé le %s par "%s" de code marchard "%s".\n
 Vous pouvez l'encaisser en ligne sur le site Internet.
 Mais vous pouvez aussi l'utiliser comme un chèque classique
@@ -1171,21 +1188,22 @@ Découpez le et déposez-le à votre banque après l'avoir signé au verso.
 Vous pouvez utiliser le formulaire de remise après avoir renseigné 
 - votre numéro de compte\n- la date de dépos.
 afin de faciliter l'encaissement par votre banque.\n\n
-Pour vous aussi payer avec un chèque Ping-Pong-Cash, 
+Pour vous aussi payer avec un chèque @ppc@, 
 il vous suffit de faire valider l'enregistrement par votre conseiller financier.
 Celui-ci nous contactera au besoin pour valider l'agence.\n
 Ensuite envoyez par e-mail ou imprimez vos chèques émis.
-Le nom du bénéficiaire doit obligatoirement être mentionné.
-
-Merci pour l'utilisation de Ping-Pong-cash,
-N'hésitez pas à nous poser des questions ou nous faire part de vos remarques.\n\n
+Le nom du bénéficiaire doit obligatoirement être mentionné.\n
+Merci pour l'utilisation de @ppc@,
+N'hésitez pas à nous poser des questions et à nous faire part de vos remarques.\n\n
 Pour un véritable moyen de paiement numérique citoyen!
 \n\n\n\nwww.pingpongcash.net\ncontact@pingpongcash.net
 """ % (date_gen[:10], tb[_PUBN], src)
-    page2l = [(75, 120, 1, 10, 'Bonjour %s,' % pubname ), (20, 160, 1, 10, sanity(rtxt))]
+    page2 = [(75, 120, 1, 10, 'Bonjour %s,' % pubname ), (20, 160, 1, 10, sanity(rtxt))]
     gray = '.7 .7 .7'
-    sign = (190, 188, 1, 240, '.9 .9 .9', '\001') if trvd == 'TR' else (175, 94, 1, 64, '.9 .9 .9', 'PROOF') 
-    eurs = (435, 26, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (437, 28, 1, 20, '.1 .2 .7', val)
+    sign = (190, 188, 1, 240, '.9 .9 .9', '\001') if trvd == 'TR' else (145, 75, 5, 60, '.9 .9 .9', 'PROOF') 
+    eurs = (435, 26, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (398, 28, 1, 20, '.1 .2 .7', val)
+    bar1 = (315, 108, 1, 120, '.9 .9 .9', '/') if trvd == 'TR' else (320, 108, 1, 12, '.9 .9 .9', ' ')
+    bar2 = (330, 108, 1, 120, '.9 .9 .9', '/') if trvd == 'TR' else (325, 108, 1, 12, '.9 .9 .9', ' ')
     pagec1 = [
         (30, 40, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
         (145, 90, 1, 10, gray, 'FROM:'), 
@@ -1198,12 +1216,13 @@ Pour un véritable moyen de paiement numérique citoyen!
         (240, 10, 6, 8, gray, 'contact@pingpongcash.net'), 
         (145, 100, 1, 8, gray, 'Public key:'),
         (145, 193, 1, 8, gray, 'Signed message:'),  
-        sign,
-        (315, 108, 1, 120, '.9 .9 .9', '/'), (330, 108, 1, 120, '.9 .9 .9', '/'),
+        sign, bar1, bar2,
         (5, 213, 1, 6, '.05 .46 .8', info), 
         (465, 0, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ]
-    pagec3 = [(10, 20, 1, 20, '.7 .7 .7', 'Encart publicitaire'),] 
+    pagec3 = [(70, 40, 1, 64, None, 'Encart publicitaire'),] 
+    pagec2 = [(5, 5, 1, 6, None, date_en ),] 
+
     url = (urllib.parse.quote('pingpongcash.net/%s/%s' % (msgraw, sig)), 'pingpongcash.net/%s' % src)
     qr1, qr2 = QRCode(data=url[0]), QRCode(data=url[1])
     dx1, dy1 = 99, 0
@@ -1211,14 +1230,15 @@ Pour un véritable moyen de paiement numérique citoyen!
     dx3, dy3, w3, h3 = 393, 229, 200, 611
     graph1  = bytes('.5 .5 .5 RG 1 1 .9 rg %s %s %s %s re b ' % (dx1, dy1, 496, 227), 'ascii') 
     graph1 += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (dx1+402, dy1+184, 78, 25), 'ascii')
-    graph2  = bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (0, 0, 99, 227), 'ascii')
+    cases = ' '.join(['70 %d 20 9 re' % (6+12*i) for i in range(15)]) + ' 10 10 50 80 re'
+    graph2  = bytes('1w .9 .9 .9 rg %s %s %s %s re f %s b 0 0 0 rg ' % (0, 0, 99, 227, cases), 'ascii')
     graph3  = bytes('3w .7 .8 1 RG 1 1 .96 rg %s %s %s %s re B 0 0 0 RG 0 0 0 rg 1w ' % (dx3, dy3, w3, h3), 'ascii')
     pas = 2
     x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+424, dy1+86, (25*pas)
     qrt = ( (qr1.pdf(x1, y1+121, pas, True), '%s %s %s %s' % (x1-1, y1-1, x1+w1+2, y1+w1+2), url[0]),
             (qr2.pdf(x2, y1+121, pas), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]) )
     pages = ((page1, pagec1, graph1, (dx1, dy1, 496, 227)), 
-             (page2l, [], graph2, (dx2, dy2, 496, 227)),
+             (page2, pagec2, graph2, (dx2, dy2, 496, 227)),
              ([], pagec3, graph3, (dx3, dy3, w3, h3)),
              )
     #a = updf(496, 227) # 175mmx80mm
@@ -1817,7 +1837,6 @@ def test_num():
 
 
 if __name__ == '__main__':
-    #test_num()
-    print (sanity("chèque"))
-    print (__e__)
+    test_num()
+
 # End ⊔net!
