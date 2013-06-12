@@ -239,9 +239,7 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
             o += '<p>Seuils d\'achâts : <b class="green">%d€/jour</b> maximum <b class="green">%d€</b></p>' % (int(t[_THR1]), int(t[_THR2])) 
             o += '<p>Montant autorisé le <b class="green">%s</b> : <b class="green">%d€</b></p>' % (today[:10],0) 
             o += '<p>Code marchand: <b class="green">%s</b></p>' % cm
-            ti = 'FR76%d%d ' % (b32toi(bytes(t[_NBNK][2:],'ascii')), b64toi(bytes(t[_IBAN],'ascii')))
-            tiban = ' '.join([ti[4*i:4*(i+1)] for i in range(6)]) 
-            o += '<p>IBAN : <b class="green">%s</b></p>' % tiban            
+            o += '<p>IBAN : <b class="green">%s</b></p>' % format_iban(t)            
             o += '<p>BIC : <b class="green">%s</b></p>' % t[_CBIC]            
             o += '<p>Nom affiché de marchand: <b class="green">%s</b></p>' % t[_PUBN]
             o += '<p>Date d\'enregistrement: <b class="green">%s</b></p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(t[_DREG])))
@@ -596,19 +594,23 @@ def verif_match(dusr, gr):
         o = 'unknown user'
     return o
 
+def format_iban(t):
+    bnk = 'FR76%010d%012d ' % (b32toi(bytes(t[_NBNK][2:], 'ascii')), b64toi(bytes(t[_IBAN], 'ascii')))
+    tiban = ' '.join([bnk[4*i:4*(i+1)] for i in range(6)]) 
+    return tiban[:-1]
+
 def do_sepa(dusr, gr):
     "_"
     o = ''
     msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5]
     if src.encode('ascii') in dusr.keys(): 
         t = dusr[src].decode('utf8').split('/')
-        bnk = 'FR76%d%012d' % (b32toi(bytes(t[_NBNK][2:],'ascii')), b64toi(bytes(t[_IBAN],'ascii')))
         o = 'SEPA CREDIT TRANSFER (share mode)\n\n'
-        o += 'Status:\t\t%s\n' % "Valid"
+        o += 'Status:\t\t%s\n' % 'Validated'
         o += 'Amount(€):\t%s\n' % (int(val)/100)
         o += 'Date:\t\t%s\n' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
         o += 'Debit Account:\t[%s] %s %s (%s)\n' % (src, t[_FRST], t[_LAST], t[_PUBN])
-        o += 'Debit IBAN:\t%s\n' % bnk
+        o += 'Debit IBAN:\t%s\n' % format_iban(t)
         s, ib = '[] (%s)' % dst, ' - IBAN Unknown before deposit -'
         if dst.encode('utf8') in dusr.keys(): 
             t = dusr[dst].decode('utf8').split('/')
@@ -1160,7 +1162,7 @@ class updf:
         ft = (1, 3, 5, 6, 8)
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + ' >>'
         img = '/ColorSpace<</pgfprgb [/Pattern /DeviceRGB]>>/XObject<</Im1 9 0 R>>'
-        self.add('/Type/Page/Parent 2 0 R/Annots [12 0 R 13 0 R]/Resources <<%s %s >>/Contents 11 0 R' % (fonts, img))
+        self.add('/Type/Page/Parent 2 0 R/Annots [12 0 R 13 0 R 14 0 R]/Resources <<%s %s >>/Contents 11 0 R' % (fonts, img))
         enc = '/Encoding<</Type/Encoding /Differences [ 1 %s ]>> ' % __e__
         for f in ft: self.add('/Type/Font /Subtype /Type1 /BaseFont /%s %s' % (__fonts__[f-1], enc))
         here = os.path.dirname(os.path.abspath(__file__))
@@ -1236,20 +1238,21 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     rtxt = """Vous touverez ci dessous un chèque @ppc@,
 signé le %s par "%s" de code marchand: %s\n
 Vous pouvez vérifier sa validité et l'encaisser en ligne sur l'Internet,
-simplement en suivant le lien du QRcode.\n
+simplement en suivant le lien du large QRcode.Vérifiez que vous êtes bien 
+sur le site dont l'adresse commence par: "pingpongcash.net".\n
 Mais vous pouvez aussi l'utiliser comme un chèque classique.
-Découpez le et déposez-le à votre banque après l'avoir signé au verso,
-oubien plié avec le petit formulaire de remise joint.\n\n
-Pour vous aussi payer avec un chèque @ppc@,
-enregistrez-vous sur le site et demandez un certificat à votre conseiller financier.
-Il nous contactera au besoin pour valider l'agence bancaire.\n
+Découpez-le et déposez-le à votre banque après l'avoir signé au verso,
+ou bien pliez le petit formulaire de remise joint.\n\n
+Pour payer avec un chèque @ppc@, enregistrez-vous sur le site 
+et demandez un certificat à votre conseiller financier.
+Il nous contactera au besoin pour valider son agence bancaire.
 Ensuite envoyez par e-mail ou imprimez vos chèques @ppc@ émis,
-avec obligatoirement le nom du bénéficiaire.\n
-Si enfin votre créancier est déjà enregistré, gardez le chèque comme reçu.
-L'encaissement est alors automatique.\n
-Merci pour l'utilisation de @ppc@,
+avec obligatoirement le nom du bénéficiaire.
+Si enfin votre créancier est déjà enregistré, gardez le chèque comme reçu,
+l'encaissement auprès de votre banque est alors automatique.\n
 N'hésitez pas à nous poser des questions et à nous faire part de vos remarques.\n
-Pour un véritable moyen de paiement numérique citoyen!
+Merci pour l'utilisation de @ppc@, 
+...pour un véritable moyen de paiement numérique citoyen!
 \n\n\n\nwww.pingpongcash.net\nwww.cupfoundation.net\ncontact@pingpongcash.net
 """ % (date_gen[:10], tb[_PUBN], src)
     page2 = [(75, 120, 1, 10, 'Bonjour %s,' % pubname ), (20, 160, 1, 10, sanity(rtxt))]
@@ -1277,10 +1280,10 @@ Pour un véritable moyen de paiement numérique citoyen!
     pagec3 = [(70, 40, 1, 64, 1, 'Encart publicitaire'),] 
     pagec2 = [(5, 5, 1, 6, 1, date_en ),(80, 760, 1, 10, 2, 'Signature' ), (53, 816, 1, 10, 2, 'Date' ),
               (17, 816, 1, 10, 2, sanity('Numéro') ), (26, 816, 1, 10, 2, 'de compte' ),
-              (99, 570, 1, 7, '.6 .6 .6 ', sanity('Après encaissement manuel du chèque, il peut être re-imprimé ici: ')),
-              (99, 581, 1, 10, '.6 .6 .6 ', 'www.pingpongcash.net/%s/%s' % (epoch, src))] 
-    url = (urllib.parse.quote('pingpongcash.net/%s/%s' % (msgraw, sig)), 'pingpongcash.net/%s' % src)
-    qr1, qr2 = QRCode(data=url[0]), QRCode(data=url[1])
+              (20, 570, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
+              (20, 581, 1, 10, '.6 .6 .6 ', 'www.pingpongcash.net/%s/%s' % (epoch, src))] 
+    url = (urllib.parse.quote('pingpongcash.net/%s/%s' % (msgraw, sig)), 'pingpongcash.net/%s' % src, 'pingpongcash.net/%s/%s' % (epoch,src))
+    qr1, qr2, qr3 = QRCode(data=url[0]), QRCode(data=url[1]), QRCode(data=url[2])
     dx1, dy1, w1, h1 = 99, 0, 496, 227
     dx2, dy2, w2, h2 = 0, 600, 496, 227
     dx3, dy3, w3, h3 = 393, 229, 200, 611
@@ -1292,7 +1295,8 @@ Pour un véritable moyen de paiement numérique citoyen!
     pas = 2
     x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+424, dy1+86, (25*pas)
     qrt = ( (qr1.pdf(x1, y1+121, pas, True), '%s %s %s %s' % (x1-1, y1-1, x1+w1+2, y1+w1+2), url[0]),
-            (qr2.pdf(x2, y1+121, pas), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]) )
+            (qr2.pdf(x2, y2+49, pas), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]),
+            (qr3.pdf(300, 300, pas, False), '%s %s %s %s' % (299, 242, 360, 303), url[2]) )
     pages = ((page1, pagec1, graph1, (dx1, dy1, w1, h1)), 
              (page2, pagec2, graph2, (dx2, dy2, w2, h2)),
              ([], pagec3, graph3, (dx3, dy3, w3, h3)),
