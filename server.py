@@ -806,7 +806,7 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_SECURL_, base)):
             o, mime = change_html(reg.v.group(1), reg.v.group(2), dusr), 'text/html; charset=utf8'
         elif reg(re.match(_PAT_PRINT_, base)):
-            o = 'OK PRINT'
+            o += 'problem !'
             gr = reg.v.groups()
             if gr[0].encode('utf8') in dtrx:
                 t = dtrx[gr[0]].decode('utf8').split('/')
@@ -1226,7 +1226,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (155, 178, 3, 9, sig[59:118]), 
         (155, 188, 3, 9, sig[118:]), 
         (224, 203, 3, 9, msg),
-        (405, 84, 1, 6, 'http://pingpongcash.net/%s' % src),
+        (405, 82, 1, 6, 'http://pingpongcash.net/%s' % src),
         (90, 50, 1, 16, dst), (160, 50, 6, 12, dpubname),
         (10, 69, 6, 11, manu_fr), (10, 79, 3, 8, manu_en),
         (210, 100, 1, 16, src), (306, 100, 8, 12, tb[_PUBN]), 
@@ -1263,7 +1263,7 @@ Merci pour l'utilisation de @ppc@,
     pagec1 = [
         (40, 50, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
         (155, 100, 1, 10, gray, 'FROM:'), 
-        (360, 84, 1, 5, gray, 'Anti-Phishing URL:'), 
+        (360, 82, 1, 5, gray, 'Anti-Phishing URL:'), 
         (155, 154, 1, 8, gray, 'Date:'), 
         (390, 148, 1, 4, gray, 'EC-DSA-521P'),
         (390, 157, 1, 10, gray, 'Digital Signature:'), 
@@ -1281,7 +1281,7 @@ Merci pour l'utilisation de @ppc@,
               (17, 816, 1, 10, 2, sanity('Numéro') ), (26, 816, 1, 10, 2, 'de compte' ),
               (20, 570, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
               (20, 581, 1, 10, '.6 .6 .6 ', 'www.pingpongcash.net/%s/%s' % (epoch, src))] 
-    url = (urllib.parse.quote('pingpongcash.net/%s/%s' % (msgraw, sig)), 'pingpongcash.net/%s' % src, 'pingpongcash.net/%s/%s' % (epoch,src))
+    url = (urllib.parse.quote('www.pingpongcash.net/%s/%s' % (msgraw, sig)), 'www.pingpongcash.net/%s' % src, 'www.pingpongcash.net/%s/%s' % (epoch,src))
     qr1, qr2, qr3 = QRCode(data=url[0]), QRCode(data=url[1]), QRCode(data=url[2])
     dx1, dy1, w1, h1 = 99, 0, 496, 227
     dx2, dy2, w2, h2 = 0, 600, 496, 227
@@ -1292,9 +1292,9 @@ Merci pour l'utilisation de @ppc@,
     graph2  = bytes('1w .9 .9 .9 rg %s %s %s %s re f %s b 0 0 0 rg ' % (0, 0, 99, 227, cases), 'ascii')
     graph3  = bytes('3w .7 .8 1 RG 1 1 .96 rg %s %s %s %s re B 0 0 0 RG 0 0 0 rg 1w ' % (dx3, dy3, w3, h3), 'ascii')
     pas = 2
-    x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+424, dy1+86, (25*pas)
+    x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+424, dy1+82, (29*pas)
     qrt = ( (qr1.pdf(x1, y1+121, pas, True), '%s %s %s %s' % (x1-1, y1-1, x1+w1+2, y1+w1+2), url[0]),
-            (qr2.pdf(x2, y2+49, pas), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]),
+            (qr2.pdf(x2, y2+56, pas), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]),
             (qr3.pdf(300, 300, pas, False), '%s %s %s %s' % (299, 242, 360, 303), url[2]) )
     pages = ((page1, pagec1, graph1, (dx1, dy1, w1, h1)), 
              (page2, pagec2, graph2, (dx2, dy2, w2, h2)),
