@@ -1235,16 +1235,16 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (202, 126, 3, 8, pk2[:44]), (202, 134, 3, 8, pk2[44:-6]), (385, 134, 6, 8, pk2[-6:]),
         ] 
 
-    rtxt = """Vous touverez ci dessous un chèque @ppc@,
+    rtxt = """Vous trouverez ci dessous un chèque @ppc@,
 signé le %s par "%s" de code marchand: %s\n
 Vous pouvez vérifier sa validité et l'encaisser en ligne sur l'Internet,
 simplement en suivant le lien du large QRcode.Vérifiez que vous êtes bien 
-sur le site dont l'adresse commence par: "pingpongcash.net".\n
+sur le site dont l'adresse commence par : "pingpongcash.net".\n
 Mais vous pouvez aussi l'utiliser comme un chèque classique.
 Découpez-le et déposez-le à votre banque après l'avoir signé au verso,
 ou bien pliez le petit formulaire de remise joint.\n\n
 Pour payer avec un chèque @ppc@, enregistrez-vous sur le site 
-et demandez un certificat à votre conseiller financier.
+et demandez un certificat @ppc@ à votre conseiller financier.
 Il nous contactera au besoin pour valider son agence bancaire.
 Ensuite envoyez par e-mail ou imprimez vos chèques @ppc@ émis,
 avec obligatoirement le nom du bénéficiaire.
