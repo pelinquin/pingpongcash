@@ -349,6 +349,7 @@ def get_k0():
 def set(k, h):
     d = dbm.open(__db__[:-3], 'c')
     d[k] = h
+    print ('%s->%s' % (k, h))
     d.close()
 
 def info():
@@ -404,6 +405,8 @@ if __name__ == '__main__':
         if sys.argv[1] == 'generate': gen()
         elif sys.argv[1] == 'register' : register()
         elif sys.argv[1] == 'agency' : agency()
+        elif sys.argv[1] == 'test' : set('host','localhost')
+        elif sys.argv[1] == 'real' : set('host','pingpongcash.net')
         else: usage()
     elif len(sys.argv)== 3: 
         if sys.argv[1] == 'ld': print (listday(sys.argv[2]))
