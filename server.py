@@ -399,10 +399,8 @@ def same_bic(d, biban, siban):
     return bs[1] == ps[1]
 
 def smail(dest, content):
-    s = smtplib.SMTP('cup')
-    print (dest)
-    #s.sendmail ('contact@pingpongcash.net', [dest], content)
-    s.sendmail (b'contact@pingpongcash.net', [dest], content)
+    s = smtplib.SMTP('pingpongcash')
+    s.sendmail ('dudule@pingpongcash.net', [dest], content)
     s.quit()
 
 def old_transaction (d, msg, epoch, s_biban, s_siban, val, s_sig):
@@ -756,6 +754,7 @@ def application(environ, start_response):
             if res: o += res
             else: o, mime = pdf_digital_check(dusr, dtrx, dags, reg.v.groups()), 'application/pdf'
         elif reg(re.match(_PAT_AGENCY_, arg)):
+            smail ('pelinquin@gmail.com', 'LOGIN OK \n')
             res = agency_match(dusr, dags, reg.v.groups())
             if res: o += res
             else: o = 'AGENCY OK' 
