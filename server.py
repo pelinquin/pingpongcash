@@ -19,6 +19,8 @@
 #    along with ⊔net.  If not, see <http://www.gnu.org/licenses/>.
 #-----------------------------------------------------------------------------
 """
+Small is beautiful!
+
 Status:
 'X' Iban registered 
 'Y' Email registered
@@ -26,28 +28,26 @@ Status:
 'A' Administrator (only one)
 'B' Banker (at least one per agency)
 'C' Validated by banquer and payed to admin
-codeM -> mail/status/lock/regDate/FirstName/LastName/DisplayName/Secu/numbank/iban/bic/Threhold1/Threhold2/balance/expiredate/pw/pubk1/pubk2
-          0     1      2     3       4         5           6      7      8     9    10    11        12       13       14      15   16   17
 """
 
-_STAT = 0
-_LOCK = 1
-_DREG = 2
-_MAIL = 3
-_FRST = 4
-_LAST = 5
-_PUBN = 6
-_SECU = 7
-_NBNK = 8
-_IBAN = 9
-_CBIC = 10
-_THR1 = 11
-_THR2 = 12
-_BALA = 13
-_DEXP = 14
-_PAWD = 15
-_PBK1 = 16
-_PBK2 = 17
+_STAT = 0  # Status
+_LOCK = 1  # locked/unlocked
+_DREG = 2  # Registration Date
+_MAIL = 3  # unique e-mail address
+_FRST = 4  # First Name
+_LAST = 5  # Last name
+_PUBN = 6  # Public Marchant Name
+_SECU = 7  # Social Security Number
+_NBNK = 8  # Bank+Agency Number in iban
+_IBAN = 9  # Account Number in iban
+_CBIC = 10 # Bic (just for verification)
+_THR1 = 11 # Threshold 1
+_THR2 = 12 # Threshold 2
+_BALA = 13 # Balance value
+_DEXP = 14 # Expiration Date
+_PAWD = 15 # Hashed Password for locking
+_PBK1 = 16 # Public Key part 1
+_PBK2 = 17 # Public Key part 2
 
 import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time, smtplib, operator
 
@@ -73,15 +73,10 @@ IBAN_FORMAT = {
     'PT': 8,
 }
 
-
 __fonts__ = ('Helvetica', 'Times-Roman', 'Courier', 'Times-Bold', 'Helvetica-Bold', 'Courier-Bold', 'Times-Italic', 'Helvetica-Oblique', 
              'Courier-Oblique', 'Times-BoldItalic', 'Helvetica-BoldOblique', 'Courier-BoldOblique', 'Symbol')
 
 __e__ = '/Euro /ccedilla /' + ' /'.join(['%s%s' % (x,y) for x in ('a','e','i','o','u','y') for y in ('acute', 'grave', 'circumflex', 'dieresis')])
-
-"""
-Small is beautiful!
-"""
 
 def reg(value):
     " function attribute is a way to access matching group in one line test "
@@ -636,14 +631,13 @@ def pubkey_match(dusr, gr):
             if cm1.encode('utf8') not in dusr.keys():
                 dusr[mail] = cm1
                 dusr[cm1] = dusr[cm]
-                #del(dusr[cm])
                 cm = cm1
             t = dusr[cm].decode('utf8').split('/')
             if t[_PBK1] == '': 
                 t[_PBK1], t[_PBK2] = pk1, pk2 
                 dusr[cm] = '/'.join(t)
                 cid = '%s/%s' % (t[_NBNK], t[_IBAN])
-                dusr[cid] = dusr[cid].decode('ascii') + '/%s' % cm.decode('ascii') if cid.encode('ascii') in dusr.keys() else cm
+                dusr[cid] = dusr[cid].decode('ascii') + '/%s' % cm if cid.encode('ascii') in dusr.keys() else cm
             else:
                 o = 'PubKey already exists'
         else:
@@ -1229,7 +1223,8 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (405, 82, 1, 6, 'http://pingpongcash.net/%s' % src),
         (90, 50, 1, 16, dst), (160, 50, 6, 12, dpubname),
         (10, 69, 6, 11, manu_fr), (10, 79, 3, 8, manu_en),
-        (210, 100, 1, 16, src), (306, 100, 8, 12, tb[_PUBN]), 
+        (190, 100, 1, 16, src), 
+        (266, 100, 8, 12, sanity(tb[_PUBN])), 
         (202, 110, 3, 8, pk1[:44]), (202, 118, 3, 8, pk1[44:]), 
         (202, 126, 3, 8, pk2[:44]), (202, 134, 3, 8, pk2[44:-6]), (385, 134, 6, 8, pk2[-6:]),
         ] 
@@ -1241,7 +1236,7 @@ simplement en suivant le lien du large QRcode.Vérifiez que vous êtes bien
 sur le site dont l'adresse commence par : "pingpongcash.net".\n
 Mais vous pouvez aussi l'utiliser comme un chèque classique.
 Découpez-le et déposez-le à votre banque après l'avoir signé au verso,
-ou bien pliez le petit formulaire de remise joint.\n\n
+ou bien pliez le petit formulaire de remise ci-joint.\n\n
 Pour payer avec un chèque @ppc@, enregistrez-vous sur le site 
 et demandez un certificat @ppc@ à votre conseiller financier.
 Il nous contactera au besoin pour valider son agence bancaire.
@@ -1273,7 +1268,7 @@ Merci pour l'utilisation de @ppc@,
         (155, 110, 1, 8, gray, 'Public key:'),
         (155, 203, 1, 8, gray, 'Signed message:'),  
         sign, bar1, bar2,
-        (15, 223, 1, 6, '.05 .46 .8', info), 
+        (15, 223, 1, 6, '.05 .46 .8', sanity(info)), 
         (475, 10, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ]
     pagec3 = [(70, 40, 1, 64, 1, 'Encart publicitaire'),] 
@@ -1894,8 +1889,15 @@ def test_num():
             print (x)
     print (m, s)
 
+def test_pdf():
+    ele = (55, 100, 1, 20, 'FROM')
+    pages = (([ele,], [], b'', (10, 10, 200, 200)), )
+    a = updf(595, 842) # A4
+    raw = a.gen(pages, [], 0, 0)
+    open('toto.pdf', 'bw').write(raw)    
 
 if __name__ == '__main__':
-    test_num()
+    #test_num()
+    test_pdf()
 
 # End ⊔net!
