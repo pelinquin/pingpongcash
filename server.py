@@ -465,7 +465,7 @@ _PAT_INCOME_ = r'total=(\d{3}\.\d{2})&income=Editer une facture$'
 _PAT_CHPWD_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
 _PAT_REG_    = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 _PAT_PUBKEY_ = r'PK/1/(([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})/([^/]{80,100})/([^/]{80,100}))/(\S{160,200})$'
-_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/([A-Za-z]{5}|\d{5}))/(\S{160,200})$'
+_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/([A-Za-z]{5}|\d{5}))/(\S{160,200})/(.{,160})$'
 _PAT_AGENCY_ = r'AG/(([^/]{6})/(\d{5}/\d{5})/([^/]{,40}/[^/]{,60}/\d{5}/[^/]{,60}/\d{10}/[^/]{,60}))/(\S{160,200})$'
 _PAT_VERIF_  = r'((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(\d{5}))/(\S{160,200})$'
 _PAT_LIST_   = r'LD/(([^/]{6})/([\d-]{10}))/(\S{160,200})$'
@@ -588,8 +588,8 @@ def verif_match(dusr, gr):
     return o
 
 def format_iban(t):
-    bnk = 'FR76%010d%012d ' % (b32toi(bytes(t[_NBNK][2:], 'ascii')), b64toi(bytes(t[_IBAN], 'ascii')))
-    tiban = ' '.join([bnk[4*i:4*(i+1)] for i in range(6)]) 
+    bnk = 'FR76%010d%013d ' % (b32toi(bytes(t[_NBNK][2:], 'ascii')), b64toi(bytes(t[_IBAN], 'ascii')))
+    tiban = ' '.join([bnk[4*i:4*(i+1)] for i in range(7)]) 
     return tiban[:-1]
 
 def do_sepa(dusr, gr):
@@ -1091,13 +1091,20 @@ class updf:
     def addimg(self, img, rmsk):
         self.pos.append(len(self.o))
         self.i += 1
-        self.o += bytes('%s 0 obj << /Type /XObject /Subtype /Image /Width 600 /Height 170 /BitsPerComponent 8 /ColorSpace /DeviceRGB /SMask %d 0 R /Length 44037 /Filter /FlateDecode >> stream\n' % (self.i, rmsk), 'ascii')
+        self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Image/Width 600/Height 170/BitsPerComponent 8/ColorSpace/DeviceRGB/SMask %d 0 R/Length 44037/Filter/FlateDecode>>stream\n' % (self.i, rmsk), 'ascii')
+        self.o += open(img, 'rb').read() + bytes('endstream endobj\n', 'ascii')
+
+    def addimg2(self, img):
+        self.pos.append(len(self.o))
+        self.i += 1
+        #self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Form/BBox [0 0 595 842]/Resources <</ExtGState <</a0 <</ca 1/CA 1>> >> >>/FormType 1/Length 13562/Filter/FlateDecode>>stream\n' % self.i, 'ascii')
+        self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Form/BBox [0 0 595 842]/FormType 1/Length 13562/Filter/FlateDecode>>stream\n' % self.i, 'ascii')
         self.o += open(img, 'rb').read() + bytes('endstream endobj\n', 'ascii')
 
     def addmsk(self, msk):
         self.pos.append(len(self.o))
         self.i += 1
-        self.o += bytes('%s 0 obj << /Type /XObject /Subtype /Image /Width 600 /Height 170 /BitsPerComponent 8 /ColorSpace /DeviceGray /Length 15990 /Filter /FlateDecode >> stream\n' % self.i, 'ascii')
+        self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Image/Width 600/Height 170/BitsPerComponent 8/ColorSpace/DeviceGray/Length 15990/Filter/FlateDecode >>stream\n' % self.i, 'ascii')
         self.o += open(msk, 'rb').read() + bytes('endstream endobj\n', 'ascii')
     
     def addnull(self):
@@ -1150,8 +1157,9 @@ class updf:
     def gen(self, pages, qrt, dx=0, dy=0):
         "_"
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
-        self.add('/Type/Catalog/Pages 2 0 R/PageMode /UseOutlines ')
-        self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1 /Kids [3 0 R]' % (self.pw, self.ph))
+        #self.add('/Type/Catalog/Pages 2 0 R/PageMode /UseOutlines ')
+        self.add('/Type/Catalog/Pages 2 0 R')
+        self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1/Kids[3 0 R]' % (self.pw, self.ph))
         ft = (1, 3, 5, 6, 8)
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + ' >>'
         img = '/ColorSpace<</pgfprgb [/Pattern /DeviceRGB]>>/XObject<</Im1 9 0 R>>'
@@ -1160,14 +1168,15 @@ class updf:
         for f in ft: self.add('/Type/Font /Subtype /Type1 /BaseFont /%s %s' % (__fonts__[f-1], enc))
         here = os.path.dirname(os.path.abspath(__file__))
         self.addimg('%s/www/header.img' % here, 10) 
+        #self.addimg2('%s/header.bpdf' % here) 
         self.addmsk('%s/www/header.msk' % here)
         o, urlink = b'', []
         for (pa, pc, gr, rect) in pages: o += gr + self.ctext(pc, rect) + self.ltext(pa, rect)
         for (q, h, ur) in qrt:
             o += q
             urlink.append('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (ur, h))
-        o += bytes('q 144 0 0 40.8 %d 184 cm /Im1 Do Q ' % (1+dx), 'ascii')
-        o += b'q 288 0 0 81.6 30 730 cm /Im1 Do Q '
+        o += b'q 144 0 0 40.8 100 184 cm /Im1 Do Q q 288 0 0 81.6 30 730 cm /Im1 Do Q '
+        #o += b'q 1 0 0 1 10 10 cm /Im1 Do Q q 2 0 0 2 100 100 cm /Im1 Do Q '
         self.adds(o)
         for ur in urlink: self.add(ur)
         n, size = len(self.pos), len(self.o)
@@ -1181,15 +1190,14 @@ def sanity(s):
 
 def pdf_digital_check(dusr, dtrx, dags, gr):
     "_"
-    trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6]
+    trvd, msg, epoch, src, dst, val, sig, txt = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6], gr[7]
     #import locale
     #locale.setlocale(locale.LC_TIME, ('fr_FR', 'IS8859-15'))
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     date_en = time.strftime('%c', time.localtime(float(epoch)))
-    
     tb = dusr[src].decode('utf8').split('/')
-    pubname, info = '', sanity('Reçu - Receipt - '*10)
-    info = info[:-3]
+    pubname, info1, info2 = '', sanity('Reçu - Receipt - '*10), ''
+    info1 = info1[:-3]
     msgraw = msg
     if dst.encode('utf8') in dusr.keys(): 
         ts = dusr[dst].decode('utf8').split('/')
@@ -1199,9 +1207,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         bnk = '%s' % b32toi(bytes(tb[_NBNK][2:],'ascii'))
         key = '%s/%s' % (bnk[:5], bnk[5:])
         if key.encode('utf8') in dags.keys():
-            v = sanity(dags[key].decode('utf8'))
-            info = '%s %s \'%s\' FR76%s%s %s - %s' % (tb[_FRST], tb[_LAST], tb[_PUBN], bnk, b64toi(bytes(tb[_IBAN],'ascii')), tb[_CBIC], v)
-            info = re.sub('/', ' ', info)
+            info1, info2 = '%s %s - %s - %s' % (tb[_FRST], tb[_LAST], format_iban(tb), tb[_CBIC]), re.sub('/', ' ', sanity(dags[key].decode('utf8')))
     dpubname = pubname + ' ' + '*'*(30-len(pubname))
     if trvd == 'TR':
         v1, v2 = val[:3], val[3:]
@@ -1216,27 +1222,26 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     page1 = [
         (195, 154, 1, 12, date_gen),
         vv1, vv2,
-        (155, 168, 3, 9, sig[:59]), 
-        (155, 178, 3, 9, sig[59:118]), 
-        (155, 188, 3, 9, sig[118:]), 
-        (224, 203, 3, 9, msg),
-        (405, 82, 1, 6, 'http://pingpongcash.net/%s' % src),
-        (90, 50, 1, 16, dst), (160, 50, 6, 12, dpubname),
+        (233, 168, 3, 7, sig[:59]), 
+        (233, 176, 3, 7, sig[59:118]), 
+        (233, 184, 3, 7, sig[118:]), 
+        (233, 203, 3, 7, msg),
+        (393, 78, 1, 6, 'http://pingpongcash.net/%s' % src),
+        (70, 50, 5, 14, dst), (140, 50, 6, 12, dpubname),
         (10, 69, 6, 11, manu_fr), (10, 79, 3, 8, manu_en),
-        (190, 100, 1, 16, src), 
-        (266, 100, 8, 12, sanity(tb[_PUBN])), 
-        (202, 110, 3, 8, pk1[:44]), (202, 118, 3, 8, pk1[44:]), 
-        (202, 126, 3, 8, pk2[:44]), (202, 134, 3, 8, pk2[44:-6]), (385, 134, 6, 8, pk2[-6:]),
+        (190, 100, 5, 14, src), 
+        (266, 100, 6, 12, sanity(tb[_PUBN])), 
+        (202, 110, 3, 7, pk1[:44]), (202, 118, 3, 7, pk1[44:]), 
+        (202, 126, 3, 7, pk2[:44]), (202, 134, 3, 7, pk2[44:-6]), (362, 134, 6, 7, pk2[-6:]),
         ] 
-
     rtxt = """Vous trouverez ci dessous un chèque @ppc@,
 signé le %s par "%s" de code marchand: %s\n
 Vous pouvez vérifier sa validité et l'encaisser en ligne sur l'Internet,
 simplement en suivant le lien du large QRcode.Vérifiez que vous êtes bien 
-sur le site dont l'adresse commence par : "pingpongcash.net".\n
+sur le site dont l'adresse commence par : "pingpongcash.net".
 Mais vous pouvez aussi l'utiliser comme un chèque classique.
 Découpez-le et déposez-le à votre banque après l'avoir signé au verso,
-ou bien pliez le petit formulaire de remise ci-joint.\n\n
+ou bien pliez le petit formulaire de remise ci-joint.\n
 Pour payer avec un chèque @ppc@, enregistrez-vous sur le site 
 et demandez un certificat @ppc@ à votre conseiller financier.
 Il nous contactera au besoin pour valider son agence bancaire.
@@ -1244,36 +1249,37 @@ Ensuite envoyez par e-mail ou imprimez vos chèques @ppc@ émis,
 avec obligatoirement le nom du bénéficiaire.
 Si enfin votre créancier est déjà enregistré, gardez le chèque comme reçu,
 l'encaissement auprès de votre banque est alors automatique.\n
-N'hésitez pas à nous poser des questions et à nous faire part de vos remarques.\n
+N'hésitez pas à nous poser des questions et à nous faire part de vos remarques.
 Merci pour l'utilisation de @ppc@, 
 ...pour un véritable moyen de paiement numérique citoyen!
-\n\n\n\nwww.pingpongcash.net\nwww.cupfoundation.net\ncontact@pingpongcash.net
+\n\n\nwww.pingpongcash.net\nwww.cupfoundation.net\ncontact@pingpongcash.net
 """ % (date_gen[:10], tb[_PUBN], src)
-    page2 = [(75, 120, 1, 10, 'Bonjour %s,' % pubname ), (20, 160, 1, 10, sanity(rtxt))]
+    if txt != '': txt = '\n'.join([txt[80*i:80*(i+1)] for i in range(3)]) 
+    unmsg = [] if txt == '' else [(10, 510, 1, 8, sanity('Message de l\'acheteur (%s) :' % sanity(tb[_PUBN]) )), (20, 520, 5, 8, sanity(txt))]
+    page2 = [(75, 120, 1, 9, 'Bonjour %s,' % pubname ), (20, 160, 1, 9, sanity(rtxt))] + unmsg
     gray = '.7 .7 .7'
     sign = (195, 198, 1, 240, '.95 .95 .95', '\001') if trvd == 'TR' else (155, 85, 5, 60, '.9 .9 .9', 'PROOF') 
     eurs = (445, 36, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (408, 38, 1, 20, '.1 .2 .7', val)
-    bar1 = (325, 118, 1, 120, '.9 .9 .9', '/') if trvd == 'TR' else (330, 118, 1, 12, '.9 .9 .9', ' ')
-    bar2 = (340, 118, 1, 120, '.9 .9 .9', '/') if trvd == 'TR' else (335, 118, 1, 12, '.9 .9 .9', ' ')
+    bars = [(325, 118, 1, 120, '.9 .9 .9', '/'), (340, 118, 1, 120, '.9 .9 .9', '/')] if trvd == 'TR' else []
     pagec1 = [
         (40, 50, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
         (155, 100, 1, 10, gray, 'FROM:'), 
-        (360, 82, 1, 5, gray, 'Anti-Phishing URL:'), 
+        (360, 78, 1, 5, gray, 'Anti-Phishing:'), 
         (155, 154, 1, 8, gray, 'Date:'), 
-        (390, 148, 1, 4, gray, 'EC-DSA-521P'),
-        (390, 157, 1, 10, gray, 'Digital Signature:'), 
+        (155, 168, 1, 4, gray, 'EC-DSA-521P'),
+        (155, 177, 1, 9, gray, 'Digital Signature:'), 
         (155, 15, 1, 6, gray, 'Enregistrement, aide ou question:'), 
         (250, 11, 5, 8, gray, 'http://pingpongcash.net'),
         (250, 20, 5, 8, gray, 'contact@pingpongcash.net'), 
-        (155, 110, 1, 8, gray, 'Public key:'),
+        (155, 110, 1, 7, gray, 'Public key:'),
         (155, 203, 1, 8, gray, 'Signed message:'),  
-        sign, bar1, bar2,
-        (15, 223, 1, 6, '.05 .46 .8', sanity(info)), 
+        sign,
+        (155, 215, 1, 6, '.05 .46 .8', sanity(info1)), (155, 223, 1, 6, '.05 .46 .8', sanity(info2)), 
         (475, 10, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
-        ]
+        ] + bars
     pagec3 = [(70, 40, 1, 64, 1, 'Encart publicitaire'),] 
     pagec2 = [(5, 5, 1, 6, 1, date_en ),(80, 760, 1, 10, 2, 'Signature' ), (53, 816, 1, 10, 2, 'Date' ),
-              (17, 816, 1, 10, 2, sanity('Numéro') ), (26, 816, 1, 10, 2, 'de compte' ),
+              (19, 816, 1, 10, 2, sanity('Numéro') ), (28, 816, 1, 10, 2, 'de compte' ),
               (20, 570, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
               (20, 581, 1, 10, '.6 .6 .6 ', 'www.pingpongcash.net/%s/%s' % (epoch, src))] 
     url = (urllib.parse.quote('www.pingpongcash.net/%s/%s' % (msgraw, sig)), 'www.pingpongcash.net/%s' % src, 'www.pingpongcash.net/%s/%s' % (epoch,src))
@@ -1283,14 +1289,14 @@ Merci pour l'utilisation de @ppc@,
     dx3, dy3, w3, h3 = 393, 229, 200, 611
     graph1  = bytes('.5 .5 .5 RG 1 1 .9 rg %s %s %s %s re b ' % (dx1, dy1, 496, 227), 'ascii') 
     graph1 += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (dx1+402, dy1+184, 78, 25), 'ascii')
-    cases = '1w 1 1 1 rg .6 .6 .6 RG ' + ' '.join(['8 %d 24 14 re' % (62+14*i) for i in range(11)]) + ' b 40 116 53 100 re 40 36 20 70 re f'
-    graph2  = bytes('1w .9 .9 .9 rg %s %s %s %s re f %s b 0 0 0 rg ' % (0, 0, 99, 227, cases), 'ascii')
-    graph3  = bytes('3w .7 .8 1 RG 1 1 .96 rg %s %s %s %s re B 0 0 0 RG 0 0 0 rg 1w ' % (dx3, dy3, w3, h3), 'ascii')
+    cases = '1w 1 1 1 rg .6 .6 .6 RG ' + ' '.join(['10 %d 24 14 re' % (62+14*i) for i in range(11)]) + ' b 40 116 53 100 re 40 36 20 70 re f '
+    graph2  = bytes('.9 .9 .9 rg %s %s %s %s re f %s b 0 0 0 rg ' % (0, 0, 99, 227, cases), 'ascii')
+    graph3  = bytes('.7 .8 1 RG 1 1 .96 rg %s %s %s %s re B 0 0 0 RG 0 0 0 rg ' % (dx3, dy3, w3, h3), 'ascii')
     pas = 2
-    x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+424, dy1+82, (29*pas)
+    x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+420, dy1+80, (29*pas)
     qrt = ( (qr1.pdf(x1, y1+121, pas, True), '%s %s %s %s' % (x1-1, y1-1, x1+w1+2, y1+w1+2), url[0]),
             (qr2.pdf(x2, y2+56, pas), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]),
-            (qr3.pdf(300, 300, pas, False), '%s %s %s %s' % (299, 242, 360, 303), url[2]) )
+            (qr3.pdf(300, 400, pas, False), '%s %s %s %s' % (299, 342, 360, 403), url[2]) )
     pages = ((page1, pagec1, graph1, (dx1, dy1, w1, h1)), 
              (page2, pagec2, graph2, (dx2, dy2, w2, h2)),
              ([], pagec3, graph3, (dx3, dy3, w3, h3)),

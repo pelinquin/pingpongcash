@@ -414,6 +414,7 @@ class AES0:
 	
     def encrypt(self, stringIn, key):
         IV = hashlib.sha256(key).digest()[:16] # exemple
+        IV = b'P'*16
         plain, iput, output, cipher  = [], [], [], [0]*16
         cipherOut, firstRound = [], True
         if stringIn != None:
@@ -434,6 +435,7 @@ class AES0:
 
     def decrypt(self, cIn, key):
         IV = hashlib.sha256(key).digest()[:16] # exemple
+        IV = b'P'*16
         cipher, iput, output, plain, stringOut, fround, cipherIn = [], [], [], [0]*16, '', True, [i for i in base64.urlsafe_b64decode(cIn)]
         if cipherIn != None:
             for j in range(1+(len(cipherIn)-1)//16):
@@ -543,14 +545,14 @@ def info():
     print ('user:%s host:%s file:%s' % (d['user'].decode('utf8'), d['host'].decode('utf8'), d['file'].decode('utf8')))
     d.close()
     
-def buy(dest, value):
+def buy(dest, value, txt=''):
     "_"
     k, host, user, fi , t = get_k()
     src = t[2][-6:].decode('utf8')
     print (src)
     epoch = '%s' % time.mktime(time.gmtime())
     msg = '/'.join([epoch[:-2], src, dest, '%05d' % int(float(value)*100)])
-    o = cmd(True, '/'.join(['TR', '1', msg, k.sign(msg)]), host.decode('utf8'), True)
+    o = cmd(True, '/'.join(['TR', '1', msg, k.sign(msg), txt]), host.decode('utf8'), True)
     if o[:5].decode('ascii') == 'Error':
         print (o.decode('utf8'))
     else:
@@ -574,7 +576,25 @@ def usage():
     "_"
     print ('usage TODO!')
 
+
+def compare():
+    from Crypto.Cipher import AES
+    pp = 'this is a password'
+    msg = 'X'*32
+    pw = hashlib.sha256(pp.encode('utf8')).digest()
+    pad = lambda s:s+(32-len(s)%32)*'@'
+    EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
+    DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
+    ci1 = EncodeAES(AES.new(pw, AES.MODE_OFB, 'X'*16), msg) # AES from PyCrypto
+    ci2 = AES0().encrypt(msg, pw) # included AES
+    kp1 = DecodeAES(AES.new(pw, AES.MODE_OFB, 'X'*16), ci1).decode('ascii') # AES from PyCrypto
+    kp2 = AES0().decrypt(ci2, pw).rstrip('@') # included AES
+    print (kp1, ci1)
+    print (kp2, ci2)
+    
+
 if __name__ == '__main__':
+    compare()
     if len(sys.argv)==1: info()
     elif len(sys.argv)==2:
         if sys.argv[1] == 'generate': generate()
@@ -590,6 +610,9 @@ if __name__ == '__main__':
     elif len(sys.argv) == 4: 
         if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3])
         elif sys.argv[1] == 'proof': proof(sys.argv[2], sys.argv[3])
+        else: usage()
+    elif len(sys.argv) == 5: 
+        if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4])
         else: usage()
     else:
         usage()
