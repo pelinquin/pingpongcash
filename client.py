@@ -493,8 +493,17 @@ def generate():
         pp1 = getpass.getpass('Pass Phrase ?')
         pp2 = getpass.getpass('Retype Pass Phrase ?')
     db = 'keys.db'
+    print ('...wait')
+    kt = []
+    for i in range(10):
+        k = ecdsa()
+        cm = itob64(k.pt.y())[-6:].decode('utf8')
+        kt.append(k)
+        print ('(%d)' %i, cm)
+    sk = input('Select one key: ')
+    k = kt[int(sk)]
+    cm = itob64(k.pt.y())[-6:].decode('utf8')
     d = dbm.open(db[:-3], 'c')
-    k = ecdsa()
     pw = hashlib.sha256(pp1.encode('utf8')).digest()
     #pad = lambda s:s+(32-len(s)%32)*'@'
     #EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
@@ -503,7 +512,7 @@ def generate():
     d[email] = gen_pwd() + b'/' + b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + ci
     d.close()
     os.chmod(db, 511)  
-    print ('%s file generated' % db)
+    print ('%s file generated for code %s user: %s' % (db, cm, email))
 
 def find_best():
     "_"
