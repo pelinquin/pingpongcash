@@ -22,8 +22,7 @@
 This code simulates the device used to store user's private key...usually a smartPhone
 """
 
-import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, time, smtplib, getpass
-#from Crypto.Cipher import AES # not used on macOSX!
+import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, time, smtplib, getpass, argparse
 
 __db__ = 'keys.db'
 
@@ -33,6 +32,8 @@ _GX = b'xoWOBrcEBOnNnj7LZiOVtEKcZIE5BT-1Ifgor2BrTT26oUted-_nWSj-HcEnov-o3jNIs8GF
 _GY = b'ARg5KWp4mjvABFyKX7QsfRvZmPVESVebRGgXr70XJz5mLJfucple9CZAxVC5AT-tB2E1PHCGonLCQIi-lHaf0WZQ'
 _P = b'Af' + b'_'*86
 _R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
+
+_IV = b'ABCDEFGHIJKLMNOP'
 
 def itob64(n):
     "utility to transform int to base64"
@@ -413,8 +414,6 @@ class AES0:
         return output
 	
     def encrypt(self, stringIn, key):
-        IV = hashlib.sha256(key).digest()[:16] # exemple
-        IV = b'P'*16
         plain, iput, output, cipher  = [], [], [], [0]*16
         cipherOut, firstRound = [], True
         if stringIn != None:
@@ -422,7 +421,7 @@ class AES0:
                 start, end = j*16, j*16+16
                 if j*16+16 > len(stringIn): end = len(stringIn)
                 plain = (stringIn.encode('utf8'))[start:end]
-                if firstRound: output, firstRound = self.enc(IV, key), False
+                if firstRound: output, firstRound = self.enc(_IV, key), False
                 else: output = self.enc(iput, key)
                 for i in range(16):
                     if len(plain)-1 < i: cipher[i] = 0 ^ output[i]
@@ -434,15 +433,13 @@ class AES0:
         return base64.urlsafe_b64encode(bytes(cipherOut))
 
     def decrypt(self, cIn, key):
-        IV = hashlib.sha256(key).digest()[:16] # exemple
-        IV = b'P'*16
         cipher, iput, output, plain, stringOut, fround, cipherIn = [], [], [], [0]*16, '', True, [i for i in base64.urlsafe_b64decode(cIn)]
         if cipherIn != None:
             for j in range(1+(len(cipherIn)-1)//16):
                 start, end = j*16, j*16+16
                 if j*16+16 > len(cipherIn): end = len(cipherIn)
                 cipher = cipherIn[start:end]
-                if fround: output, fround = self.enc(IV, key), False
+                if fround: output, fround = self.enc(_IV, key), False
                 else: output = self.enc(iput, key)
                 for i in range(16):
                     if len(output)-1 < i: plain[i] = 0 ^ cipher[i]
@@ -451,7 +448,7 @@ class AES0:
                     else: plain[i] = output[i] ^ cipher[i]
                 for k in range(end-start): stringOut += chr(plain[k])
                 iput = output
-        return stringOut;
+        return stringOut.rstrip('@');
 
 ###########
 
@@ -499,14 +496,34 @@ def generate():
     d = dbm.open(db[:-3], 'c')
     k = ecdsa()
     pw = hashlib.sha256(pp1.encode('utf8')).digest()
-    pad = lambda s:s+(32-len(s)%32)*'@'
-    EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
-    #ci = EncodeAES(AES.new(pw), '%s' % k.privkey) # AES from PyCrypto
+    #pad = lambda s:s+(32-len(s)%32)*'@'
+    #EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
+    #ci = EncodeAES(AES.new(pw, AES.MODE_OFB, _IV), '%s' % k.privkey) # AES from PyCrypto
     ci = AES0().encrypt('%s' % k.privkey, pw) # included AES
     d[email] = gen_pwd() + b'/' + b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + ci
     d.close()
     os.chmod(db, 511)  
     print ('%s file generated' % db)
+
+def find_best():
+    "_"
+    db = 'search.db'
+    d = dbm.open(db[:-3], 'c')
+    i = 0
+    while True:
+        k = ecdsa()
+        i += 1
+        cm = itob64(k.pt.y())[-6:].decode('utf8')
+        if re.search('(cash|ppc|ping|pong|cup|money|france)', cm, re.I):
+            d[cm] = b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + itob64(k.privkey)
+            break
+        else:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            if i%100==0 : print (i)
+    d.close()
+    os.chmod(db, 511)  
+    print ('%s CM found' % db)
 
 def register():
     "_"
@@ -524,10 +541,10 @@ def get_k():
     k = ecdsa()
     tab = d[user].split(b'/')
     k.pt = Point(curve_521, b64toi(tab[1]), b64toi(tab[2]))
-    DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
     pw = hashlib.sha256(pp.encode('utf8')).digest()
+    #DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
+    #k.privkey = int(DecodeAES(AES.new(pw, AES.MODE_OFB, _IV), tab[3])) # AES from PyCrypto
     k.privkey = int(AES0().decrypt(tab[3], pw)) # included AES
-    #k.privkey = int(DecodeAES(AES.new(pw), tab[3])) # AES from PyCrypto
     host, fi = d['host'], d['file']
     d.close()
     return (k, host, user, fi, tab)
@@ -545,14 +562,21 @@ def info():
     print ('user:%s host:%s file:%s' % (d['user'].decode('utf8'), d['host'].decode('utf8'), d['file'].decode('utf8')))
     d.close()
     
-def buy(dest, value, txt=''):
+def buy(dest, value, var1='', var2=''):
     "_"
+    evalue, txt = '00000', ''
+    if var2 != '': txt = var2
+    if re.match('[\d\.]{1,6}', var1): evalue = '%05d' % int(float(var1)*100)
+    else: txt = var1
     k, host, user, fi , t = get_k()
     src = t[2][-6:].decode('utf8')
     print (src)
     epoch = '%s' % time.mktime(time.gmtime())
     msg = '/'.join([epoch[:-2], src, dest, '%05d' % int(float(value)*100)])
-    o = cmd(True, '/'.join(['TR', '1', msg, k.sign(msg), txt]), host.decode('utf8'), True)
+    print('/'.join(['TR', '1', msg, k.sign(msg), evalue, txt]))
+
+    o = cmd(True, '/'.join(['TR', '1', msg, k.sign(msg), evalue, txt]), host.decode('utf8'), True)
+
     if o[:5].decode('ascii') == 'Error':
         print (o.decode('utf8'))
     else:
@@ -576,7 +600,6 @@ def usage():
     "_"
     print ('usage TODO!')
 
-
 def compare():
     from Crypto.Cipher import AES
     pp = 'this is a password'
@@ -585,16 +608,18 @@ def compare():
     pad = lambda s:s+(32-len(s)%32)*'@'
     EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
     DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
-    ci1 = EncodeAES(AES.new(pw, AES.MODE_OFB, 'X'*16), msg) # AES from PyCrypto
+    ci1 = EncodeAES(AES.new(pw, AES.MODE_OFB, _IV), msg) # AES from PyCrypto
     ci2 = AES0().encrypt(msg, pw) # included AES
-    kp1 = DecodeAES(AES.new(pw, AES.MODE_OFB, 'X'*16), ci1).decode('ascii') # AES from PyCrypto
-    kp2 = AES0().decrypt(ci2, pw).rstrip('@') # included AES
-    print (kp1, ci1)
-    print (kp2, ci2)
+    kp1 = DecodeAES(AES.new(pw, AES.MODE_OFB, _IV), ci1).decode('ascii') # AES from PyCrypto
+    kp2 = AES0().decrypt(ci2, pw) # included AES
+    kp3 = DecodeAES(AES.new(pw, AES.MODE_OFB, _IV), ci2).decode('ascii') # AES mixed
+    kp4 = AES0().decrypt(ci1, pw) # AES mixed
+    assert msg==kp1==kp2==kp3==kp4
     
 
 if __name__ == '__main__':
-    compare()
+    #compare()
+    #find_best()
     if len(sys.argv)==1: info()
     elif len(sys.argv)==2:
         if sys.argv[1] == 'generate': generate()
@@ -611,14 +636,18 @@ if __name__ == '__main__':
         if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3])
         elif sys.argv[1] == 'proof': proof(sys.argv[2], sys.argv[3])
         else: usage()
-    elif len(sys.argv) == 5: 
-        if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4])
-        else: usage()
+    elif len(sys.argv) == 5 and sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4])
+    elif len(sys.argv) == 6 and sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     else:
         usage()
     #s, f = 'Jun 1 2005', '%b %d %Y'
     #z1 = time.strptime(s, f)
     #z2 = datetime.datetime.strptime(s, f).date() + datetime.timedelta(days=1)
     #print (int(time.mktime(z1)), z2)
+
+
+    #p = argparse.ArgumentParser(description='Process')
+    #p.add_argument('generate', metavar='G')
+
     sys.exit()
 # End ⊔net!

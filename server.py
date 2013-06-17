@@ -61,6 +61,9 @@ _XHTMLNS   = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 _XLINKNS   = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
 
+_AD1 = 'Enfin un moyen de paiement numérique,' 
+_AD2 = 'simple, gratuit et sécurisé !'
+
 MAX_TR_ADAY = 200
 FREE_DAYS   = 30
 ID_SIZE     = 7
@@ -194,7 +197,6 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
             o += '</form>\n'
             o += '</div>'
             o += '<div id="rcol">'
-
             o += '<form method="post">\n'
             o += '<input class="txt" type="text" name="req" placeholder="" title="tapez un nom de marchand ou un code marchand" required="yes"/>'
             o += '<input class="sh" type="submit" value="Recherche" title="code marchand"/> '
@@ -222,6 +224,7 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
             total = re.sub('€', '', total)
             data = '%s?%06.2f€' % (cm, float(total)) if total != '' else cm
             o += '<p title="...code marchand \'%s\' en QRcode">%s</p>\n' % (data, QRCode(data=data).svg(100, 50, 12, data))    
+            if t[_PBK1] != '': o += 'Public Key: <p title="Pulic Key">%s<br/>%s <b>%s</b></p>' % (t[_PBK1], t[_PBK2][:-6], t[_PBK2][-6:])
             o += '</div>'
         else:
             o += '<div id="lcol">' 
@@ -398,7 +401,7 @@ def smail(dest, content):
     s.sendmail ('dudule@pingpongcash.net', [dest], content)
     s.quit()
 
-def old_transaction (d, msg, epoch, s_biban, s_siban, val, s_sig):
+def old_transaction (d, msg, epoch, s_biban, s_siban, val, s_sig): # a enlever!
     "_"
     o, biban, siban, sig = 'Error:', bytes(s_biban, 'ascii'), bytes(s_siban, 'ascii'), bytes(s_sig,'ascii')
     if biban in d.keys():
@@ -465,7 +468,7 @@ _PAT_INCOME_ = r'total=(\d{3}\.\d{2})&income=Editer une facture$'
 _PAT_CHPWD_  = r'name=([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&pw=(\S{4,30})&pw1=(\S{4,30})&pw2=(\S{4,30})&new=Changer votre mot de passe$'
 _PAT_REG_    = r'first=([^&/]{3,80})&last=([^&/]{3,80})&name=([^&/]{2,40}@[^&/]{3,40})&iban=([a-zA-Z\d ]{16,38})&bic=([A-Z\d]{8,11})&ssid=([^&/]{,50})&dname=([^&/]{,100})&pw=([^&]{2,20})&pw2=([^&]{2,20})&read=on$'
 _PAT_PUBKEY_ = r'PK/1/(([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})/([^/]{80,100})/([^/]{80,100}))/(\S{160,200})$'
-_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/([A-Za-z]{5}|\d{5}))/(\S{160,200})/(.{,160})$'
+_PAT_TRANS_  = r'(TR|VD)/1/((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/([A-Za-z]{5}|\d{5}))/(\S{160,200})/(\d{5})/(.{,160})$'
 _PAT_AGENCY_ = r'AG/(([^/]{6})/(\d{5}/\d{5})/([^/]{,40}/[^/]{,60}/\d{5}/[^/]{,60}/\d{10}/[^/]{,60}))/(\S{160,200})$'
 _PAT_VERIF_  = r'((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(\d{5}))/(\S{160,200})$'
 _PAT_LIST_   = r'LD/(([^/]{6})/([\d-]{10}))/(\S{160,200})$'
@@ -478,11 +481,12 @@ def transaction_match(dusr, dtrx, gr):
     "_"
     o = ''
     today = '%s' % datetime.datetime.now()
-    trvd, msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6] 
+    trvd, msg, epoch, src, dst, val, sig, efv = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6], gr[7] 
     if src.encode('ascii') in dusr.keys():
         tb, k = dusr[src].decode('utf8').split('/'), ecdsa()
         k.pt = Point(curve_521, b64toi(tb[_PBK1].encode('ascii')), b64toi(tb[_PBK2].encode('ascii')))
         if k.verify(sig, msg):
+            if tb[_STAT] in ('X', 'Y'): return 'not allowed !'
             if dst.encode('utf8') in dusr.keys(): 
                 ts = dusr[dst].decode('utf8').split('/')
                 if trvd == 'VD' and tb[_STAT] == 'A' and ts[_STAT] == 'X': ts[_STAT] = 'B'
@@ -496,7 +500,8 @@ def transaction_match(dusr, dtrx, gr):
                     else:
                         dusr[a] = src  
             dtrx['__N'] = '%d' % (int(dtrx['__N']) + 1)
-            dtrx['%s/%s' % (epoch, src)] = '/'.join([dst, val, val, sig])
+            #if re.match('\d{5}$',
+            dtrx['%s/%s' % (epoch, src)] = '/'.join([dst, val, efv, sig])
             dtrx[src] = dtrx[src] + b'/' + epoch.encode('ascii') if src.encode('ascii') in dtrx.keys() else epoch
             x, tx = '%s/%s' % (today[:10], tb[_NBNK]), '/'.join([epoch, src])
             dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
@@ -586,11 +591,6 @@ def verif_match(dusr, gr):
     else:
         o = 'unknown user'
     return o
-
-def format_iban(t):
-    bnk = 'FR76%010d%013d ' % (b32toi(bytes(t[_NBNK][2:], 'ascii')), b64toi(bytes(t[_IBAN], 'ascii')))
-    tiban = ' '.join([bnk[4*i:4*(i+1)] for i in range(7)]) 
-    return tiban[:-1]
 
 def do_sepa(dusr, gr):
     "_"
@@ -858,14 +858,6 @@ def H(*tab):
     "hash"
     return int(hashlib.sha1(b''.join(bytes('%s' % i, 'utf8') for i in tab)).hexdigest(), 16)
 
-##### RSA #####
-
-def sign(d, n, msg):
-    return itob64(pow(H(msg), d, n))
-
-def verify(e, n, msg, s):
-    return (pow(b64toi(s), e, n) == H(msg)) 
-
 ##### ECDSA ####
 def encode_oid(first, second, *pieces):
     assert first <= 2
@@ -894,7 +886,7 @@ def encode_length(l):
 
 class CurveFp( object ):
     def __init__( self, p, a, b ):
-        """The curve of points satisfying y^2 = x^3 + a*x + b (mod p)."""
+        "The curve of points satisfying y^2 = x^3 + a*x + b (mod p)"
         self.__p, self.__a, self.__b = p, a, b
     def p( self ):
         return self.__p
@@ -907,7 +899,7 @@ class CurveFp( object ):
 
 class Point( object ):
     def __init__( self, curve, x, y, order = None ):
-        """curve, x, y, order; order (optional) is the order of this point."""
+        "curve, x, y, order; order (optional) is the order of this point"
         self.__curve = curve
         self.__x = x
         self.__y = y
@@ -915,11 +907,11 @@ class Point( object ):
         if self.__curve: assert self.__curve.contains_point( x, y )
         if order: assert self * order == INFINITY
     def __cmp__( self, other ):
-        """Return 0 if the points are identical, 1 otherwise."""
+        "Return 0 if the points are identical, 1 otherwise"
         if self.__curve == other.__curve and self.__x == other.__x and self.__y == other.__y: return 0
         else: return 1
     def __add__( self, other ):
-        """Add one point to another point."""
+        "Add one point to another point"
         if other == INFINITY: return self
         if self == INFINITY: return other
         assert self.__curve == other.__curve
@@ -932,7 +924,7 @@ class Point( object ):
         y3 = ( l * ( self.__x - x3 ) - self.__y ) % p
         return Point( self.__curve, x3, y3 )
     def __mul__( self, other ):
-        """Multiply a point by an integer."""
+        "Multiply a point by an integer"
         def leftmost_bit( x ):
             assert x > 0
             result = 1
@@ -954,7 +946,7 @@ class Point( object ):
             i = i // 2
         return result
     def __rmul__( self, other ):
-        """Multiply a point by an integer."""
+        "Multiply a point by an integer"
         return self * other
     def double( self ):
         if self == INFINITY: return INFINITY
@@ -1054,7 +1046,8 @@ def randrange(order):
         continue
     raise "randrange() tried hard but gave up. Order was %x" % order
 
-################
+####### UTILITIES #########
+
 def luhn(num):
     "_"
     s = 0
@@ -1063,14 +1056,10 @@ def luhn(num):
         s += (1 + 2*(ci-5) if ci>=5 else 2*ci) if i%2 == 0 else ci
     return (s % 10 == 0)
 
-def cmd(post, cd, host='localhost'):
-    "_"
-    co, serv = http.client.HTTPConnection(host), '/'    
-    if post:
-        co.request('POST', serv, urllib.parse.quote(cd))
-    else:
-        co.request('GET', serv + '?' + urllib.parse.quote(cd))
-    return co.getresponse().read().decode('utf8')    
+def format_iban(t):
+    bnk = 'FR76%010d%013d ' % (b32toi(bytes(t[_NBNK][2:], 'ascii')), b64toi(bytes(t[_IBAN], 'ascii')))
+    tiban = ' '.join([bnk[4*i:4*(i+1)] for i in range(7)]) 
+    return tiban[:-1]
 
 ####### PDF #########
 
@@ -1088,35 +1077,15 @@ class updf:
         self.i += 1
         self.o += bytes('%d 0 obj<<%s>>endobj\n' % (self.i, line), 'ascii')
 
-    def addimg(self, img, rmsk):
+    def addi(self, img, binary=True):
         self.pos.append(len(self.o))
+        tf = open(img, 'rb').read()
+        if binary: tf = zlib.compress(tf) 
+        fil = '/Filter/FlateDecode' if binary else ''
         self.i += 1
-        self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Image/Width 600/Height 170/BitsPerComponent 8/ColorSpace/DeviceRGB/SMask %d 0 R/Length 44037/Filter/FlateDecode>>stream\n' % (self.i, rmsk), 'ascii')
-        self.o += open(img, 'rb').read() + bytes('endstream endobj\n', 'ascii')
+        self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Form/BBox[0 0 500 500]/FormType 1/Length %s%s>>stream\n' % (self.i, len(tf), fil), 'ascii')
+        self.o += tf + bytes('endstream endobj\n', 'ascii')
 
-    def addimg2(self, img):
-        self.pos.append(len(self.o))
-        self.i += 1
-        #self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Form/BBox [0 0 595 842]/Resources <</ExtGState <</a0 <</ca 1/CA 1>> >> >>/FormType 1/Length 13562/Filter/FlateDecode>>stream\n' % self.i, 'ascii')
-        self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Form/BBox [0 0 595 842]/FormType 1/Length 13562/Filter/FlateDecode>>stream\n' % self.i, 'ascii')
-        self.o += open(img, 'rb').read() + bytes('endstream endobj\n', 'ascii')
-
-    def addmsk(self, msk):
-        self.pos.append(len(self.o))
-        self.i += 1
-        self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Image/Width 600/Height 170/BitsPerComponent 8/ColorSpace/DeviceGray/Length 15990/Filter/FlateDecode >>stream\n' % self.i, 'ascii')
-        self.o += open(msk, 'rb').read() + bytes('endstream endobj\n', 'ascii')
-    
-    def addnull(self):
-        self.pos.append(len(self.o))
-        self.i += 1
-        self.o += bytes('%d 0 obj 0 endobj\n' % (self.i), 'ascii')
-    
-    def addarray(self, a):
-        self.pos.append(len(self.o))
-        self.i += 1
-        self.o += bytes('%d 0 obj [%s] endobj\n' % (self.i, ''.join(['%s '%i for i in a])), 'ascii')
-    
     def adds(self, stream):
         self.pos.append(len(self.o))
         self.i += 1
@@ -1125,12 +1094,6 @@ class updf:
         self.o += bytes('%d 0 obj<</Length %d%s>>stream\n' % (self.i, len(stream), fil), 'ascii')
         self.o += stream
         self.o += b'endstream endobj\n'
-
-    def text(self, tab, r):
-        o = b'BT '
-        for (x, y, ft, size, s) in tab: 
-            o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (x+self.mx+r[0], r[3]-self.my-y+r[1], ft, size, s), 'ascii')
-        return o + b' ET '
 
     def ltext(self, tab, r):
         "_"
@@ -1154,30 +1117,34 @@ class updf:
                 o += bytes('%s rg 1 0 0 1 %d %d Tm /F%d %d Tf (%s) Tj ' % (c, x+self.mx+r[0], r[3]-self.my-y+r[1], ft, sz, s), 'ascii')
         return o + b' 0 0 0 rg ET '
 
-    def gen(self, pages, qrt, dx=0, dy=0):
+    def rect(self, x, y, w, h, r=0):
+        if r == 0:
+            return bytes ('%s %s m %s %s l %s %s l %s %s l h B' %(x, y, x, y+h, x+w, y+h, x+w, y), 'ascii')  
+        else:
+            return bytes (re.sub('l','m', '%s %s l %s %s %s %s v '*4, 1) % (x+r, y, x, y,  x, y+r, 
+                                                                            x, y+h-r, x, y+h, x+r, y+h,
+                                                                            x+w-r, y+h, x+w, y+h, x+w, y+h-r,
+                                                                            x+w, y+r, x+w, y, x+w-r, y,
+                                                                            ), 'ascii') + b'h B'  
+
+    def gen(self, pages, qrt, content=''):
         "_"
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
-        #self.add('/Type/Catalog/Pages 2 0 R/PageMode /UseOutlines ')
         self.add('/Type/Catalog/Pages 2 0 R')
-        self.add('/Type/Pages/MediaBox [0 0 %d %d]/Count 1/Kids[3 0 R]' % (self.pw, self.ph))
+        self.add('/Type/Pages/MediaBox[0 0 %d %d]/Count 1/Kids[3 0 R]' % (self.pw, self.ph))
         ft = (1, 3, 5, 6, 8)
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + ' >>'
-        img = '/ColorSpace<</pgfprgb [/Pattern /DeviceRGB]>>/XObject<</Im1 9 0 R>>'
-        self.add('/Type/Page/Parent 2 0 R/Annots [12 0 R 13 0 R 14 0 R]/Resources <<%s %s >>/Contents 11 0 R' % (fonts, img))
+        ann = '/Annots [12 0 R 13 0 R 14 0 R]'
+        self.add('/Type/Page/Parent 2 0 R%s/Resources <<%s /XObject<</Im1 %d 0 R>> >>/Contents %d 0 R' % (ann, fonts, len(ft)+4, len(ft)+5))
         enc = '/Encoding<</Type/Encoding /Differences [ 1 %s ]>> ' % __e__
-        for f in ft: self.add('/Type/Font /Subtype /Type1 /BaseFont /%s %s' % (__fonts__[f-1], enc))
-        here = os.path.dirname(os.path.abspath(__file__))
-        self.addimg('%s/www/header.img' % here, 10) 
-        #self.addimg2('%s/header.bpdf' % here) 
-        self.addmsk('%s/www/header.msk' % here)
+        for f in ft: self.add('/Type/Font/Subtype/Type1/BaseFont/%s %s' % (__fonts__[f-1], enc))
+        self.addi('%s/logo.txt' % os.path.dirname(os.path.abspath(__file__))) 
         o, urlink = b'', []
         for (pa, pc, gr, rect) in pages: o += gr + self.ctext(pc, rect) + self.ltext(pa, rect)
         for (q, h, ur) in qrt:
             o += q
             urlink.append('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (ur, h))
-        o += b'q 144 0 0 40.8 100 184 cm /Im1 Do Q q 288 0 0 81.6 30 730 cm /Im1 Do Q '
-        #o += b'q 1 0 0 1 10 10 cm /Im1 Do Q q 2 0 0 2 100 100 cm /Im1 Do Q '
-        self.adds(o)
+        self.adds(o + content)
         for ur in urlink: self.add(ur)
         n, size = len(self.pos), len(self.o)
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
@@ -1190,7 +1157,7 @@ def sanity(s):
 
 def pdf_digital_check(dusr, dtrx, dags, gr):
     "_"
-    trvd, msg, epoch, src, dst, val, sig, txt = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6], gr[7]
+    trvd, msg, epoch, src, dst, val, sig, efv, txt = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6], gr[7], gr[8]
     #import locale
     #locale.setlocale(locale.LC_TIME, ('fr_FR', 'IS8859-15'))
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
@@ -1210,7 +1177,10 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
             info1, info2 = '%s %s - %s - %s' % (tb[_FRST], tb[_LAST], format_iban(tb), tb[_CBIC]), re.sub('/', ' ', sanity(dags[key].decode('utf8')))
     dpubname = pubname + ' ' + '*'*(30-len(pubname))
     if trvd == 'TR':
-        v1, v2 = val[:3], val[3:]
+        if efv != '00000' and int(efv) < int(val):
+            v1, v2 = efv[:3], efv[3:]
+        else:
+            v1, v2 = val[:3], val[3:]
         (vv1, vv2) = ((413, 36, 1, 18, v1), (460, 32, 1, 12, v2)) 
         manu_fr, manu_en = num2word_fr(int(v1), int(v2)), num2word(int(v1), int(v2))
     else:
@@ -1257,18 +1227,19 @@ Merci pour l'utilisation de @ppc@,
     if txt != '': txt = '\n'.join([txt[80*i:80*(i+1)] for i in range(3)]) 
     unmsg = [] if txt == '' else [(10, 510, 1, 8, sanity('Message de l\'acheteur (%s) :' % sanity(tb[_PUBN]) )), (20, 520, 5, 8, sanity(txt))]
     page2 = [(75, 120, 1, 9, 'Bonjour %s,' % pubname ), (20, 160, 1, 9, sanity(rtxt))] + unmsg
-    gray = '.7 .7 .7'
+    gray, dodger = '.7 .7 .7', '.1 .1 .6'
     sign = (195, 198, 1, 240, '.95 .95 .95', '\001') if trvd == 'TR' else (155, 85, 5, 60, '.9 .9 .9', 'PROOF') 
     eurs = (445, 36, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (408, 38, 1, 20, '.1 .2 .7', val)
     bars = [(325, 118, 1, 120, '.9 .9 .9', '/'), (340, 118, 1, 120, '.9 .9 .9', '/')] if trvd == 'TR' else []
     pagec1 = [
+        (50, 20, 1, 7, dodger, sanity(_AD1)), (50, 27, 1, 7, dodger, sanity(_AD2)), 
         (40, 50, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
         (155, 100, 1, 10, gray, 'FROM:'), 
         (360, 78, 1, 5, gray, 'Anti-Phishing:'), 
         (155, 154, 1, 8, gray, 'Date:'), 
         (155, 168, 1, 4, gray, 'EC-DSA-521P'),
         (155, 177, 1, 9, gray, 'Digital Signature:'), 
-        (155, 15, 1, 6, gray, 'Enregistrement, aide ou question:'), 
+        #(155, 15, 1, 6, gray, 'Enregistrement, aide ou question:'), 
         (250, 11, 5, 8, gray, 'http://pingpongcash.net'),
         (250, 20, 5, 8, gray, 'contact@pingpongcash.net'), 
         (155, 110, 1, 7, gray, 'Public key:'),
@@ -1281,7 +1252,9 @@ Merci pour l'utilisation de @ppc@,
     pagec2 = [(5, 5, 1, 6, 1, date_en ),(80, 760, 1, 10, 2, 'Signature' ), (53, 816, 1, 10, 2, 'Date' ),
               (19, 816, 1, 10, 2, sanity('Numéro') ), (28, 816, 1, 10, 2, 'de compte' ),
               (20, 570, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
-              (20, 581, 1, 10, '.6 .6 .6 ', 'www.pingpongcash.net/%s/%s' % (epoch, src))] 
+              (20, 581, 1, 10, '.6 .6 .6 ', 'www.pingpongcash.net/%s/%s' % (epoch, src)),
+              (120, 32, 1, 11, dodger, sanity(_AD1)), (120, 43, 1, 11, dodger, sanity(_AD2)), 
+              ] 
     url = (urllib.parse.quote('www.pingpongcash.net/%s/%s' % (msgraw, sig)), 'www.pingpongcash.net/%s' % src, 'www.pingpongcash.net/%s/%s' % (epoch,src))
     qr1, qr2, qr3 = QRCode(data=url[0]), QRCode(data=url[1]), QRCode(data=url[2])
     dx1, dy1, w1, h1 = 99, 0, 496, 227
@@ -1303,7 +1276,8 @@ Merci pour l'utilisation de @ppc@,
              )
     #a = updf(496, 227) # 175mmx80mm
     a = updf(595, 842) # A4
-    return a.gen(pages, qrt, dx1, dy1)
+    content = b'q .22 0 0 .22 20 740 cm /Im1 Do Q q .12 0 0 .12 100 170 cm /Im1 Do Q '
+    return a.gen(pages, qrt, content)
 
 #################### QR CODE ################
 
@@ -1521,7 +1495,7 @@ def lost_point1(modules):
 class QRData:
     "_"
     def __init__(self, data, mode=None):
-        """ If ``mode`` isn't provided, the most compact QR data type possible is chosen. """
+        "If mode isn't provided, the most compact QR data type possible is chosen"
         if data.isdigit(): auto_mode = MODE_NUMBER
         elif re.match('^[%s]*$' % re.escape(ALPHA_NUM), data): auto_mode = MODE_ALPHA_NUM
         else: auto_mode = MODE_8BIT_BYTE
@@ -1722,7 +1696,7 @@ class QRCode:
                 return size
 
     def best_mask_pattern(self):
-        """ Find the most efficient mask pattern. """
+        "Find the most efficient mask pattern"
         min_lost_point, pattern = 0, 0
         for i in range(8):
             self.makeImpl(True, i)
@@ -1886,7 +1860,7 @@ def num2word_fr(n, c):
     return o.capitalize() + ' ' + '-'*(71-len(o))
 
 def test_num():
-    "max at 494.94€: 73bites"
+    "max at 494.94€: 73bytes"
     m,s = 0, None
     for e in range(1000):
         for i in range(100):
@@ -1899,7 +1873,7 @@ def test_pdf():
     ele = (55, 100, 1, 20, 'FROM')
     pages = (([ele,], [], b'', (10, 10, 200, 200)), )
     a = updf(595, 842) # A4
-    raw = a.gen(pages, [], 0, 0)
+    raw = a.gen(pages, [])
     open('toto.pdf', 'bw').write(raw)    
 
 if __name__ == '__main__':
