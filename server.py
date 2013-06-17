@@ -1134,7 +1134,7 @@ class updf:
         self.add('/Type/Pages/MediaBox[0 0 %d %d]/Count 1/Kids[3 0 R]' % (self.pw, self.ph))
         ft = (1, 3, 5, 6, 8)
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + ' >>'
-        ann = '/Annots [12 0 R 13 0 R 14 0 R]'
+        ann = '/Annots [%d 0 R %d 0 R %d 0 R]' % (len(ft)+6, len(ft)+7, len(ft)+8) 
         self.add('/Type/Page/Parent 2 0 R%s/Resources <<%s /XObject<</Im1 %d 0 R>> >>/Contents %d 0 R' % (ann, fonts, len(ft)+4, len(ft)+5))
         enc = '/Encoding<</Type/Encoding /Differences [ 1 %s ]>> ' % __e__
         for f in ft: self.add('/Type/Font/Subtype/Type1/BaseFont/%s %s' % (__fonts__[f-1], enc))

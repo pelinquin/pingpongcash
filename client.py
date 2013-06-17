@@ -582,10 +582,7 @@ def buy(dest, value, var1='', var2=''):
     print (src)
     epoch = '%s' % time.mktime(time.gmtime())
     msg = '/'.join([epoch[:-2], src, dest, '%05d' % int(float(value)*100)])
-    print('/'.join(['TR', '1', msg, k.sign(msg), evalue, txt]))
-
     o = cmd(True, '/'.join(['TR', '1', msg, k.sign(msg), evalue, txt]), host.decode('utf8'), True)
-
     if o[:5].decode('ascii') == 'Error':
         print (o.decode('utf8'))
     else:
