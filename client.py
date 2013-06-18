@@ -523,7 +523,7 @@ def find_best():
         k = ecdsa()
         i += 1
         cm = itob64(k.pt.y())[-6:].decode('utf8')
-        if re.search('(cash|ppc|ping|pong|cup|money|france)', cm, re.I):
+        if re.search('(bank|cash|ping|pong|money|france)', cm, re.I):
             d[cm] = b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + itob64(k.privkey)
             break
         else:
@@ -624,11 +624,10 @@ def compare():
     
 
 if __name__ == '__main__':
-    #compare()
-    #find_best()
     if len(sys.argv)==1: info()
     elif len(sys.argv)==2:
         if sys.argv[1] == 'generate': generate()
+        elif sys.argv[1] == 'find': find_best()
         elif sys.argv[1] == 'register' : print (register())
         elif sys.argv[1] == 'agency' : agency()
         elif sys.argv[1] == 'test' : set('host','localhost')

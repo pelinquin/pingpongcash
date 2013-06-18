@@ -64,6 +64,8 @@ _XLINKNS   = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
 _AD1 = 'Enfin un moyen de paiement numérique,' 
 _AD2 = 'simple, gratuit et sécurisé !'
 
+_COLOR = {'g': '.7 .7 .7', 'd':'.1 .1 .6', 'b':'.5 .5 .9'}
+
 MAX_TR_ADAY = 200
 FREE_DAYS   = 30
 ID_SIZE     = 7
@@ -1099,7 +1101,7 @@ class updf:
         "_"
         o = b'BT '
         for (x, y, ft, sz, s) in tab: 
-            s = re.sub('@ppc@', ') Tj .1 .1 .6 rg /F5 9 Tf (Ping-Pong) Tj /F1 9 Tf ( Cash) Tj 0 0 0 rg /F%d %d Tf (' % (ft, sz), s)
+            s = re.sub('@ppc@', ') Tj .1 .1 .6 rg /F5 %s Tf (Ping-Pong) Tj /F1 %s Tf ( Cash) Tj 0 0 0 rg /F%d %d Tf (' % (sz-1, sz-1, ft, sz), s)
             o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf %s TL ' % (x+self.mx+r[0], r[3]-self.my-y+r[1], ft, sz, 1.2*sz), 'ascii')
             for l in s.split('\n'): o += bytes('(%s) Tj T* ' % (l), 'ascii')
             o = o[:-3]
@@ -1127,24 +1129,24 @@ class updf:
                                                                             x+w, y+r, x+w, y, x+w-r, y,
                                                                             ), 'ascii') + b'h B'  
 
-    def gen(self, pages, qrt, content=''):
+    def gen(self, pages, qrt):
         "_"
+        ft = (1, 3, 5, 6, 8)
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
         self.add('/Type/Catalog/Pages 2 0 R')
         self.add('/Type/Pages/MediaBox[0 0 %d %d]/Count 1/Kids[3 0 R]' % (self.pw, self.ph))
-        ft = (1, 3, 5, 6, 8)
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + ' >>'
-        ann = '/Annots [%d 0 R %d 0 R %d 0 R]' % (len(ft)+6, len(ft)+7, len(ft)+8) 
-        self.add('/Type/Page/Parent 2 0 R%s/Resources <<%s /XObject<</Im1 %d 0 R>> >>/Contents %d 0 R' % (ann, fonts, len(ft)+4, len(ft)+5))
-        enc = '/Encoding<</Type/Encoding /Differences [ 1 %s ]>> ' % __e__
+        ann = '/Annots[%d 0 R %d 0 R %d 0 R]' % (len(ft)+6, len(ft)+7, len(ft)+8) 
+        self.add('/Type/Page/Parent 2 0 R%s/Resources<<%s/XObject<</Im1 %d 0 R>>>>/Contents %d 0 R' % (ann, fonts, len(ft)+4, len(ft)+5))
+        enc = '/Encoding<</Type/Encoding /Differences[1 %s]>> ' % __e__
         for f in ft: self.add('/Type/Font/Subtype/Type1/BaseFont/%s %s' % (__fonts__[f-1], enc))
-        self.addi('%s/logo.txt' % os.path.dirname(os.path.abspath(__file__))) 
+        self.addi('%s/www/logo.txt' % os.path.dirname(os.path.abspath(__file__))) 
         o, urlink = b'', []
         for (pa, pc, gr, rect) in pages: o += gr + self.ctext(pc, rect) + self.ltext(pa, rect)
         for (q, h, ur) in qrt:
             o += q
             urlink.append('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (ur, h))
-        self.adds(o + content)
+        self.adds(o)
         for ur in urlink: self.add(ur)
         n, size = len(self.pos), len(self.o)
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
@@ -1190,6 +1192,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     tab = msg.split('/')
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page1 = [
+        (52, 20, 1, 12, '@ppc@'),
         (195, 154, 1, 12, date_gen),
         vv1, vv2,
         (233, 168, 3, 7, sig[:59]), 
@@ -1226,14 +1229,14 @@ Merci pour l'utilisation de @ppc@,
 """ % (date_gen[:10], tb[_PUBN], src)
     if txt != '': txt = '\n'.join([txt[80*i:80*(i+1)] for i in range(3)]) 
     unmsg = [] if txt == '' else [(10, 510, 1, 8, sanity('Message de l\'acheteur (%s) :' % sanity(tb[_PUBN]) )), (20, 520, 5, 8, sanity(txt))]
-    page2 = [(75, 120, 1, 9, 'Bonjour %s,' % pubname ), (20, 160, 1, 9, sanity(rtxt))] + unmsg
-    gray, dodger = '.7 .7 .7', '.1 .1 .6'
+    page2 = [(114, 38, 1, 28, '@ppc@'),(75, 120, 1, 9, 'Bonjour %s,' % pubname), (20, 160, 1, 9, sanity(rtxt))] + unmsg
+    gray, dodger, bluel = '.7 .7 .7', '.1 .1 .6', '.5 .5 .9'
     sign = (195, 198, 1, 240, '.95 .95 .95', '\001') if trvd == 'TR' else (155, 85, 5, 60, '.9 .9 .9', 'PROOF') 
     eurs = (445, 36, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (408, 38, 1, 20, '.1 .2 .7', val)
     bars = [(325, 118, 1, 120, '.9 .9 .9', '/'), (340, 118, 1, 120, '.9 .9 .9', '/')] if trvd == 'TR' else []
     pagec1 = [
-        (50, 20, 1, 7, dodger, sanity(_AD1)), (50, 27, 1, 7, dodger, sanity(_AD2)), 
-        (40, 50, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
+        (52, 29, 5, 6, _COLOR['b'], sanity(_AD1)), (52, 36, 5, 5, _COLOR['b'], sanity(_AD2)), 
+        (44, 50, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
         (155, 100, 1, 10, gray, 'FROM:'), 
         (360, 78, 1, 5, gray, 'Anti-Phishing:'), 
         (155, 154, 1, 8, gray, 'Date:'), 
@@ -1244,7 +1247,7 @@ Merci pour l'utilisation de @ppc@,
         (250, 20, 5, 8, gray, 'contact@pingpongcash.net'), 
         (155, 110, 1, 7, gray, 'Public key:'),
         (155, 203, 1, 8, gray, 'Signed message:'),  
-        sign,
+        #sign,
         (155, 215, 1, 6, '.05 .46 .8', sanity(info1)), (155, 223, 1, 6, '.05 .46 .8', sanity(info2)), 
         (475, 10, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ] + bars
@@ -1253,14 +1256,17 @@ Merci pour l'utilisation de @ppc@,
               (19, 816, 1, 10, 2, sanity('Numéro') ), (28, 816, 1, 10, 2, 'de compte' ),
               (20, 570, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
               (20, 581, 1, 10, '.6 .6 .6 ', 'www.pingpongcash.net/%s/%s' % (epoch, src)),
-              (120, 32, 1, 11, dodger, sanity(_AD1)), (120, 43, 1, 11, dodger, sanity(_AD2)), 
+              (114, 58, 5, 10, bluel, sanity(_AD1)), (114, 69, 5, 10, bluel, sanity(_AD2)), 
               ] 
     url = (urllib.parse.quote('www.pingpongcash.net/%s/%s' % (msgraw, sig)), 'www.pingpongcash.net/%s' % src, 'www.pingpongcash.net/%s/%s' % (epoch,src))
     qr1, qr2, qr3 = QRCode(data=url[0]), QRCode(data=url[1]), QRCode(data=url[2])
     dx1, dy1, w1, h1 = 99, 0, 496, 227
     dx2, dy2, w2, h2 = 0, 600, 496, 227
     dx3, dy3, w3, h3 = 393, 229, 200, 611
-    graph1  = bytes('.5 .5 .5 RG 1 1 .9 rg %s %s %s %s re b ' % (dx1, dy1, 496, 227), 'ascii') 
+    graph1 = bytes('.5 .5 .5 RG 1 1 .9 rg %s %s %s %s re S ' % (dx1, dy1, 496, 227), 'ascii') 
+    graph1 +=  b'q .3 .5 .9 rg .22 0 0 .22 20 722  cm /Im1 Do Q '
+    graph1 += b'q .9 .5 .1 rg .12 0 0 .12 100 170 cm /Im1 Do Q '
+    graph1 += b'q .95 .95 .95 rg .6 0 0 .6 220 -50 cm /Im1 Do Q '    
     graph1 += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (dx1+402, dy1+184, 78, 25), 'ascii')
     cases = '1w 1 1 1 rg .6 .6 .6 RG ' + ' '.join(['10 %d 24 14 re' % (62+14*i) for i in range(11)]) + ' b 40 116 53 100 re 40 36 20 70 re f '
     graph2  = bytes('.9 .9 .9 rg %s %s %s %s re f %s b 0 0 0 rg ' % (0, 0, 99, 227, cases), 'ascii')
@@ -1276,8 +1282,7 @@ Merci pour l'utilisation de @ppc@,
              )
     #a = updf(496, 227) # 175mmx80mm
     a = updf(595, 842) # A4
-    content = b'q .22 0 0 .22 20 740 cm /Im1 Do Q q .12 0 0 .12 100 170 cm /Im1 Do Q '
-    return a.gen(pages, qrt, content)
+    return a.gen(pages, qrt)
 
 #################### QR CODE ################
 
