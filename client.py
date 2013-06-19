@@ -529,7 +529,8 @@ def generate():
     ci = AES0().encrypt('%s' % k.privkey, pw) # included AES
     d[email] = gen_pwd() + b'/' + b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + ci
     d.close()
-    os.chmod(db, 511)  
+    os.chmod(db, 511)
+    set('user', email)
     print ('%s file generated for code %s user: %s' % (db, cm, email))
 
 def find_best():

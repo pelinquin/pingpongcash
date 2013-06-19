@@ -181,7 +181,7 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
     t = dusr[cm].decode('utf8').split('/') if cm else []
     today = '%s' % datetime.datetime.now()
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
-    o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
+    o += '<a href="%s"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % (__url__, get_image('www/header.png'))
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
     data = 'pingpongcash.net/%s' % __acm__ 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
@@ -332,7 +332,7 @@ def index_html(nb):
     "_"
     today = '%s' % datetime.datetime.now()
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
-    o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
+    o += '<a href="%s"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % (__url__, get_image('www/header.png'))
     o += '<p class="alpha" title="still in security test phase!">Beta</p>'
     data = 'pingpongcash.net/%s' % __acm__ 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
@@ -523,9 +523,13 @@ def transaction_match(dusr, dtrx, gr):
             dtrx['__N'] = '%d' % (int(dtrx['__N']) + 1)
             (clr, edt) = ('G', dst) if dst.encode('utf8') in dusr.keys() else ('B', '') 
             dtrx['%s/%s' % (epoch, src)] = '/'.join([clr, dst, edt, val, efv, sig])
-            dtrx[src] = dtrx[src] + b'/' + epoch.encode('ascii') if src.encode('ascii') in dtrx.keys() else epoch
-            x, tx = '%s/%s' % (today[:10], tb[_NBNK]), '/'.join([epoch, src])
+            dtrx[src] = dtrx[src] + b'/' + epoch.encode('ascii') if src.encode('ascii') in dtrx.keys() else epoch 
+            x, tx = '>%s/%s' % (today[:10], tb[_NBNK]), '/'.join([epoch, src])
             dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
+            if dst.encode('utf8') in dusr.keys(): 
+                ts = dusr[dst].decode('utf8').split('/')
+                x, tx = '<%s/%s' % (today[:10], ts[_NBNK]), '/'.join([epoch, src])
+                dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
         else:
             o = 'Wrong signature!'
     else:
@@ -585,10 +589,10 @@ def listday_match(dusr, dtrx, gr):
         k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
         if status in ('A', 'B'):
             if k.verify(sig, msg):
-                x = '%s/%s' % (dat, t[_NBNK])
-                if x.encode('ascii') in dtrx.keys():
-                    l = dtrx[x].decode('utf8').split('/')
-                    o = 'Date:%s\n' % dat
+                x1, x2 = '>%s/%s' % (dat, t[_NBNK]), '<%s/%s' % (dat, t[_NBNK])
+                o = 'Date:%s\n' % dat
+                if x1.encode('ascii') in dtrx.keys(): # send
+                    l = dtrx[x1].decode('utf8').split('/')
                     for a in range(len(l)//2):
                         src = l[2*a+1]
                         y = dusr[src].decode('utf8').split('/')
@@ -599,8 +603,18 @@ def listday_match(dusr, dtrx, gr):
                         bnk2 = format_iban(dusr[j[_DST]].decode('utf8').split('/')) if j[_DST].encode('utf8') in dusr.keys() else '%-33s' % j[_DST]
                         val = '%6.2f €' % float(int(j[_EFV])/100) if re.match(r'\d+$', j[_EFV]) else j[_VAL]  
                         o += '%s %s %s[%s] -> %6s[%s] %s... %s\n' % (he, j[_CLR], l[2*a+1], acc[:-2], j[_EDT], bnk2, j[_SI1][:10], val)
-                else:
-                    o = 'no operation for this day'
+                if x1.encode('ascii') in dtrx.keys(): # receive
+                    l = dtrx[x2].decode('utf8').split('/')
+                    for a in range(len(l)//2):
+                        src = l[2*a+1]
+                        y = dusr[src].decode('utf8').split('/')
+                        acc = '%s' % b64toi(bytes(y[_IBAN],'ascii'))
+                        z = '%s/%s' % (l[2*a], l[2*a+1])
+                        he =  time.strftime('%H:%M:%S', time.localtime(float(l[2*a])))
+                        j = dtrx[z].decode('utf8').split('/')
+                        bnk2 = format_iban(dusr[j[_DST]].decode('utf8').split('/')) if j[_DST].encode('utf8') in dusr.keys() else '%-33s' % j[_DST]
+                        val = '%6.2f €' % float(int(j[_EFV])/100) if re.match(r'\d+$', j[_EFV]) else j[_VAL]  
+                        o += '%s %s %s[%s] <- %6s[%s] %s... %s\n' % (he, j[_CLR], l[2*a+1], acc[:-2], j[_EDT], bnk2, j[_SI1][:10], val)
             else:
                 o = 'bad signature listday'
         else:
@@ -918,7 +932,7 @@ def favicon_svg():
 
 def footer():
     "_"
-    return '<div id="footer">Contact: <a href="mailto:contact@pingpongcash.net">contact@pingpongcash.net</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>'
+    return '<div id="footer">Contact: <a href="mailto:%s">%s</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>' % (__email__, __email__)
 
 def itob64(n):
     " utility to transform int to base64"
@@ -1223,8 +1237,7 @@ class updf:
         self.add('/Type/Catalog/Pages 2 0 R')
         self.add('/Type/Pages/MediaBox[0 0 %d %d]/Count 1/Kids[3 0 R]' % (self.pw, self.ph))
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + ' >>'
-        ann = '/Annots[%d 0 R %d 0 R %d 0 R]' % (len(ft)+6, len(ft)+7, len(ft)+8) 
-        ann = '/Annots[' + ''.join(['%d 0 R ' % (i+6+len(ft))  for i in range(3)]) + '] '
+        ann = '/Annots[' + ''.join(['%d 0 R ' % (i+6+len(ft))  for i in range(4)]) + '] '
         self.add('/Type/Page/Parent 2 0 R%s/Resources<<%s/XObject<</Im1 %d 0 R>>>>/Contents %d 0 R' % (ann, fonts, len(ft)+4, len(ft)+5))
         enc = '/Encoding<</Type/Encoding/Differences[1 %s]>> ' % __e__
         for f in ft: self.add('/Type/Font/Subtype/Type1/BaseFont/%s %s' % (__fonts__[f-1], enc))
@@ -1253,9 +1266,10 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     date_en = time.strftime('%c', time.localtime(float(epoch)))
     tb = dusr[src].decode('utf8').split('/')
-    pubname, info1, info2 = '', sanity('Reçu - Receipt - '*10), ''
+    pubname, info1, info2 = '', sanity('Reçu - Receipt - '*6), ''
     info1 = info1[:-3]
     msgraw = msg
+    ttab = dtrx['%s/%s' % (epoch, src)].decode('utf8').split('/')
     if dst.encode('utf8') in dusr.keys(): 
         ts = dusr[dst].decode('utf8').split('/')
         pubname = ts[_PUBN]
@@ -1267,10 +1281,8 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
             info1, info2 = '%s %s - %s - %s' % (tb[_FRST], tb[_LAST], format_iban(tb), tb[_CBIC]), re.sub('/', ' ', sanity(dags[key].decode('utf8')))
     dpubname = pubname + ' ' + '*'*(30-len(pubname))
     if trvd == 'TR':
-        if efv != '00000' and int(efv) < int(val):
-            v1, v2 = efv[:3], efv[3:]
-        else:
-            v1, v2 = val[:3], val[3:]
+        if (efv == '' or int(efv) > int(val)): efv = val
+        v1, v2 = efv[:3], efv[3:]
         (vv1, vv2) = ((413, 36, 1, 18, v1), (460, 32, 1, 12, v2)) 
         manu_fr, manu_en = num2word_fr(int(v1), int(v2)), num2word(int(v1), int(v2))
     else:
@@ -1287,7 +1299,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (231, 176, 3, 7, sig[59:118]), 
         (231, 184, 3, 7, sig[118:]), 
         (231, 200, 3, 7, msg),
-        (393, 78, 1, 6, 'http://pingpongcash.net/%s' % src),
+        (393, 78, 1, 6, '%s/%s' % (__url__,src)),
         (70, 50, 5, 14, dst), (140, 50, 6, 12, dpubname),
         (10, 69, 6, 11, manu_fr), (10, 79, 3, 8, manu_en),
         (190, 100, 5, 14, src), 
@@ -1313,8 +1325,8 @@ l'encaissement auprès de votre banque est alors automatique.\n
 N'hésitez pas à nous poser des questions et à nous faire part de vos remarques.
 Merci pour l'utilisation de @ppc@, 
 ...pour un véritable moyen de paiement numérique citoyen!
-\n\n\nwww.pingpongcash.net\nwww.cupfoundation.net\ncontact@pingpongcash.net
-""" % (date_gen[:10], tb[_PUBN], src)
+\n\n\nwww.pingpongcash.net\nwww.cupfoundation.net\n%s
+""" % (date_gen[:10], tb[_PUBN], src, __url__)
     if txt != '': txt = '\n'.join([txt[80*i:80*(i+1)] for i in range(3)]) 
     unmsg = [] if txt == '' else [(15, 510, 1, 8, sanity('Message de l\'acheteur (%s) :' % sanity(tb[_PUBN]) )), (15, 520, 5, 8, sanity(txt))]
     page2 = [(114, 42, 1, 28, '@ppc@'),(75, 120, 1, 9, 'Bonjour %s,' % pubname), (20, 160, 1, 9, sanity(rtxt))] + unmsg
@@ -1330,42 +1342,50 @@ Merci pour l'utilisation de @ppc@,
         (155, 154, 1, 8, gray, 'Date:'), 
         (155, 168, 1, 4, gray, 'EC-DSA-521P'),
         (155, 177, 1, 9, gray, 'Digital Signature:'), 
-        (180, 11, 1, 8, gray, 'http://pingpongcash.net'), (284, 11, 1, 8, gray, 'contact@pingpongcash.net'), 
+        (180, 11, 1, 8, gray, __url__), (284, 11, 1, 8, gray, __email__), 
         (155, 110, 1, 7, gray, 'Public key:'),
         (155, 200, 1, 8, gray, 'Signed message:'),  
         #sign,
         (155, 208, 1, 6, '.05 .46 .8', sanity(info1)), (155, 214, 1, 6, '.05 .46 .8', sanity(info2)), 
         (475, 10, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ] + bars
-    pagec3 = [(70, 40, 1, 64, 1, 'Encart publicitaire'),] 
-    pagec2 = [(20, 20, 1, 6, 1, date_en ),(82, 760, 1, 10, 2, 'Signature' ), (55, 816, 1, 10, 2, 'Date' ),
-              (22, 816, 1, 10, 2, sanity('Numéro') ), (32, 816, 1, 10, 2, 'de compte' ),
-              (35, 571, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
-              (150, 580, 1, 7, '.6 .6 .6 ', 'www.pingpongcash.net/%s/%s' % (epoch, src)),
-              (114, 60, 5, 10, _COLOR['b'], sanity(_AD1)), (114, 71, 5, 10, _COLOR['b'], sanity(_AD2)), 
-              ] 
-    url = (urllib.parse.quote('www.pingpongcash.net/%s/%s' % (msgraw, sig)), 'www.pingpongcash.net/%s' % src, 'www.pingpongcash.net/%s/%s' % (epoch,src))
-    qr1, qr2, qr3 = QRCode(data=url[0]), QRCode(data=url[1]), QRCode(data=url[2])
+    pagec3 = [(78, 40, 1, 64, 1, 'Encart publicitaire'), (40, 140, 1, 10, 1, 'Avec un QRcode+hyperlien qui redirige sur votre site Web.'),]
+    form = [(82, 760, 1, 10, 2, 'Signature' ), 
+            (55, 816, 1, 10, 2, 'Date' ), 
+            (22, 816, 1, 10, 2, sanity('Numéro') ), 
+            (32, 816, 1, 10, 2, 'de compte' )] if ttab[_CLR] == 'B' else [(60, 770, 1, 40, 2, sanity('Reçu') ), ]
+
+    pagec2 = form + [(20, 20, 1, 6, 1, date_en ),
+                     (35, 571, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
+                     (150, 580, 1, 7, '.6 .6 .6 ', '%s/%s/%s' % (__url__, epoch, src)),
+                     (114, 60, 5, 10, _COLOR['b'], sanity(_AD1)), (114, 71, 5, 10, _COLOR['b'], sanity(_AD2)), 
+                     ] 
+    lurl = 'www.pingpongcash.net'
+    url = (urllib.parse.quote('%s/%s/%s' % (lurl, msgraw, sig)), '%s/%s' % (lurl, src), '%s/%s/%s' % (lurl, epoch, src), 'google.fr')
+    qr1, qr2, qr3, qr4 = QRCode(data=url[0]), QRCode(data=url[1]), QRCode(data=url[2]), QRCode(data=url[3])
     dx1, dy1, w1, h1 = 99, 0, 496, 227
     dx2, dy2, w2, h2 = 0, 600, 496, 227
     dx3, dy3, w3, h3 = 393, 229, 200, 611
-    graph1 = bytes('[5 5] 0 d .5 .5 .5 RG 1 1 .9 rg %s %s %s %s re S [] 0 d ' % (dx1, dy1, 496, 227), 'ascii') 
+    graph1 = bytes('[10 2] 0 d .5 .5 .5 RG 1 1 .9 rg %s %s %s %s re S [] 0 d ' % (dx1, dy1, 496, 227), 'ascii') 
     graph1 +=  b'q .3 .5 .9 rg .22 0 0 .22 20 722  cm /Im1 Do Q '
     graph1 += b'q .9 .5 .1 rg .12 0 0 .12 100 170 cm /Im1 Do Q '
     graph1 += b'q .95 .95 .95 rg .6 0 0 .6 220 -30 cm /Im1 Do Q '    
     graph1 += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (dx1+402, dy1+184, 78, 25), 'ascii')
-    #graph1 += b'q 1 0 0 rg 1 0 0 RG ' + rect(560, 10, 20, 20, 5) + b' 1 1 1 rg BT 1 0 0 1 565 15 Tm /F1 14 Tf (R) Tj ET Q ' # red
-    #graph1 += b'q 0 1 0 rg 0 1 0 RG ' + rect(560, 10, 20, 20, 5) + b' 1 1 1 rg BT 1 0 0 1 565 15 Tm /F1 14 Tf (G) Tj ET Q ' # green
-    graph1 += b'q 0 0 1 rg 0 0 1 RG ' + rect(560, 10, 20, 20, 5) + b' 1 1 1 rg BT 1 0 0 1 565 15 Tm /F1 14 Tf (B) Tj ET Q ' # blue
 
-    cases = '1 1 1 rg .6 .6 .6 RG ' + ' '.join(['13 %d 24 14 re' % (62+14*i) for i in range(11)]) + ' B 42 116 52 100 re 42 36 20 70 re f '
-    graph2 = bytes('.9 .9 .9 rg %s %s %s %s re f %s 0 0 0 rg ' % (0, 0, 98, 227, cases), 'ascii')
+    (co, ca) = ('0 0 1', 'B') if ttab[_CLR] == 'B' else ('0 1 0', 'G') if ttab[_CLR] == 'G' else ('1 0 0', 'R')  
+    graph1 += bytes('q %s rg %s RG ' % (co, co), 'ascii') + rect(560, 10, 20, 20, 5)
+    graph1 += bytes(' 1 1 1 rg BT 1 0 0 1 565 15 Tm /F1 14 Tf (%s) Tj ET Q ' % ca, 'ascii')
+    boxes = '42 116 52 100 re 42 36 20 70 re'
+    cs = '1 1 1 rg .6 .6 .6 RG ' + ' '.join(['13 %d 24 14 re' % (62+14*i) for i in range(11)]) + ' B %s f ' % boxes if ttab[_CLR] == 'B' else ''
+
+    graph2 = bytes('.9 .9 .9 rg %s %s %s %s re f %s 0 0 0 rg ' % (0, 0, 98, 227, cs), 'ascii')
     graph3 = bytes('.7 .8 1 RG 1 1 .96 rg %s %s %s %s re B 0 0 0 RG 0 0 0 rg ' % (dx3, dy3, w3, h3), 'ascii')
     pas = 2
     x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+420, dy1+80, (29*pas)
     qrt = ( (qr1.pdf(x1, y1+121, pas, True), '%s %s %s %s' % (x1-1, y1-1, x1+w1+2, y1+w1+2), url[0]),
             (qr2.pdf(x2, y2+56, pas), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]),
-            (qr3.pdf(310, 300, pas, False), '%s %s %s %s' % (309, 242, 370, 303), url[2]) )
+            (qr3.pdf(310, 300, pas, False), '%s %s %s %s' % (309, 242, 370, 303), url[2]),
+            (qr4.pdf(408, 820, pas, False), '%s %s %s %s' % (407, 780, 450, 823), url[3]))
     pages = ((page1, pagec1, graph1, (dx1, dy1, w1, h1)), 
              (page2, pagec2, graph2, (dx2, dy2, w2, h2)),
              ([], pagec3, graph3, (dx3, dy3, w3, h3)),
