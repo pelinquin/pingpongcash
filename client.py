@@ -17,7 +17,17 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with ⊔net.  If not, see <http://www.gnu.org/licenses/>.
+#
+#    Acknowledgements:
+#    * The PyCrypt library is far too complex for our needs so we used a code 
+#    for AES inspired from:
+#      Josh Davis ( http://www.josh-davis.org )
+#      Laurent Haan (http://www.progressive-coding.com)
+#    * ECDSA has been adapted to Python3 and simplified for 512P curve only 
+#     code inspired from:
+#      Brian Warner  
 #-----------------------------------------------------------------------------
+
 """
 This code simulates the device used to store user's private key...usually a smartPhone
 """
@@ -467,21 +477,29 @@ def cmd(post, cd, host='localhost', binary=False):
         co.request('GET', serv + '?' + urllib.parse.quote(cd))
     return co.getresponse().read() if binary else co.getresponse().read().decode('utf8')    
 
-def agency():
+def agency(ag):
     "_"
+    # example: 'Crédit Mutuel/6, Route de Castres/31130/Quint Fonsegrives/0562572138/02233@creditmutuel.fr'
     k, host, user, fi, t = get_k()
     src = t[2][-6:].decode('utf8')
-    # for instance:
-    n, v = '10278/02233', 'Crédit Mutuel/6, Route de Castres/31130/Quint Fonsegrives/0562572138/02233@creditmutuel.fr'
-    msg = '/'.join([src, n, v])    
-    return cmd(True, '/'.join(['AG', msg, k.sign(msg)]), host.decode('utf8'))
+    d = dbm.open('banks')
+    if ag.encode('ascii') in d.keys():
+        tab = d[ag].decode('utf8').split('/')
+        print (tab)
+        msg = '/'.join([src, ag, tab[1], tab[4], tab[2], tab[3].title(), tab[5], tab[6]])
+        o = msg
+        o = cmd(True, '/'.join(['AG', msg, k.sign(msg)]), host.decode('utf8'))
+    else:
+        o = 'Agency not found!'
+    d.close()
+    return o 
 
-def listday(theday):
+def listday(theday=''):
     "_"
     k, host, user, fi, t = get_k()
     src = t[2][-6:].decode('utf8')
-    d = ('%s' % datetime.datetime.now())[:10]
-    msg = '/'.join([src, d])    
+    if theday == '': theday = ('%s' % datetime.datetime.now())[:10]
+    msg = '/'.join([src, theday])    
     return cmd(True, '/'.join(['LD', msg, k.sign(msg)]), host.decode('utf8'))    
 
 def generate():
@@ -573,7 +591,7 @@ def info():
     
 def buy(dest, value, var1='', var2=''):
     "_"
-    evalue, txt = '00000', ''
+    evalue, txt = '', ''
     if var2 != '': txt = var2
     if re.match('[\d\.]{1,6}', var1): evalue = '%05d' % int(float(var1)*100)
     else: txt = var1
@@ -629,12 +647,13 @@ if __name__ == '__main__':
         if sys.argv[1] == 'generate': generate()
         elif sys.argv[1] == 'find': find_best()
         elif sys.argv[1] == 'register' : print (register())
-        elif sys.argv[1] == 'agency' : agency()
         elif sys.argv[1] == 'test' : set('host','localhost')
         elif sys.argv[1] == 'real' : set('host','pingpongcash.net')
+        elif sys.argv[1] == 'list': print (listday())
         else: usage()
     elif len(sys.argv)== 3: 
-        if sys.argv[1] == 'ld': print (listday(sys.argv[2]))
+        if sys.argv[1] == 'list': print (listday(sys.argv[2]))
+        elif sys.argv[1] == 'agency': print (agency(sys.argv[2]))
         elif sys.argv[1] in ('host', 'user', 'file'): set(sys.argv[1], sys.argv[2])
         else: usage()
     elif len(sys.argv) == 4: 
