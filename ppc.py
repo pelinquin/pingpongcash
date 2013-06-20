@@ -157,16 +157,13 @@ def help_register():
     return o
 
 def style_html():
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono{font-family:"Lucida Concole", Courier}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:110;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.bigorange{font-size:32;color:#F87217;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{border:1px solid #666;padding:2pt;}td.num{font-size:9;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:DodgerBlue;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}</style>'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono{font-family:"Lucida Concole", Courier}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:110;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{font-size:10pt;border:1px solid #666;padding:2pt;}td.num{font-size:9;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:DodgerBlue;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}</style>'
     return o
 
 def change_html(email, secid, dusr):
     "_"
     today = '%s' % datetime.datetime.now()
-    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
-    #o += '<a href="http://pingpongcash.net"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
-    #o += '<p class="alpha" title="still in security test phase!">Beta</p>'
-
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header()
     o += '<div id="wrap">'
     o += '<div id="lcol">'
     o += '<h1>Nouveau mot de passe</h1>'
@@ -189,9 +186,7 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
     nb = [dusr['__N'], dtrx['__N']]
     t = dusr[cm].decode('utf8').split('/') if cm else []
     today = '%s' % datetime.datetime.now()
-    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
-    o += '<a href="%s"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % (__url__, get_image('www/header.png'))
-    o += '<p class="alpha" title="still in security test phase!">Beta</p>'
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header()
     data = 'pingpongcash.net/%s' % __acm__ 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
     o += '<p class="stat">%s inscrits | %s transactions courantes</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
@@ -281,19 +276,22 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
             o += '</form>\n'
             o += '</div>'
             o += '<div id="rcol">%s</div>' % help_private(cm)
-            
-            o += '<table title="historique des opérations"><tr><th width="15"> </th><th width="150">Date</th><th width="20">+/-</th><th width="250">Opération</th><th width="120">Signature</th><th width="100">Montant</th></tr>'
+            o += '<table title="historique des opérations"><tr><th width="15"> </th><th width="120">Date</th><th width="15"> </th><th width="340">Opération</th><th width="120">Signature</th><th width="100">Montant</th></tr>'
             if cm.encode('utf8') in dtrx.keys():
                 n = 0
                 for x in dtrx[cm].decode('utf8').split('/'):
-                    dat, dest = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(x))), ''
+                    dat = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(x)))
                     l = dtrx['%s/%s' % (x, cm)].decode('utf8').split('/')
-                    if l[0].encode('utf8') in dusr.keys():
-                        t1 = dusr[l[0]].decode('utf8').split('/')
-                        dest = t1[_PUBN]
-                    val = '%6.2f €' % float(int(l[1])/100) if re.match(r'\d+$', l[1]) else l[1] 
                     n += 1 
-                    o += '<tr><td class="num">%04d</td><td>%s</td><td>-</td><td>%s [%s]</td><td><p class="mono">%s...</p></td><td align="right">%s</td></tr>' % (n, dat, l[0], dest, l[3][:16], val)
+                    if len(l) > 1:
+                        pubn = (dusr[l[_EDT]].decode('utf8').split('/'))[_PUBN] if l[_EDT].encode('utf8') in dusr.keys() else ''
+                        val = '-%6.2f €' % float(int(l[_EFV])/100) if re.match(r'\d+$', l[_EFV]) else l[_EFV] 
+                        o += '<tr><td class="num">%04d</td><td>%s</td><td>%s</td><td>%s [%s] %s</td><td><p class="mono">%s...</p></td><td align="right">%s</td></tr>' % (n, dat, l[_CLR], l[_DST], l[_EDT], pubn, l[_SI1][:16], val)
+                    else:
+                        k = dtrx['%s/%s' % (x, l[0])].decode('utf8').split('/')
+                        pubn = (dusr[l[0]].decode('utf8').split('/'))[_PUBN] if l[0].encode('utf8') in dusr.keys() else ''
+                        val = '+%6.2f €' % float(int(k[_EFV])/100) if re.match(r'\d+$', k[_EFV]) else k[_EFV]                         
+                        o += '<tr><td class="num">%04d</td><td>%s</td><td>%s</td><td>%s %s</td><td><p class="mono">%s...</p></td><td align="right">%s</td></tr>' % (n, dat, k[_CLR], l[0], pubn, k[_SI1][:16], val)
                         
             o += '</table>\n'              
             o += '</div>'
@@ -336,18 +334,14 @@ def text_propos():
     return """Notre métier initial est la recherche en informatique. Historiquement, nous travaillons avec des industriels de l'<i>aéronautique</i> et des académiques du domaine du <i>temps réel embarqué critique</i>. Bien que <a class="ppc">Ping-Pong&nbsp;</a> utilise des algorithmes cryptographiques et des protocoles éprouvés, nous sommes principalement sensibles à la sécurité informatique du système complet. Nos développements sont obligatoirement open-source pour rassurer les utilisateurs et nos clients et pour nous décharger d'un quelconque secret à protéger.<br/>Notre petite structure est en pleine phase de recrutement sur toute la France. <a href="mailto:contact@pingpongcash.net">Contactez nous</a> pour savoir si nos besoins peuvent correspondre à vos compétences, votre expérience et vos motivations.Nous envisageons à terme une internationalisation, avec le support de taux de change entre monnaies, mais nos efforts se concentrent actuellement sur la couverture de <a class="ppc">Ping-Pong&nbsp;</a> en €, en France, puis en Europe (zone SEPA).
 """
 
-
 def index_html(nb):
     "_"
     today = '%s' % datetime.datetime.now()
-    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
-    o += '<a href="%s"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % (__url__, get_image('www/header.png'))
-    o += '<p class="alpha" title="still in security test phase!">Beta</p>'
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header()
     data = 'pingpongcash.net/%s' % __acm__ 
-    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
+    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data='www.'+data).svg(10, 10, 4))    
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     #o += '<p>Enregistrement <a href="login">ici</a></p>\n'
-
     o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte. Nous offons un petit chèque symbolique aux premiers inscrits. En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile. La version <i>iOS</i> pour <i>iPhone</i> est actuellement en phase de test. <a href="mailto:contact@pingpongcash.net">Contactez nous</a> pour participer.</p>'
 
     o += '<div id="wrap">'
@@ -512,6 +506,11 @@ def transaction_match(dusr, dtrx, gr):
     today = '%s' % datetime.datetime.now()
     trvd, msg, epoch, src, dst, val, sig, efv = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6], gr[7] 
     if src.encode('ascii') in dusr.keys():
+        x = '%s/%s' % (epoch, src)
+        if x.encode('utf8') in dtrx.keys(): return 'transaction already registered' 
+        if dst.encode('utf8') in dusr.keys():
+            x = '%s/%s' % (epoch, dst)
+            if x.encode('utf8') in dtrx.keys(): return 'transaction already registered' 
         tb, k = dusr[src].decode('utf8').split('/'), ecdsa()
         k.pt = Point(curve_521, b64toi(tb[_PBK1].encode('ascii')), b64toi(tb[_PBK2].encode('ascii')))
         if k.verify(sig, msg):
@@ -535,10 +534,12 @@ def transaction_match(dusr, dtrx, gr):
             dtrx[src] = dtrx[src] + b'/' + epoch.encode('ascii') if src.encode('ascii') in dtrx.keys() else epoch 
             x, tx = '>%s/%s' % (today[:10], tb[_NBNK]), '/'.join([epoch, src])
             dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
-            if dst.encode('utf8') in dusr.keys(): 
+            if dst.encode('utf8') in dusr.keys() and src != dst: 
                 ts = dusr[dst].decode('utf8').split('/')
                 x, tx = '<%s/%s' % (today[:10], ts[_NBNK]), '/'.join([epoch, src])
                 dtrx[x] = dtrx[x] + b'/' + tx.encode('ascii') if x.encode('ascii') in dtrx.keys() else tx
+                dtrx['%s/%s' % (epoch, dst)] = src
+                dtrx[dst] = dtrx[dst] + b'/' + epoch.encode('ascii') if dst.encode('ascii') in dtrx.keys() else epoch 
         else:
             o = 'Wrong signature!'
     else:
@@ -574,6 +575,10 @@ def req_match(dusr, dags, gr):
             else: r[a] = (4, b)
     return [(a[0],a[2]) for a in sorted([(y, r[y][0], r[y][1]) for y in r], key=operator.itemgetter(1))]
 
+def softm(x):
+    "_"
+    return re.sub('\s', '', x.lower()) 
+
 def cash_match(dusr, dtrx, gr):
     "_"
     dat, src, dst, pw = gr[0], gr[1], gr[2], gr[3]
@@ -583,10 +588,11 @@ def cash_match(dusr, dtrx, gr):
         if h10(pw).encode('utf8').decode('ascii') == td[_PAWD]: 
             if x.encode('ascii') in dtrx.keys():
                 tt = dtrx[x].decode('utf8').split('/')
-                if td[_PUBN].lower() == tt[_DST].lower():
-                    tt[_EDT] = dst
-                    return '' 
-    return '...does not match!'
+                if softm(td[_PUBN]) == softm(tt[_DST]):
+                    tt[_EDT], tt[_CLR] = dst, 'G'
+                    dtrx[x] = '/'.join(tt)
+                    return ''
+    return '\n...les noms ne correspondent pas,\nmerci de déposer le chèque à votre banque.\n\n%s.' % __email__
 
 def listday_match(dusr, dtrx, gr):
     "_"
@@ -632,18 +638,20 @@ def listday_match(dusr, dtrx, gr):
         o = 'unknown user'
     return o
 
-def verif_match(dusr, gr):
+def verif_match(dusr, dtrx, gr):
     "_"
-    o = ''
-    msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5]
+    o, msg, epoch, src, dst, val, sig = '', gr[0], gr[1], gr[2], gr[3], gr[4], gr[5]
     if src.encode('ascii') in dusr.keys(): 
         t, k = dusr[src].decode('utf8').split('/'), ecdsa()
         pk1, pk2 = t[_PBK1], t[_PBK2] 
         k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
         if not k.verify(sig, msg):
-            o = 'bad signature verif'
+            return 'wrong digital signature !'
+        x = '%s/%s' % (epoch, src)
+        if x.encode('ascii') not in dtrx.keys(): 
+            return 'transaction not found!'
     else:
-        o = 'unknown user'
+        o = 'unknown user !'
     return o
 
 def do_sepa(dusr, dtrx, dags, gr):
@@ -678,52 +686,39 @@ def do_sepa(dusr, dtrx, dags, gr):
     o += 'Any question:\t%s\n' % __email__
     return o
 
-def do_sepa_old(dusr, gr):
+def valid_html(dusr, dtrx, epoch, src):
     "_"
-    o = ''
-    msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5]
-    if src.encode('ascii') in dusr.keys(): 
-        ts = dusr[src].decode('utf8').split('/')
-        o = 'SEPA CREDIT TRANSFER (share mode)\n\n'
-        o += 'Status:\t\t%s\n' % 'Validated'
-        o += 'Amount(€):\t%s\n' % (int(val)/100)
-        o += 'Date:\t\t%s\n' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
-        o += 'Debit Account:\t[%s] %s %s (%s)\n' % (src, ts[_FRST], ts[_LAST], ts[_PUBN])
-        o += 'Debit IBAN:\t%s\n' % format_iban(ts)
-        s, ib = '[] (%s)' % dst, ' - IBAN Unknown before deposit -'
-        if dst.encode('utf8') in dusr.keys(): 
-            td = dusr[dst].decode('utf8').split('/')
-            ib, s = format_iban(td), '%s %s (%s) %s\n' % (dst, td[_FRST], td[_LAST], td[_PUBN]) 
-        o += 'Credit Account:\t%s\n' % s
-        o += 'Credit IBAN:\t%s\n' % ib
-        o += 'Proof Message:\t%s\n' % msg
-        o += 'Public Key :\n%s\n%s\n%s\n%s\n' % (ts[_PBK1][:44], ts[_PBK1][44:], ts[_PBK2][:44], ts[_PBK2][44:])        
-        o += 'ECDSA-P521 Signature:\n%s\n%s\n%s\n\n' % (sig[:59], sig[59:118], sig[118:])
-        o += 'Any question:\t%s\n' % __email__
-    return o
-
-def do_sepa_html(dusr, gr):
-    "_"
-    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html()
-    msg, epoch, src, dst, val, sig = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5]
-    if src.encode('ascii') in dusr.keys(): 
-        ts = dusr[src].decode('utf8').split('/')
-        if dst.encode('utf8') in dusr.keys(): 
-            td = dusr[dst].decode('utf8').split('/')
-            o += '<p>Chèque encaissé automatiquement</p>\n'
-        else:
-            o += '<form method="post">\n'    
-            o += '<p>Montant : %6.2f</p>\n' % float(int(val)/100)
-            o += '<p>Créancier désigné : %s</p>\n' % dst
-            o += '<input type="hidden" name="transaction" value="%s/%s"/>' % (epoch, src)
-            o += '<input class="txt" type="text" name="cm" title="6 caractères alphanumériques" placeholder="Code marchand"/><br/>'
-            o += '<input class="txt" type="password" name="pw" title="celui du compte internet, pas votre alpha-pin!" placeholder="Mot de passe" required="yes"/><br/>'
-            o += '<input class="sh" type="submit" value="Encaisser"/>'
-            o += '</form>\n'
-            o += "<p>L'encaissement ne peut être validé par Internet seulement si le nom du créacier désigné correspond exactement au nom public déclaré à l'enregistrement de l'IBAN. Dans le cas contraire, le chèque doit être encaissé à la banque qui évaluera la correspondance entre le nom désigné sur le chèque et le nom du titulaire du compte. Pour plus de confort, pensez à donner votre code marchand à vos débiteurs.</p>"
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header()
+    ts = dusr[src].decode('utf8').split('/')
+    x = '%s/%s' % (epoch, src)
+    tt = dtrx[x].decode('utf8').split('/')
+    o += '<h1>Ce chèque de %6.2f € est vérifié et valide</h1>\n' % float(int(tt[_EFV])/100)
+    o += '<p>Date d\'émission: %s</p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
+    if tt[_CLR] == 'B':
+        o += '<p>Ce chèque est dans l\'état <b class="blue">\'bleu\'</b>.</p>\n'
+        o += '<p>Le créancier désigné <b>\'%s\'</b> peut:</p>\n' % tt[_DST]
+        o += "<p>- déposer le chèque à sa banque pour encaissement manuel, s'il n'a pas encore de code marchand</p>\n"
+        o += "<p>- encaisser directement le chèque ci dessous, s'il dispose d'un code marchand</p>\n"
+        o += "<p>Simplement <a href=\"/login\">s'incrire</a> pour obtenir un code marchand</p>\n"
+        o += '<form method="post">\n'    
+        o += '<input type="hidden" name="transaction" value="%s/%s"/>' % (epoch, src)
+        o += '<input class="txt" type="text" name="cm" title="6 caractères alphanumériques" placeholder="Code marchand"/><br/>'
+        o += '<input class="txt" type="password" name="pw" title="celui du compte internet, pas votre alpha-pin!" placeholder="Mot de passe" required="yes"/><br/>'
+        o += '<input class="sh" type="submit" value="Encaisser"/>'
+        o += '</form>\n'
+        o += '<p>Attention, l\'encaissement est réalisé si le nom du créacier désigné <b>\'%s\'</b> correspond exactement au nom public déclaré à l\'<a href="/login">enregistrement</a>.<br/> Dans le cas contraire, le chèque doit être encaissé à la banque qui évaluera la correspondance entre le nom désigné sur le chèque et le nom du titulaire du compte.<br/>Pour plus de confort, pensez à donner votre code marchand à vos débiteurs.</p>' % tt[_DST]
+    elif tt[_CLR] == 'G':
+        o += '<p>Ce chèque est dans l\'état <b class="green">\'vert\'</b>.</p>'
+        o += "<p>La demande de virement SEPA est bien déposée mais non encore réalisée</p>\n"
+        o += "<p>Inutile de déposer le chèque à la banque, gardez le comme reçu.</p>\n"
     else:
-        o += '<p>Erreur, code marchand non valide</p>\n'        
-    return o + '</html>\n'
+        o += '<p>Ce chèque est dans l\'état <b class="red">\'rouge\'</b>.</p>\n'
+        o += "<p>Le virement SEPA a été exécuté. Vérifiez votre relevé de compte.</p>\n"
+    o += '<pre>Proof Message:\t%s\n' % '/'.join([epoch, src, tt[_DST], tt[_VAL]]) 
+    o += 'ECDSA-P521 Public Key:\n%s\n%s\n' % (ts[_PBK1], ts[_PBK2])        
+    sig = tt[_SI1:_SI2+1]
+    o += 'ECDSA-P521 Signature:\n%s\n%s</pre>' % (sig[0], sig[1])
+    return o + footer() + '</html>\n'
 
 def pubkey_match(dusr, gr):
     "_"
@@ -868,7 +863,8 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_CASH_, arg)):
             res = cash_match(dusr, dtrx, reg.v.groups())
             if res: o += res
-            else: o = do_sepa(dusr, dtrx, dags, reg.v.groups())
+            else: o, mime = valid_html(dusr, dtrx, reg.v.group(1), reg.v.group(2)), 'text/html; charset=utf8'
+            #else: o = do_sepa(dusr, dtrx, dags, reg.v.groups())
         elif reg(re.match(_PAT_RESET_, arg)):
             gr = reg.v.groups()
             a = '%' + gr[0]
@@ -906,10 +902,9 @@ def application(environ, start_response):
             here = os.path.dirname(os.path.abspath(__file__))
             o, mime = open('%s/www/specimen.pdf' % here, 'rb').read(), 'application/pdf'
         elif reg(re.match(_PAT_VERIF_, base1)):
-            res = verif_match(dusr, reg.v.groups())
+            res = verif_match(dusr, dtrx, reg.v.groups())
             if res: o += res
-            #else: o = do_sepa_old(dusr, reg.v.groups())
-            else: o, mime = do_sepa_html(dusr, reg.v.groups()), 'text/html; charset=utf8'
+            else: o, mime = valid_html(dusr, dtrx, reg.v.group(2), reg.v.group(3)), 'text/html; charset=utf8'
         elif reg(re.match(_PAT_SECURL_, base)):
             o, mime = change_html(reg.v.group(1), reg.v.group(2), dusr), 'text/html; charset=utf8'
         elif reg(re.match(_PAT_PRINT_, base)):
@@ -942,6 +937,11 @@ def favicon_svg():
 def footer():
     "_"
     return '<div id="footer">Contact: <a href="mailto:%s">%s</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>' % (__email__, __email__)
+
+def header():
+    "_"
+    o = '<a href="%s"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % (__url__, get_image('www/header.png'))
+    return o + '<p class="alpha" title="still in security test phase!">Beta</p>'
 
 def itob64(n):
     " utility to transform int to base64"
@@ -1162,13 +1162,13 @@ def randrange(order):
 
 def rect(x, y, w, h, r=0):
     if r == 0:
-        return bytes ('%s %s m %s %s l %s %s l %s %s l h B' %(x, y, x, y+h, x+w, y+h, x+w, y), 'ascii')  
+        return bytes ('%s %s m %s %s l %s %s l %s %s l h ' %(x, y, x, y+h, x+w, y+h, x+w, y), 'ascii')  
     else:
         return bytes (re.sub('l','m', '%s %s l %s %s %s %s v '*4, 1) % (x+r, y, x, y,  x, y+r, 
                                                                         x, y+h-r, x, y+h, x+r, y+h,
                                                                         x+w-r, y+h, x+w, y+h, x+w, y+h-r,
                                                                         x+w, y+r, x+w, y, x+w-r, y,
-                                                                        ), 'ascii') + b'h B'  
+                                                                        ), 'ascii') + b'h '  
 
 def luhn(num):
     "_"
@@ -1253,11 +1253,10 @@ class updf:
         self.addi('%s/www/logo.txt' % os.path.dirname(os.path.abspath(__file__))) 
         o, urlink = b'', []
         for (pa, pc, gr, rect) in pages: o += gr + self.ctext(pc, rect) + self.ltext(pa, rect)
-        for (q, h, ur) in qrt:
-            o += q
-            urlink.append('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (ur, h))
+        for (q, h, ur) in qrt: o += q
         self.adds(o)
-        for ur in urlink: self.add(ur)
+        for (q, h, ur) in qrt:
+            self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (re.sub('www.', '', ur), h))
         n, size = len(self.pos), len(self.o)
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
         self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
@@ -1281,7 +1280,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
     ttab = dtrx['%s/%s' % (epoch, src)].decode('utf8').split('/')
     if dst.encode('utf8') in dusr.keys(): 
         ts = dusr[dst].decode('utf8').split('/')
-        pubname = ts[_PUBN]
+        pubname = sanity(ts[_PUBN])
     else:
         dst, msg, pubname = 'X'*6, sanity(msg), sanity(dst)
         bnk = '%s' % b32toi(bytes(tb[_NBNK][2:],'ascii'))
@@ -1338,7 +1337,7 @@ Merci pour l'utilisation de @ppc@,
 """ % (date_gen[:10], tb[_PUBN], src, __url__)
     if txt != '': txt = '\n'.join([txt[80*i:80*(i+1)] for i in range(3)]) 
     unmsg = [] if txt == '' else [(15, 510, 1, 8, sanity('Message de l\'acheteur (%s) :' % sanity(tb[_PUBN]) )), (15, 520, 5, 8, sanity(txt))]
-    page2 = [(114, 42, 1, 28, '@ppc@'),(75, 120, 1, 9, 'Bonjour %s,' % pubname), (20, 160, 1, 9, sanity(rtxt))] + unmsg
+    page2 = [(114, 42, 1, 28, '@ppc@'), (75, 120, 1, 9, 'Bonjour %s,' % pubname), (20, 160, 1, 9, sanity(rtxt))] + unmsg
     gray, dodger, bluel = '.7 .7 .7', '.1 .1 .6', '.5 .5 .9'
     sign = (195, 198, 1, 240, '.95 .95 .95', '\001') if trvd == 'TR' else (155, 85, 5, 60, '.9 .9 .9', 'PROOF') 
     eurs = (445, 36, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (408, 38, 1, 20, '.1 .2 .7', val)
@@ -1363,7 +1362,6 @@ Merci pour l'utilisation de @ppc@,
             (55, 816, 1, 10, 2, 'Date' ), 
             (22, 816, 1, 10, 2, sanity('Numéro') ), 
             (32, 816, 1, 10, 2, 'de compte' )] if ttab[_CLR] == 'B' else [(60, 770, 1, 40, 2, sanity('Reçu') ), ]
-
     pagec2 = form + [(20, 20, 1, 6, 1, date_en ),
                      (35, 571, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
                      (150, 580, 1, 7, '.6 .6 .6 ', '%s/%s/%s' % (__url__, epoch, src)),
@@ -1376,17 +1374,16 @@ Merci pour l'utilisation de @ppc@,
     dx2, dy2, w2, h2 = 0, 600, 496, 227
     dx3, dy3, w3, h3 = 393, 229, 200, 611
     graph1 = bytes('[10 2] 0 d .5 .5 .5 RG 1 1 .9 rg %s %s %s %s re S [] 0 d ' % (dx1, dy1, 496, 227), 'ascii') 
-    graph1 +=  b'q .3 .5 .9 rg .22 0 0 .22 20 722  cm /Im1 Do Q '
+    graph1 += b'q .1 w .9 .9 .9 RG ' + rect(460, 10, 30, 30, 5) + b' S Q '
+    graph1 += b'q .3 .5 .9 rg .22 0 0 .22 20 722  cm /Im1 Do Q '
     graph1 += b'q .9 .5 .1 rg .12 0 0 .12 100 170 cm /Im1 Do Q '
     graph1 += b'q .95 .95 .95 rg .6 0 0 .6 220 -30 cm /Im1 Do Q '    
     graph1 += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (dx1+402, dy1+184, 78, 25), 'ascii')
-
     (co, ca) = ('0 0 1', 'B') if ttab[_CLR] == 'B' else ('0 1 0', 'G') if ttab[_CLR] == 'G' else ('1 0 0', 'R')  
-    graph1 += bytes('q %s rg %s RG ' % (co, co), 'ascii') + rect(560, 10, 20, 20, 5)
-    graph1 += bytes(' 1 1 1 rg BT 1 0 0 1 565 15 Tm /F1 14 Tf (%s) Tj ET Q ' % ca, 'ascii')
+    graph1 += bytes('q %s rg %s RG ' % (co, co), 'ascii') + rect(560, 10, 20, 20, 5) + b' B Q '
+    graph1 += bytes('q 1 1 1 rg BT 1 0 0 1 565 15 Tm /F1 14 Tf (%s) Tj ET Q ' % ca, 'ascii')
     boxes = '42 116 52 100 re 42 36 20 70 re'
     cs = '1 1 1 rg .6 .6 .6 RG ' + ' '.join(['13 %d 24 14 re' % (62+14*i) for i in range(11)]) + ' B %s f ' % boxes if ttab[_CLR] == 'B' else ''
-
     graph2 = bytes('.9 .9 .9 rg %s %s %s %s re f %s 0 0 0 rg ' % (0, 0, 98, 227, cs), 'ascii')
     graph3 = bytes('.7 .8 1 RG 1 1 .96 rg %s %s %s %s re B 0 0 0 RG 0 0 0 rg ' % (dx3, dy3, w3, h3), 'ascii')
     pas = 2
@@ -2347,13 +2344,13 @@ def buy(dest, value, var1='', var2=''):
         open(fi.decode('utf8'), 'bw').write(o)    
         print ('%s GENERATED' % fi.decode('utf8'))
 
-def proof(dest, status):
+def proof(dest, status, txt=''):
     "_"
     k, host, user, fi, t = get_k()
     src = t[2][-6:].decode('utf8')
     epoch = '%s' % time.mktime(time.gmtime())
     msg = '/'.join([epoch[:-2], src, dest, status])
-    o = cmd(True, '/'.join(['VD', '1', msg, k.sign(msg)]), host.decode('utf8'), True)
+    o = cmd(True, '/'.join(['VD', '1', msg, k.sign(msg), '', txt]), host.decode('utf8'), True)
     if o[:5].decode('ascii') == 'Error':
         print (o.decode('utf8'))
     else:
@@ -2423,7 +2420,10 @@ if __name__ == '__main__':
         if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3])
         elif sys.argv[1] == 'proof': proof(sys.argv[2], sys.argv[3])
         else: usage()
-    elif len(sys.argv) == 5 and sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4])
+    elif len(sys.argv) == 5: 
+        if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4])
+        elif sys.argv[1] == 'proof': proof(sys.argv[2], sys.argv[3], sys.argv[4])
+        else: usage()
     elif len(sys.argv) == 6 and sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     else:
         usage()
