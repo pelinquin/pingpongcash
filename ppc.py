@@ -686,15 +686,22 @@ def do_sepa(dusr, dtrx, dags, gr):
     o += 'Any question:\t%s\n' % __email__
     return o
 
-def valid_html(dusr, dtrx, epoch, src):
+def valid_html(dusr, dtrx, dags, epoch, src):
     "_"
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header()
     ts = dusr[src].decode('utf8').split('/')
     x = '%s/%s' % (epoch, src)
     tt = dtrx[x].decode('utf8').split('/')
-    o += '<h1>Ce chèque de %6.2f € est vérifié et valide</h1>\n' % float(int(tt[_EFV])/100)
+    o += '<h1>Ce chèque de %6.2f € est vérifié</h1>\n' % float(int(tt[_EFV])/100)
+    o += '<h1>La signature de \'%s %s\' [%s] est valide</h1>\n' % (ts[_FRST], ts[_LAST], src)
     o += '<p>Date d\'émission: %s</p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     if tt[_CLR] == 'B':
+        bnk = '%s' % b32toi(bytes(ts[_NBNK][2:],'ascii'))
+        key = '%s/%s' % (bnk[:5], bnk[5:])
+        o += '<h1>%s</h1>\n' % format_iban(ts)       
+        o += '<h1>%s</h1>\n' % ts[_CBIC]           
+        if key.encode('utf8') in dags.keys():
+            o += '<p>%s</p>\n' % re.sub('/', ' ', dags[key].decode('utf8'))
         o += '<p>Ce chèque est dans l\'état <b class="blue">\'bleu\'</b>.</p>\n'
         o += '<p>Le créancier désigné <b>\'%s\'</b> peut:</p>\n' % tt[_DST]
         o += "<p>- déposer le chèque à sa banque pour encaissement manuel, s'il n'a pas encore de code marchand</p>\n"
@@ -863,7 +870,7 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_CASH_, arg)):
             res = cash_match(dusr, dtrx, reg.v.groups())
             if res: o += res
-            else: o, mime = valid_html(dusr, dtrx, reg.v.group(1), reg.v.group(2)), 'text/html; charset=utf8'
+            else: o, mime = valid_html(dusr, dtrx, dags, reg.v.group(1), reg.v.group(2)), 'text/html; charset=utf8'
             #else: o = do_sepa(dusr, dtrx, dags, reg.v.groups())
         elif reg(re.match(_PAT_RESET_, arg)):
             gr = reg.v.groups()
@@ -904,7 +911,7 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_VERIF_, base1)):
             res = verif_match(dusr, dtrx, reg.v.groups())
             if res: o += res
-            else: o, mime = valid_html(dusr, dtrx, reg.v.group(2), reg.v.group(3)), 'text/html; charset=utf8'
+            else: o, mime = valid_html(dusr, dtrx, dags, reg.v.group(2), reg.v.group(3)), 'text/html; charset=utf8'
         elif reg(re.match(_PAT_SECURL_, base)):
             o, mime = change_html(reg.v.group(1), reg.v.group(2), dusr), 'text/html; charset=utf8'
         elif reg(re.match(_PAT_PRINT_, base)):
@@ -1373,14 +1380,14 @@ Merci pour l'utilisation de @ppc@,
     dx1, dy1, w1, h1 = 99, 0, 496, 227
     dx2, dy2, w2, h2 = 0, 600, 496, 227
     dx3, dy3, w3, h3 = 393, 229, 200, 611
-    graph1 = bytes('[10 2] 0 d .5 .5 .5 RG 1 1 .9 rg %s %s %s %s re S [] 0 d ' % (dx1, dy1, 496, 227), 'ascii') 
+    graph1 = bytes('[10 2] 0 d .5 .5 .5 RG 1 1 .9 rg %s %s %s %s re B [] 0 d ' % (dx1, dy1, 496, 227), 'ascii') 
     graph1 += b'q .1 w .9 .9 .9 RG ' + rect(460, 10, 30, 30, 5) + b' S Q '
     graph1 += b'q .3 .5 .9 rg .22 0 0 .22 20 722  cm /Im1 Do Q '
     graph1 += b'q .9 .5 .1 rg .12 0 0 .12 100 170 cm /Im1 Do Q '
     graph1 += b'q .95 .95 .95 rg .6 0 0 .6 220 -30 cm /Im1 Do Q '    
     graph1 += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (dx1+402, dy1+184, 78, 25), 'ascii')
     (co, ca) = ('0 0 1', 'B') if ttab[_CLR] == 'B' else ('0 1 0', 'G') if ttab[_CLR] == 'G' else ('1 0 0', 'R')  
-    graph1 += bytes('q %s rg %s RG ' % (co, co), 'ascii') + rect(560, 10, 20, 20, 5) + b' B Q '
+    graph1 += bytes('q %s rg %s RG ' % (co, co), 'ascii') + rect(559, 10, 20, 20, 5) + b' B Q '
     graph1 += bytes('q 1 1 1 rg BT 1 0 0 1 565 15 Tm /F1 14 Tf (%s) Tj ET Q ' % ca, 'ascii')
     boxes = '42 116 52 100 re 42 36 20 70 re'
     cs = '1 1 1 rg .6 .6 .6 RG ' + ' '.join(['13 %d 24 14 re' % (62+14*i) for i in range(11)]) + ' B %s f ' % boxes if ttab[_CLR] == 'B' else ''
@@ -2399,6 +2406,14 @@ def readdb(arg):
         d.close()
 
 if __name__ == '__main__':
+
+    f = 'search'
+    d = dbm.open(f)
+    for x in d.keys():
+        if x == b'McASHA':
+            print (x.decode('utf-8') ,'->', d[x].decode('utf-8'))
+    d.close()
+
     if len(sys.argv)==1: info()
     elif len(sys.argv)==2:
         if sys.argv[1] == 'generate': generate()
