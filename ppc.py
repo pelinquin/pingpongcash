@@ -31,7 +31,7 @@
 #-----------------------------------------------------------------------------
 
 """
-This code merges the server and the client, so it is easier to move to a P2P node.
+This code merges the server and the client, so it is easier to move to a full P2P node.
 """
 
 """
@@ -88,8 +88,7 @@ _XHTMLNS   = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 _XLINKNS   = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
 
-_AD1 = 'Enfin un moyen de paiement numérique,' 
-_AD2 = 'simple, gratuit et sécurisé !'
+_AD1, _AD2 = 'Enfin un moyen de paiement numérique,', 'simple, gratuit et sécurisé !'
 
 _COLOR = {'g': '.7 .7 .7', 'd':'.1 .1 .6', 'b':'.5 .5 .9', 'c':'.9 .5 .1'}
 
@@ -157,7 +156,7 @@ def help_register():
     return o
 
 def style_html():
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono{font-family:"Lucida Concole", Courier}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:110;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{font-size:10pt;border:1px solid #666;padding:2pt;}td.num{font-size:9;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:DodgerBlue;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}</style>'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono{font-family:"Lucida Concole", Courier}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:95;left:80;}a.qr{position:absolute;top:0;right:0;margin:15}p.msg{font-size:20;position:absolute;top:110;right:20;color:#999;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{font-size:11;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{background:#EEE;color:#999;text-align:right;font-size:10;padding:4}table{border:1px solid #666;border-collapse:collapse}td,th{font-size:10pt;border:1px solid #666;padding:2pt;}td.num{font-size:9;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:DodgerBlue;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}</style>'
     return o
 
 def change_html(email, secid, dusr):
@@ -339,7 +338,8 @@ def index_html(nb):
     today = '%s' % datetime.datetime.now()
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header()
     data = 'pingpongcash.net/%s' % __acm__ 
-    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data='www.'+data).svg(10, 10, 4))    
+    #o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data='www.'+data).svg(10, 10, 4)) 
+    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4)) 
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     #o += '<p>Enregistrement <a href="login">ici</a></p>\n'
     o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte. Nous offons un petit chèque symbolique aux premiers inscrits. En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile. La version <i>iOS</i> pour <i>iPhone</i> est actuellement en phase de test. <a href="mailto:contact@pingpongcash.net">Contactez nous</a> pour participer.</p>'
@@ -397,13 +397,13 @@ def init_dbs(dbs):
     di = '/cup/%s' % __app__
     if not os.path.exists(di): os.makedirs(di)
     for dbn in dbs:
-        db = '/cup/%s/%s.db' % (__app__, dbn)
+        db = '/cup/%s/%s' % (__app__, dbn)
         if not os.path.isfile(db):
-            d = dbm.open(db[:-3], 'c')
+            d = dbm.open(db, 'c')
             d['__N'] = '0'
             d.close()
             os.chmod(db, 511)
-    #db = '/cup/%s/usr.db' % __app__
+    #db = '/cup/%s/usr' % __app__
     #d = dbm.open(db[:-3], 'c')
     #d['to2TyF'] = re.sub('CMCIFR29', 'CMCIFR2A', d['to2TyF'].decode('utf8'))
     #d['to2TyF'] = d['TOTO'].decode('utf8')
@@ -692,14 +692,17 @@ def valid_html(dusr, dtrx, dags, epoch, src):
     ts = dusr[src].decode('utf8').split('/')
     x = '%s/%s' % (epoch, src)
     tt = dtrx[x].decode('utf8').split('/')
-    o += '<h1>Ce chèque de %6.2f € est vérifié</h1>\n' % float(int(tt[_EFV])/100)
-    o += '<h1>La signature de \'%s %s\' [%s] est valide</h1>\n' % (ts[_FRST], ts[_LAST], src)
-    o += '<p>Date d\'émission: %s</p>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
+    sig = tt[_SI1:_SI2+1]
+    o += '<p><b class="biggreen">Chèque Valide</b></p>\n'
+    o += '<h2>Identifiant du chèque: \'%s...\'</h2>\n' % sig[0][:10] 
+    o += '<h2>Montant: %6.2f €</h2>\n' % float(int(tt[_EFV])/100)
+    o += '<h2>Signature de <b>%s</b> <a href="%s/%s">%s</a>: vérifiée</h2>\n' % (ts[_PUBN], __url__, src, src)
+    o += '<h2>Date d\'émission: %s</h2>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     if tt[_CLR] == 'B':
         bnk = '%s' % b32toi(bytes(ts[_NBNK][2:],'ascii'))
         key = '%s/%s' % (bnk[:5], bnk[5:])
         o += '<h1>%s</h1>\n' % format_iban(ts)       
-        o += '<h1>%s</h1>\n' % ts[_CBIC]           
+        o += '<h2>BIC: %s</h2>\n' % ts[_CBIC]           
         if key.encode('utf8') in dags.keys():
             o += '<p>%s</p>\n' % re.sub('/', ' ', dags[key].decode('utf8'))
         o += '<p>Ce chèque est dans l\'état <b class="blue">\'bleu\'</b>.</p>\n'
@@ -856,7 +859,7 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_TRANS_, arg)):
             res = transaction_match(dusr, dtrx, reg.v.groups())
             if res: o += res
-            else: o, mime = pdf_digital_check(dusr, dtrx, dags, reg.v.groups()), 'application/pdf'
+            else: o, mime = pdf_digital_check(dusr, dtrx, dags, reg.v.groups(), environ['SERVER_NAME']), 'application/pdf'
         elif reg(re.match(_PAT_AGENCY_, arg)):
             #smail ('pelinquin@gmail.com', 'LOGIN OK \n')
             res = agency_match(dusr, dags, reg.v.groups())
@@ -898,7 +901,7 @@ def application(environ, start_response):
             for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
             d.close()
         elif raw.lower() in ['_reset_%s' % x for x in dbs]: # Do not allow that in production!
-            #os.remove('/cup/%s/%s.db' % (__app__, raw.lower()[7:]))
+            #os.remove('/cup/%s/%s' % (__app__, raw.lower()[7:]))
             #o = 'reset database %s OK' % raw.lower()[7:]
             o = 'reset database %s NOT ALLOWED !' % raw.lower()[7:]
         elif base == '':
@@ -920,10 +923,10 @@ def application(environ, start_response):
             if gr[0].encode('utf8') in dtrx:
                 t = dtrx[gr[0]].decode('utf8').split('/')
                 g = ['TR', '/'.join([gr[0]] + t[0:2]), gr[1], gr[2], t[0], t[1], '/'.join(t[3:5]), t[2], '']
-                o, mime = pdf_digital_check(dusr, dtrx, dags, g), 'application/pdf'
+                o, mime = pdf_digital_check(dusr, dtrx, dags, g, environ['SERVER_NAME']), 'application/pdf'
         else:
             if base.encode('ascii') in dusr.keys(): o, mime = front_html(dusr, dtrx, base, True, raw, 'Facture'), 'text/html; charset=utf8'
-            else: o += 'Request not valid! %s' % base1
+            else: o += 'Request not valid! %s' % environ
     dbic.close()
     dags.close()
     dtrx.close()
@@ -1229,6 +1232,7 @@ class updf:
         o = b'BT '
         for (x, y, ft, sz, s) in tab: 
             s = re.sub('@ppc@', ') Tj .1 .1 .6 rg /F5 %s Tf (Ping-Pong) Tj /F1 %s Tf ( Cash) Tj 0 0 0 rg /F%d %d Tf (' % (sz-1, sz-1, ft, sz), s)
+            s = re.sub('@test@', ') Tj .1 .1 .6 rg /F5 %s Tf (AAA) Tj /F1 %s Tf ( AAA) Tj 0 0 0 rg /F%d %d Tf (' % (sz-1, sz-1, ft, sz), s)
             o += bytes('1 0 0 1 %d %d Tm /F%d %d Tf %s TL ' % (x+self.mx+r[0], r[3]-self.my-y+r[1], ft, sz, 1.2*sz), 'ascii')
             for l in s.split('\n'): o += bytes('(%s) Tj T* ' % (l), 'ascii')
             o = o[:-3]
@@ -1269,11 +1273,31 @@ class updf:
         self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
         return self.o
 
+    def gen1(self, pages):
+        "_"
+        ft = (1, 3, 5, 6, 8)
+        self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
+        self.add('/Type/Catalog/Pages 2 0 R')
+        self.add('/Type/Pages/MediaBox[0 0 %d %d]/Count 1/Kids[3 0 R]' % (self.pw, self.ph))
+        fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + ' >>'
+        ann = ''
+        self.add('/Type/Page/Parent 2 0 R%s/Resources<<%s/XObject<</Im1 %d 0 R>>>>/Contents %d 0 R' % (ann, fonts, len(ft)+4, len(ft)+5))
+        enc = '' #'/Encoding<</Type/Encoding/Differences[1 %s]>> ' % __e__
+        for f in ft: self.add('/Type/Font/Subtype/Type1/BaseFont/%s %s' % (__fonts__[f-1], enc))
+        self.addi('%s/www/logo.txt' % os.path.dirname(os.path.abspath(__file__))) 
+        o, urlink = b'', []
+        for (pa, pc, gr, rect) in pages: o += gr + self.ctext(pc, rect) + self.ltext(pa, rect)
+        self.adds(o)
+        n, size = len(self.pos), len(self.o)
+        self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
+        self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
+        return self.o
+
 def sanity(s):
     __o__ = r'([çáàâäéèêëíìîïóòôöúùûüŷÿ])'
     return re.sub(__o__, lambda m: r'\%03o' % __o__.index(m.group(1)), s)
 
-def pdf_digital_check(dusr, dtrx, dags, gr):
+def pdf_digital_check(dusr, dtrx, dags, gr, host):
     "_"
     trvd, msg, epoch, src, dst, val, sig, efv, txt = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6], gr[7], gr[8]
     #import locale
@@ -1323,7 +1347,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr):
         (202, 126, 3, 7, pk2[:44]), (202, 134, 3, 7, pk2[44:-6]), (362, 134, 6, 7, pk2[-6:]),
         ] 
     rtxt = """Vous trouverez ci dessous un chèque @ppc@,
-signé le %s par "%s" de code marchand: %s\n
+signé le %s par "%s" de code marchand: '%s'\n
 Vous pouvez vérifier sa validité et l'encaisser en ligne sur l'Internet,
 simplement en suivant le lien du large QRcode.Vérifiez que vous êtes bien 
 sur le site dont l'adresse commence par : "pingpongcash.net".
@@ -1357,14 +1381,14 @@ Merci pour l'utilisation de @ppc@,
         (155, 154, 1, 8, gray, 'Date:'), 
         (155, 168, 1, 4, gray, 'EC-DSA-521P'),
         (155, 177, 1, 9, gray, 'Digital Signature:'), 
-        (180, 11, 1, 8, gray, __url__), (284, 11, 1, 8, gray, __email__), 
+        (180, 212, 1, 8, gray, __url__), (284, 212, 1, 8, gray, __email__), 
         (155, 110, 1, 7, gray, 'Public key:'),
         (155, 200, 1, 8, gray, 'Signed message:'),  
         #sign,
-        (155, 208, 1, 6, '.05 .46 .8', sanity(info1)), (155, 214, 1, 6, '.05 .46 .8', sanity(info2)), 
+        (155, 11, 1, 6, '.05 .46 .8', sanity(info1)), (155, 17, 1, 6, '.05 .46 .8', sanity(info2)), 
         (475, 10, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ] + bars
-    pagec3 = [(84, 80, 1, 60, 1, 'Encart publicitaire'), (50, 140, 1, 10, 1, 'Avec un QRcode+hyperlien qui redirige sur votre site Web.'),]
+    pagec3 = [(84, 80, 1, 60, 1, 'Encart publicitaire'), (50, 140, 1, 10, 1, 'Avec un (QRcode ou Datamatrix) + hyperlien qui redirige directement sur votre site Web.'),]
     form = [(82, 760, 1, 10, 2, 'Signature' ), 
             (55, 816, 1, 10, 2, 'Date' ), 
             (22, 816, 1, 10, 2, sanity('Numéro') ), 
@@ -1374,14 +1398,16 @@ Merci pour l'utilisation de @ppc@,
                      (150, 580, 1, 7, '.6 .6 .6 ', '%s/%s/%s' % (__url__, epoch, src)),
                      (114, 60, 5, 10, _COLOR['b'], sanity(_AD1)), (114, 71, 5, 10, _COLOR['b'], sanity(_AD2)), 
                      ] 
-    lurl = 'www.pingpongcash.net'
+    #lurl = 'www.pingpongcash.net'
+    lurl = 'pingpongcash.net'
     url = (urllib.parse.quote('%s/%s/%s' % (lurl, msgraw, sig)), '%s/%s' % (lurl, src), '%s/%s/%s' % (lurl, epoch, src), 'google.fr')
     qr1, qr2, qr3, qr4 = QRCode(data=url[0]), QRCode(data=url[1]), QRCode(data=url[2]), QRCode(data=url[3])
     dx1, dy1, w1, h1 = 99, 0, 496, 227
     dx2, dy2, w2, h2 = 0, 600, 496, 227
     dx3, dy3, w3, h3 = 393, 229, 200, 611
     graph1 = bytes('[10 2] 0 d .5 .5 .5 RG 1 1 .9 rg %s %s %s %s re B [] 0 d ' % (dx1, dy1, 496, 227), 'ascii') 
-    graph1 += b'q .1 w .9 .9 .9 RG ' + rect(460, 10, 30, 30, 5) + b' S Q '
+    #graph1 += b'q .1 w  .9 .9 .9 RG ' + rect(460, 10, 50, 50, 10) + b' S Q '
+    graph1 += b'q .5 .5 .5 rg ' + rect(515, 80, 52, 30, 10) + b' f 1 1 1 rg BT 1 0 0 1 521 86 Tm /F1 24 Tf (C C) Tj 1 0 0 1 537 94 Tm /F1 14 Tf (2) Tj ET Q '
     graph1 += b'q .3 .5 .9 rg .22 0 0 .22 20 722  cm /Im1 Do Q '
     graph1 += b'q .9 .5 .1 rg .12 0 0 .12 100 170 cm /Im1 Do Q '
     graph1 += b'q .95 .95 .95 rg .6 0 0 .6 220 -30 cm /Im1 Do Q '    
@@ -1396,7 +1422,7 @@ Merci pour l'utilisation de @ppc@,
     pas = 2
     x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+420, dy1+80, (29*pas)
     qrt = ( (qr1.pdf(x1, y1+121, pas, True), '%s %s %s %s' % (x1-1, y1-1, x1+w1+2, y1+w1+2), url[0]),
-            (qr2.pdf(x2, y2+56, pas, False), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]),
+            #(qr2.pdf(x2, y2+56, pas, False), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]),
             (qr3.pdf(310, 300, pas, False), '%s %s %s %s' % (309, 242, 370, 303), url[2]),
             (qr4.pdf(408, 820, 3, False, b'.7 .7 .7'), '%s %s %s %s' % (407, 759, 471, 823), url[3]))
     pages = ((page1, pagec1, graph1, (dx1, dy1, w1, h1)), 
@@ -1861,6 +1887,7 @@ class QRCode:
                     k = 0
             if k>0: o += bytes('%d %d %d %d re ' % (ox+(mc-k)*d, oy-r*d, k*d, d), 'ascii')
         return o + b'f '
+        #return self.m_count 
 
     def setup_timing_pattern(self):
         for r in range(8, self.m_count - 8):
@@ -2001,7 +2028,7 @@ def test_num():
 
 ####### CLIENT PART ######
 
-__db__ = 'keys.db'
+__db__ = 'keys'
 
 ### LOCAL AES ### (replace PyCrypto AES mainly for macOSX)
 
@@ -2226,7 +2253,7 @@ def agency(ag):
     "_"
     # example: 'Crédit Mutuel/6, Route de Castres/31130/Quint Fonsegrives/0562572138/02233@creditmutuel.fr'
     k, host, user, fi, t = get_k()
-    src = t[2][-6:].decode('utf8')
+    src = t[1][-6:].decode('utf8')
     d = dbm.open('banks')
     if ag.encode('ascii') in d.keys():
         tab = d[ag].decode('utf8').split('/')
@@ -2240,7 +2267,7 @@ def agency(ag):
 def listday(theday=''):
     "_"
     k, host, user, fi, t = get_k()
-    src = t[2][-6:].decode('utf8')
+    src = t[1][-6:].decode('utf8')
     if theday == '': theday = ('%s' % datetime.datetime.now())[:10]
     msg = '/'.join([src, theday])    
     return cmd(True, '/'.join(['LD', msg, k.sign(msg)]), host.decode('utf8'))    
@@ -2253,7 +2280,7 @@ def generate():
     while pp1 != pp2 or len(pp1) < 4:
         pp1 = getpass.getpass('Pass Phrase ?')
         pp2 = getpass.getpass('Retype Pass Phrase ?')
-    db = 'keys.db'
+    db = 'keys'
     print ('...wait')
     kt = []
     for i in range(10):
@@ -2261,16 +2288,28 @@ def generate():
         cm = itob64(k.pt.y())[-6:].decode('utf8')
         kt.append(k)
         print ('(%d)' %i, cm)
+    if os.path.isfile('search.txt'):
+        for l in open('search.txt').readlines():
+            if reg(re.match('\S{6} -> ([^/]+)/([^/]+)/(\S+)$', l)):
+                k = ecdsa()
+                k.pt = Point(curve_521, b64toi(bytes(reg.v.group(1), 'ascii')), b64toi(bytes(reg.v.group(2), 'ascii')))
+                k.privkey = int(b64toi(bytes(reg.v.group(3), 'ascii'))) 
+                cm = itob64(k.pt.y())[-6:].decode('utf8')
+                kt.append(k)
+                i += 1
+                print ('(%d)' %i, cm)
     sk = input('Select one key: ')
     k = kt[int(sk)]
     cm = itob64(k.pt.y())[-6:].decode('utf8')
-    d = dbm.open(db[:-3], 'c')
+    d = dbm.open(db, 'c')
     pw = hashlib.sha256(pp1.encode('utf8')).digest()
     #pad = lambda s:s+(32-len(s)%32)*'@'
     #EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
     #ci = EncodeAES(AES.new(pw, AES.MODE_OFB, _IV), '%s' % k.privkey) # AES from PyCrypto
     ci = AES0().encrypt('%s' % k.privkey, pw) # included AES
-    d[email] = gen_pwd() + b'/' + b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + ci
+    d[email] = b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + ci
+    if b'host' not in d.keys(): set('host', 'pingpongcash.net')        
+    if b'file' not in d.keys(): set('file', 'result.pdf')        
     d.close()
     os.chmod(db, 511)
     set('user', email)
@@ -2278,14 +2317,14 @@ def generate():
 
 def find_best():
     "_"
-    db = 'search.db'
-    d = dbm.open(db[:-3], 'c')
+    db = 'search'
+    d = dbm.open(db, 'c')
     i = 0
     while True:
         k = ecdsa()
         i += 1
         cm = itob64(k.pt.y())[-6:].decode('utf8')
-        if re.search('(bank|cash|ping|pong|money|france)', cm, re.I):
+        if re.search('(bank|cash|ping|pong|money|france|cfound)', cm, re.I):
             d[cm] = b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + itob64(k.privkey)
             break
         else:
@@ -2300,36 +2339,37 @@ def register():
     "_"
     k, host, user, fi, t = get_k()
     today = '%s' % datetime.datetime.now()
-    raw = '/'.join([user, t[1].decode('ascii'), t[2].decode('ascii')])    
-    msg = '/'.join([today[:10], h10(t[0].decode('ascii')), raw])
+    pp = getpass.getpass('Mot de passe du site Internet ?')
+    raw = '/'.join([user, t[0].decode('ascii'), t[1].decode('ascii')])    
+    msg = '/'.join([today[:10], h10(pp), raw])
     return cmd(True, '/'.join(['PK', '1', raw, k.sign(msg)]), host.decode('utf8'))    
 
 def get_k():
     "_"
-    d = dbm.open(__db__[:-3])
+    d = dbm.open(__db__)
     user = d['user'].decode('utf8')
     pp = getpass.getpass('Pass Phrase ?')
     k = ecdsa()
     tab = d[user].split(b'/')
-    k.pt = Point(curve_521, b64toi(tab[1]), b64toi(tab[2]))
+    k.pt = Point(curve_521, b64toi(tab[0]), b64toi(tab[1]))
     pw = hashlib.sha256(pp.encode('utf8')).digest()
     #DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
     #k.privkey = int(DecodeAES(AES.new(pw, AES.MODE_OFB, _IV), tab[3])) # AES from PyCrypto
-    k.privkey = int(AES0().decrypt(tab[3], pw)) # included AES
+    k.privkey = int(AES0().decrypt(tab[2], pw)) # included AES
     host, fi = d['host'], d['file']
     d.close()
     return (k, host, user, fi, tab)
 
 def set(k, h):
     "_"
-    d = dbm.open(__db__[:-3], 'c')
+    d = dbm.open(__db__, 'c')
     d[k] = h
     print ('%s->%s' % (k, h))
     d.close()
 
 def info():
     "_"
-    d = dbm.open(__db__[:-3])
+    d = dbm.open(__db__)
     print ('user:%s host:%s file:%s' % (d['user'].decode('utf8'), d['host'].decode('utf8'), d['file'].decode('utf8')))
     d.close()
     
@@ -2340,7 +2380,7 @@ def buy(dest, value, var1='', var2=''):
     if re.match('[\d\.]{1,6}', var1): evalue = '%05d' % int(float(var1)*100)
     else: txt = var1
     k, host, user, fi , t = get_k()
-    src = t[2][-6:].decode('utf8')
+    src = t[1][-6:].decode('utf8')
     print (src)
     epoch = '%s' % time.mktime(time.gmtime())
     msg = '/'.join([epoch[:-2], src, dest, '%05d' % int(float(value)*100)])
@@ -2354,7 +2394,7 @@ def buy(dest, value, var1='', var2=''):
 def proof(dest, status, txt=''):
     "_"
     k, host, user, fi, t = get_k()
-    src = t[2][-6:].decode('utf8')
+    src = t[1][-6:].decode('utf8')
     epoch = '%s' % time.mktime(time.gmtime())
     msg = '/'.join([epoch[:-2], src, dest, status])
     o = cmd(True, '/'.join(['VD', '1', msg, k.sign(msg), '', txt]), host.decode('utf8'), True)
@@ -2387,7 +2427,7 @@ def compare_aes():
 
 def genconf():
     """# Apache config file for WSGI mod\n#(This file is generated. Do not edit by hands!)\n# Store it in '/etc/apache2/conf.d' directory\n# and restart Apache: '/etc/init.d/apache2 restart'\n"""
-    o = '# Base64 encoded sha1 short digest:%s\n\nWSGIScriptAlias / %s\n' % (__digest__.decode('ascii'), os.path.abspath(sys.argv[0]))
+    o = '# Base64 encoded sha1 short digest:%s\n\nWSGIScriptAlias / %s.py\n' % (__digest__.decode('ascii'), os.path.abspath(sys.argv[0]))
     open('ppc.conf', 'w').write('%s\n' % genconf.__doc__ + o)
 
 def genreadme():
@@ -2397,22 +2437,26 @@ def genreadme():
 
 def readdb(arg):
     "_"
-    m = re.search(r'^(.+)\.(dat|db)', arg)
-    if m:
-        print (m.group(1))
-        d = dbm.open(m.group(1))
-        for x in d.keys():
-            print (x.decode('utf-8') ,'->', d[x].decode('utf-8'))
-        d.close()
+    print (arg)
+    d = dbm.open(arg)
+    for x in d.keys(): print (x.decode('utf-8') ,'->', d[x].decode('utf-8'))
+    d.close()
 
 if __name__ == '__main__':
 
-    f = 'search'
-    d = dbm.open(f)
-    for x in d.keys():
-        if x == b'McASHA':
-            print (x.decode('utf-8') ,'->', d[x].decode('utf-8'))
-    d.close()
+    a = updf(595, 842) # A4
+    page1 = [(52, 20, 1, 40, 'hello @test@'),]
+    pages = ((page1, [], b'', (10, 10, 100, 100)), )
+    o = a.gen1(pages)
+    open('toto.pdf', 'bw').write(o)    
+    
+    #for dat in ('AAAAAAAAAABBBBBCCCCC', 
+    #            '+++++++++++++++*/...',
+    #            'aaaaaaaaa?-&àé'):
+    #    qr1 = QRCode(data = dat)
+    #    toto = qr1.pdf(10, 10, 2, True)
+    #    print (dat, ' ', toto)
+
 
     if len(sys.argv)==1: info()
     elif len(sys.argv)==2:
