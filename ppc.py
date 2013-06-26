@@ -397,13 +397,13 @@ def init_dbs(dbs):
     di = '/cup/%s' % __app__
     if not os.path.exists(di): os.makedirs(di)
     for dbn in dbs:
-        db = '/cup/%s/%s' % (__app__, dbn)
+        db = '/cup/%s/%s.db' % (__app__, dbn)
         if not os.path.isfile(db):
             d = dbm.open(db, 'c')
             d['__N'] = '0'
             d.close()
             os.chmod(db, 511)
-    #db = '/cup/%s/usr' % __app__
+    #db = '/cup/%s/usr.db' % __app__
     #d = dbm.open(db[:-3], 'c')
     #d['to2TyF'] = re.sub('CMCIFR29', 'CMCIFR2A', d['to2TyF'].decode('utf8'))
     #d['to2TyF'] = d['TOTO'].decode('utf8')
@@ -822,12 +822,12 @@ def login_match(dusr, gr):
 def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt'
-    dbs = ('trx', 'ags', 'bic', 'usr')
+    dbs = ('trx', 'ags', 'usr')
     init_dbs(dbs)
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base = environ['PATH_INFO'][1:]
     base1 = urllib.parse.unquote(environ['REQUEST_URI'])[1:]
-    [dtrx, dags, dbic, dusr] = [dbm.open('/cup/%s/%s' % (__app__, b), 'c') for b in dbs]
+    [dtrx, dags, dusr] = [dbm.open('/cup/%s/%s.db' % (__app__, b), 'c') for b in dbs]
     nb = [dusr['__N'], dtrx['__N']]
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
@@ -897,7 +897,7 @@ def application(environ, start_response):
         elif raw.lower() == '_log':
             o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
         elif raw.lower() in ['_%s' % x for x in dbs]: # Just for debug!
-            d, o = dbm.open('/cup/%s/%s' % (__app__, raw.lower()[1:])), ''
+            d, o = dbm.open('/cup/%s/%s.db' % (__app__, raw.lower()[1:])), ''
             for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
             d.close()
         elif raw.lower() in ['_reset_%s' % x for x in dbs]: # Do not allow that in production!
@@ -927,7 +927,6 @@ def application(environ, start_response):
         else:
             if base.encode('ascii') in dusr.keys(): o, mime = front_html(dusr, dtrx, base, True, raw, 'Facture'), 'text/html; charset=utf8'
             else: o += 'Request not valid! %s' % environ
-    dbic.close()
     dags.close()
     dtrx.close()
     dusr.close()
@@ -1305,7 +1304,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     date_en = time.strftime('%c', time.localtime(float(epoch)))
     tb = dusr[src].decode('utf8').split('/')
-    pubname, info1, info2 = '', sanity('Reçu - Receipt - '*6), ''
+    pubname, info1, info2 = '', sanity('Reçu - Receipt - '*5), ''
     info1 = info1[:-3]
     msgraw = msg
     ttab = dtrx['%s/%s' % (epoch, src)].decode('utf8').split('/')
@@ -1332,19 +1331,19 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page1 = [
         (52, 20, 1, 12, '@ppc@'),
-        (195, 154, 1, 12, date_gen),
+        (230, 154, 1, 12, date_gen),
         vv1, vv2,
-        (231, 168, 3, 7, sig[:59]), 
-        (231, 176, 3, 7, sig[59:118]), 
-        (231, 184, 3, 7, sig[118:]), 
-        (231, 200, 3, 7, msg),
+        (230, 168, 3, 7, sig[:59]), 
+        (230, 176, 3, 7, sig[59:118]), 
+        (230, 184, 3, 7, sig[118:]), 
+        (230, 200, 3, 7, msg),
         (393, 78, 1, 6, '%s/%s' % (__url__,src)),
         (70, 50, 5, 14, dst), (140, 50, 6, 12, dpubname),
         (10, 69, 6, 11, manu_fr), (10, 79, 3, 8, manu_en),
         (190, 100, 5, 14, src), 
         (266, 100, 6, 12, sanity(tb[_PUBN])), 
-        (202, 110, 3, 7, pk1[:44]), (202, 118, 3, 7, pk1[44:]), 
-        (202, 126, 3, 7, pk2[:44]), (202, 134, 3, 7, pk2[44:-6]), (362, 134, 6, 7, pk2[-6:]),
+        (230, 112, 3, 7, pk1[:44]), (230, 120, 3, 7, pk1[44:]), 
+        (230, 128, 3, 7, pk2[:44]), (230, 136, 3, 7, pk2[44:-6]), (390, 136, 6, 7, pk2[-6:]),
         ] 
     rtxt = """Vous trouverez ci dessous un chèque @ppc@,
 signé le %s par "%s" de code marchand: '%s'\n
@@ -1382,7 +1381,7 @@ Merci pour l'utilisation de @ppc@,
         (155, 168, 1, 4, gray, 'EC-DSA-521P'),
         (155, 177, 1, 9, gray, 'Digital Signature:'), 
         (180, 212, 1, 8, gray, __url__), (284, 212, 1, 8, gray, __email__), 
-        (155, 110, 1, 7, gray, 'Public key:'),
+        (155, 112, 1, 7, gray, 'Public key:'),
         (155, 200, 1, 8, gray, 'Signed message:'),  
         #sign,
         (155, 11, 1, 6, '.05 .46 .8', sanity(info1)), (155, 17, 1, 6, '.05 .46 .8', sanity(info2)), 
@@ -1406,8 +1405,7 @@ Merci pour l'utilisation de @ppc@,
     dx2, dy2, w2, h2 = 0, 600, 496, 227
     dx3, dy3, w3, h3 = 393, 229, 200, 611
     graph1 = bytes('[10 2] 0 d .5 .5 .5 RG 1 1 .9 rg %s %s %s %s re B [] 0 d ' % (dx1, dy1, 496, 227), 'ascii') 
-    #graph1 += b'q .1 w  .9 .9 .9 RG ' + rect(460, 10, 50, 50, 10) + b' S Q '
-    graph1 += b'q .5 .5 .5 rg ' + rect(515, 80, 52, 30, 10) + b' f 1 1 1 rg BT 1 0 0 1 521 86 Tm /F1 24 Tf (C C) Tj 1 0 0 1 537 94 Tm /F1 14 Tf (2) Tj ET Q '
+    graph1 += b'q .5 .5 .5 rg ' + rect(527, 90, 52, 30, 10) + b' f 1 1 1 rg BT 1 0 0 1 532 96 Tm /F1 24 Tf (C C) Tj 1 0 0 1 549 104 Tm /F1 14 Tf (2) Tj ET Q '
     graph1 += b'q .3 .5 .9 rg .22 0 0 .22 20 722  cm /Im1 Do Q '
     graph1 += b'q .9 .5 .1 rg .12 0 0 .12 100 170 cm /Im1 Do Q '
     graph1 += b'q .95 .95 .95 rg .6 0 0 .6 220 -30 cm /Im1 Do Q '    
@@ -1417,7 +1415,7 @@ Merci pour l'utilisation de @ppc@,
     graph1 += bytes('q 1 1 1 rg BT 1 0 0 1 565 15 Tm /F1 14 Tf (%s) Tj ET Q ' % ca, 'ascii')
     boxes = '42 116 52 100 re 42 36 20 70 re'
     cs = '1 1 1 rg .6 .6 .6 RG ' + ' '.join(['13 %d 24 14 re' % (62+14*i) for i in range(11)]) + ' B %s f ' % boxes if ttab[_CLR] == 'B' else ''
-    graph2 = bytes('.9 .9 .9 rg %s %s %s %s re f %s 0 0 0 rg ' % (0, 0, 98, 227, cs), 'ascii')
+    graph2 = bytes('q [10 2] 0 d .5 .5 .5 RG .9 .9 .9 rg %s %s %s %s re B [] 0 d %s 0 0 0 rg Q ' % (0, 0, 108, 227, cs), 'ascii')
     graph3 = bytes('.7 .8 1 RG 1 1 .96 rg %s %s %s %s re B 0 0 0 RG 0 0 0 rg ' % (dx3, dy3, w3, h3), 'ascii')
     pas = 2
     x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+420, dy1+80, (29*pas)
@@ -1425,11 +1423,10 @@ Merci pour l'utilisation de @ppc@,
             #(qr2.pdf(x2, y2+56, pas, False), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]),
             (qr3.pdf(310, 300, pas, False), '%s %s %s %s' % (309, 242, 370, 303), url[2]),
             (qr4.pdf(408, 820, 3, False, b'.7 .7 .7'), '%s %s %s %s' % (407, 759, 471, 823), url[3]))
-    pages = ((page1, pagec1, graph1, (dx1, dy1, w1, h1)), 
-             (page2, pagec2, graph2, (dx2, dy2, w2, h2)),
-             ([], pagec3, graph3, (dx3, dy3, w3, h3)),
-             )
-    #a = updf(496, 227) # 175mmx80mm
+    pages = (
+        (page2, pagec2, graph2, (dx2, dy2, w2, h2)),
+        (page1, pagec1, graph1, (dx1, dy1, w1, h1)),
+        ([], pagec3, graph3, (dx3, dy3, w3, h3)))
     a = updf(595, 842) # A4
     return a.gen(pages, qrt)
 
@@ -2017,7 +2014,7 @@ def num2word_fr(n, c):
     return o.capitalize() + ' ' + '-'*(71-len(o))
 
 def test_num():
-    "max at 494.94€: 73bytes"
+    "max length at 494.94€: 73bytes"
     m,s = 0, None
     for e in range(1000):
         for i in range(100):
@@ -2027,11 +2024,9 @@ def test_num():
     print (m, s)
 
 ####### CLIENT PART ######
-
-__db__ = 'keys'
+__db__ = 'keys.db'
 
 ### LOCAL AES ### (replace PyCrypto AES mainly for macOSX)
-
 _IV = b'ABCDEFGHIJKLMNOP'
 
 class AES0:
@@ -2254,7 +2249,7 @@ def agency(ag):
     # example: 'Crédit Mutuel/6, Route de Castres/31130/Quint Fonsegrives/0562572138/02233@creditmutuel.fr'
     k, host, user, fi, t = get_k()
     src = t[1][-6:].decode('utf8')
-    d = dbm.open('banks')
+    d = dbm.open('banks.db')
     if ag.encode('ascii') in d.keys():
         tab = d[ag].decode('utf8').split('/')
         msg = '/'.join([src, ag] + tab)
@@ -2280,7 +2275,6 @@ def generate():
     while pp1 != pp2 or len(pp1) < 4:
         pp1 = getpass.getpass('Pass Phrase ?')
         pp2 = getpass.getpass('Retype Pass Phrase ?')
-    db = 'keys'
     print ('...wait')
     kt = []
     for i in range(10):
@@ -2301,7 +2295,7 @@ def generate():
     sk = input('Select one key: ')
     k = kt[int(sk)]
     cm = itob64(k.pt.y())[-6:].decode('utf8')
-    d = dbm.open(db, 'c')
+    d = dbm.open(__db__, 'c')
     pw = hashlib.sha256(pp1.encode('utf8')).digest()
     #pad = lambda s:s+(32-len(s)%32)*'@'
     #EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
@@ -2317,7 +2311,7 @@ def generate():
 
 def find_best():
     "_"
-    db = 'search'
+    db = 'search.db'
     d = dbm.open(db, 'c')
     i = 0
     while True:
@@ -2460,7 +2454,8 @@ if __name__ == '__main__':
 
     if len(sys.argv)==1: info()
     elif len(sys.argv)==2:
-        if sys.argv[1] == 'generate': generate()
+        if os.path.isfile(sys.argv[1]): readdb(sys.argv[1])
+        elif sys.argv[1] == 'generate': generate()
         elif sys.argv[1] == 'find': find_best()
         elif sys.argv[1] == 'register' : print (register())
         elif sys.argv[1] == 'test' : set('host','localhost')
@@ -2472,7 +2467,6 @@ if __name__ == '__main__':
     elif len(sys.argv)== 3: 
         if sys.argv[1] == 'list': print (listday(sys.argv[2]))
         elif sys.argv[1] == 'agency': print (agency(sys.argv[2]))
-        elif sys.argv[1] == 'read': readdb(sys.argv[2])
         elif sys.argv[1] in ('host', 'user', 'file'): set(sys.argv[1], sys.argv[2])
         else: usage()
     elif len(sys.argv) == 4: 
