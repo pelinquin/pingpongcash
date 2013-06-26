@@ -187,7 +187,7 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
     today = '%s' % datetime.datetime.now()
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header()
     data = 'pingpongcash.net/%s' % __acm__ 
-    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4))    
+    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data).svg(10, 10, 4))    
     o += '<p class="stat">%s inscrits | %s transactions courantes</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     dmsg = ' %s' % msg if msg else ''
     if t and not pub:
@@ -244,7 +244,7 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
             if t[_PUBN] != '': o += '<b class="bigorange" title="Nom affiché de marchand">\"%s\"</b>' % t[_PUBN]
             total = re.sub('€', '', total)
             data = '%s?%06.2f€' % (cm, float(total)) if total != '' else cm
-            o += '<p title="...code marchand \'%s\' en QRcode">%s</p>\n' % (data, QRCode(data=data).svg(100, 50, 12, data))    
+            o += '<p title="...code marchand \'%s\' en QRcode">%s</p>\n' % (data, QRCode(data).svg(100, 50, 12, data))    
             if t[_PBK1] != '': o += 'Public Key: <p title="Pulic Key">%s<br/>%s <b>%s</b></p>' % (t[_PBK1], t[_PBK2][:-6], t[_PBK2][-6:])
             o += '</div>'
         else:
@@ -338,8 +338,8 @@ def index_html(nb):
     today = '%s' % datetime.datetime.now()
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header()
     data = 'pingpongcash.net/%s' % __acm__ 
-    #o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data='www.'+data).svg(10, 10, 4)) 
-    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data=data).svg(10, 10, 4)) 
+    #o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode('www.'+data).svg(10, 10, 4)) 
+    o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data).svg(10, 10, 4)) 
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     #o += '<p>Enregistrement <a href="login">ici</a></p>\n'
     o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte. Nous offons un petit chèque symbolique aux premiers inscrits. En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile. La version <i>iOS</i> pour <i>iPhone</i> est actuellement en phase de test. <a href="mailto:contact@pingpongcash.net">Contactez nous</a> pour participer.</p>'
@@ -512,7 +512,7 @@ def transaction_match(dusr, dtrx, gr):
             x = '%s/%s' % (epoch, dst)
             if x.encode('utf8') in dtrx.keys(): return 'transaction already registered' 
         tb, k = dusr[src].decode('utf8').split('/'), ecdsa()
-        k.pt = Point(curve_521, b64toi(tb[_PBK1].encode('ascii')), b64toi(tb[_PBK2].encode('ascii')))
+        k.pt = Point(c521, b64toi(tb[_PBK1].encode('ascii')), b64toi(tb[_PBK2].encode('ascii')))
         if k.verify(sig, msg):
             if tb[_STAT] in ('X', 'Y'): return 'not allowed !'
             if dst.encode('utf8') in dusr.keys(): 
@@ -601,7 +601,7 @@ def listday_match(dusr, dtrx, gr):
     if src.encode('ascii') in dusr.keys(): 
         t, k = dusr[src].decode('utf8').split('/'), ecdsa()
         pk1, pk2, status = t[_PBK1], t[_PBK2], t[_STAT] 
-        k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
+        k.pt = Point(c521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
         if status in ('A', 'B'):
             if k.verify(sig, msg):
                 x1, x2 = '>%s/%s' % (dat, t[_NBNK]), '<%s/%s' % (dat, t[_NBNK])
@@ -644,7 +644,7 @@ def verif_match(dusr, dtrx, gr):
     if src.encode('ascii') in dusr.keys(): 
         t, k = dusr[src].decode('utf8').split('/'), ecdsa()
         pk1, pk2 = t[_PBK1], t[_PBK2] 
-        k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
+        k.pt = Point(c521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
         if not k.verify(sig, msg):
             return 'wrong digital signature !'
         x = '%s/%s' % (epoch, src)
@@ -701,10 +701,12 @@ def valid_html(dusr, dtrx, dags, epoch, src):
     if tt[_CLR] == 'B':
         bnk = '%s' % b32toi(bytes(ts[_NBNK][2:],'ascii'))
         key = '%s/%s' % (bnk[:5], bnk[5:])
+        o += '<p>Données diffusées au créancier pour un encaissement manuel:</p>'
         o += '<h1>%s</h1>\n' % format_iban(ts)       
-        o += '<h2>BIC: %s</h2>\n' % ts[_CBIC]           
+        o += '<h2>BIC: %s</h2>\n' % ts[_CBIC] 
+        o += '<h2>Propriétaire du compte: %s %s</h2>\n' % (ts[_FRST], ts[_LAST])
         if key.encode('utf8') in dags.keys():
-            o += '<p>%s</p>\n' % re.sub('/', ' ', dags[key].decode('utf8'))
+            o += '<p>Banque: %s</p>\n' % re.sub('/', ' ', dags[key].decode('utf8'))
         o += '<p>Ce chèque est dans l\'état <b class="blue">\'bleu\'</b>.</p>\n'
         o += '<p>Le créancier désigné <b>\'%s\'</b> peut:</p>\n' % tt[_DST]
         o += "<p>- déposer le chèque à sa banque pour encaissement manuel, s'il n'a pas encore de code marchand</p>\n"
@@ -737,7 +739,7 @@ def pubkey_match(dusr, gr):
     raw, mail, pk1, pk2, sig = gr[0], gr[1], gr[2], gr[3], gr[4] 
     if mail.encode('utf8') in dusr.keys(): 
         t, k = dusr[dusr[mail]].decode('utf8').split('/'), ecdsa()
-        k.pt = Point(curve_521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
+        k.pt = Point(c521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
         msg = '/'.join([today[:10], t[_PAWD], raw])
         if k.verify(sig, msg):
             cm1, cm = pk2[-6:], dusr[mail] 
@@ -858,6 +860,7 @@ def application(environ, start_response):
             else: o = 'PUBKEY OK' 
         elif reg(re.match(_PAT_TRANS_, arg)):
             res = transaction_match(dusr, dtrx, reg.v.groups())
+            #o = '%s' % list(reg.v.groups())
             if res: o += res
             else: o, mime = pdf_digital_check(dusr, dtrx, dags, reg.v.groups(), environ['SERVER_NAME']), 'application/pdf'
         elif reg(re.match(_PAT_AGENCY_, arg)):
@@ -922,7 +925,8 @@ def application(environ, start_response):
             gr = reg.v.groups()
             if gr[0].encode('utf8') in dtrx:
                 t = dtrx[gr[0]].decode('utf8').split('/')
-                g = ['TR', '/'.join([gr[0]] + t[0:2]), gr[1], gr[2], t[0], t[1], '/'.join(t[3:5]), t[2], '']
+                g = ['TR', '/'.join([gr[0]] + t[0:2]), gr[1], gr[2], t[1], t[4], '/'.join(t[5:]), t[2], '']
+                #o = '%s' % g
                 o, mime = pdf_digital_check(dusr, dtrx, dags, g, environ['SERVER_NAME']), 'application/pdf'
         else:
             if base.encode('ascii') in dusr.keys(): o, mime = front_html(dusr, dtrx, base, True, raw, 'Facture'), 'text/html; charset=utf8'
@@ -980,73 +984,42 @@ def H(*tab):
     return int(hashlib.sha1(b''.join(bytes('%s' % i, 'utf8') for i in tab)).hexdigest(), 16)
 
 ##### ECDSA ####
-def encode_oid(first, second, *pieces):
-    assert first <= 2
-    assert second <= 39
-    encoded_pieces = [chr(40*first+second)] + [encode_number(p) for p in pieces]
-    body = "".join(encoded_pieces)
-    return "\x06" + encode_length(len(body)) + body
 
-def encode_number(n):
-    b128_digits = []
-    while n:
-        b128_digits.insert(0, (n & 0x7f) | 0x80)
-        n = n >> 7
-    if not b128_digits: b128_digits.append(0)
-    b128_digits[-1] &= 0x7f
-    return "".join([chr(d) for d in b128_digits])
-
-def encode_length(l):
-    assert l >= 0
-    if l < 0x80: return chr(l)
-    s = "%x" % l
-    if len(s)%2: s = "0"+s
-    s = binascii.unhexlify(s)
-    llen = len(s)
-    return chr(0x80|llen) + s
-
-class CurveFp( object ):
-    def __init__( self, p, a, b ):
+class CurveFp(object):
+    def __init__(self, p, a, b):
         "The curve of points satisfying y^2 = x^3 + a*x + b (mod p)"
         self.__p, self.__a, self.__b = p, a, b
-    def p( self ):
+    def p(self):
         return self.__p
-    def a( self ):
+    def a(self):
         return self.__a
-    def b( self ):
+    def b(self):
         return self.__b
-    def contains_point( self, x, y ):
-        return ( y * y - ( x * x * x + self.__a * x + self.__b ) ) % self.__p == 0
+    def contains_point(self, x, y ):
+        return (y * y - ( x * x * x + self.__a * x + self.__b )) % self.__p == 0
 
-class Point( object ):
-    def __init__( self, curve, x, y, order = None ):
-        "curve, x, y, order; order (optional) is the order of this point"
-        self.__curve = curve
-        self.__x = x
-        self.__y = y
-        self.__order = order
-        if self.__curve: assert self.__curve.contains_point( x, y )
+class Point(object):
+    def __init__(self, curve, x, y, order = None):
+        self.__curve, self.__x, self.__y, self.__order = curve, x, y, order
+        if self.__curve: assert self.__curve.contains_point(x, y)
         if order: assert self * order == INFINITY
-    def __cmp__( self, other ):
-        "Return 0 if the points are identical, 1 otherwise"
+    def __cmp__(self, other):
         if self.__curve == other.__curve and self.__x == other.__x and self.__y == other.__y: return 0
         else: return 1
-    def __add__( self, other ):
-        "Add one point to another point"
+    def __add__(self, other):
         if other == INFINITY: return self
         if self == INFINITY: return other
         assert self.__curve == other.__curve
         if self.__x == other.__x:
-            if ( self.__y + other.__y ) % self.__curve.p() == 0: return INFINITY
+            if (self.__y + other.__y ) % self.__curve.p() == 0: return INFINITY
             else: return self.double()
         p = self.__curve.p()
         l = ( ( other.__y - self.__y ) * inverse_mod( other.__x - self.__x, p ) ) % p
         x3 = ( l * l - self.__x - other.__x ) % p
         y3 = ( l * ( self.__x - x3 ) - self.__y ) % p
         return Point( self.__curve, x3, y3 )
-    def __mul__( self, other ):
-        "Multiply a point by an integer"
-        def leftmost_bit( x ):
+    def __mul__(self, other):
+        def leftmost_bit(x):
             assert x > 0
             result = 1
             while result <= x: result = 2 * result
@@ -1057,49 +1030,37 @@ class Point( object ):
         if self == INFINITY: return INFINITY
         assert e > 0
         e3 = 3 * e
-        negative_self = Point( self.__curve, self.__x, -self.__y, self.__order )
-        i = leftmost_bit( e3 ) // 2
+        negative_self = Point(self.__curve, self.__x, -self.__y, self.__order)
+        i = leftmost_bit(e3) // 2
         result = self
         while i > 1:
             result = result.double()
-            if ( e3 & i ) != 0 and ( e & i ) == 0: result = result + self
-            if ( e3 & i ) == 0 and ( e & i ) != 0: result = result + negative_self
+            if (e3 & i) != 0 and (e & i) == 0: result = result + self
+            if (e3 & i) == 0 and (e & i) != 0: result = result + negative_self
             i = i // 2
         return result
-    def __rmul__( self, other ):
-        "Multiply a point by an integer"
+    def __rmul__(self, other):
         return self * other
-    def double( self ):
+    def double(self):
         if self == INFINITY: return INFINITY
-        p = self.__curve.p()
-        a = self.__curve.a()
-        l = ( ( 3 * self.__x * self.__x + a ) * inverse_mod( 2 * self.__y, p ) ) % p
+        p, a = self.__curve.p(), self.__curve.a()
+        l = ( ( 3 * self.__x * self.__x + a ) * inverse_mod(2 * self.__y, p ) ) % p
         x3 = ( l * l - 2 * self.__x ) % p
         y3 = ( l * ( self.__x - x3 ) - self.__y ) % p
-        return Point( self.__curve, x3, y3 )
-    def x( self ):
+        return Point(self.__curve, x3, y3)
+    def x(self):
         return self.__x
-    def y( self ):
+    def y(self):
         return self.__y
-    def curve( self ):
+    def curve(self):
         return self.__curve  
-    def order( self ):
+    def order(self):
         return self.__order
 
-def orderlen(order):
-    return (1+len("%x" % order))//2 # bytes
-
 class Curve:
-    def __init__(self, name, curve, generator, oid):
-        self.name = name
-        self.curve = curve
+    def __init__(self, generator):
         self.generator = generator
         self.order = generator.order()
-        self.baselen = orderlen(self.order)
-        self.verifying_key_length = 2*self.baselen
-        self.signature_length = 2*self.baselen
-        self.oid = oid
-        self.encoded_oid = encode_oid(*oid)
 
 # NIST Curve P-521:
 _B = b'UZU-uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex-k3sWUsC9O7G_BzVz34g9LDTx70Uf1GtQPwA'
@@ -1109,9 +1070,8 @@ _P = b'Af' + b'_'*86
 _R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
 
 INFINITY = Point(None, None, None)  
-curve_521 = CurveFp(b64toi(_P), -3, b64toi(_B))
-encoded_oid_ecPublicKey = encode_oid(*(1, 2, 840, 10045, 2, 1))
-NIST521p = Curve("NIST521p", curve_521, Point( curve_521, b64toi(_GX), b64toi(_GY), b64toi(_R) ), (1, 3, 132, 0, 35))
+c521 = CurveFp(b64toi(_P), -3, b64toi(_B))
+NIST521p = Curve(Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R) ))
 
 class ecdsa:
     def __init__(self):
@@ -1120,17 +1080,17 @@ class ecdsa:
         pp = curve.generator*secexp
         self.pkgenerator = curve.generator
         self.pt, n = pp, curve.generator.order()
-        if not n: raise "Generator point must have order."
-        if not n * pp == INFINITY: raise "Generator point order is bad."
-        if pp.x() < 0 or n <= pp.x() or pp.y() < 0 or n <= pp.y(): raise "Out of range."
+        if not n: raise 'Generator point must have order'
+        if not n * pp == INFINITY: raise 'Generator point order is bad'
+        if pp.x() < 0 or n <= pp.x() or pp.y() < 0 or n <= pp.y(): raise 'Out of range'
         self.pkorder, self.privkey = n, secexp
 
     def verify(self, s, data):
         nb, [r, s], G, n = H(data), [b64toi(x) for x in s.encode('ascii').split(b'/')], self.pkgenerator, self.pkorder
         if r < 1 or r > n-1: return False
         if s < 1 or s > n-1: return False
-        c = inverse_mod( s, n )
-        u1, u2 = ( nb * c ) % n, ( r * c ) % n
+        c = inverse_mod(s, n)
+        u1, u2 = (nb * c) % n, (r * c) % n
         xy = u1 * G + u2 * self.pt
         return xy.x() % n == r
 
@@ -1139,17 +1099,17 @@ class ecdsa:
         k = rk % n
         p1 = k * G
         r = p1.x()
-        if r == 0: raise "amazingly unlucky random number r"
-        s = ( inverse_mod( k, n ) * ( nb + ( self.privkey * r ) % n ) ) % n
-        if s == 0: raise "amazingly unlucky random number s"
+        if r == 0: raise 'unlucky random number r'
+        s = (inverse_mod(k, n ) * ( nb + ( self.privkey * r ) % n ) ) % n
+        if s == 0: raise 'unlucky random number s'
         return '%s/%s' % (itob64(r).decode('ascii'), itob64(s).decode('ascii'))
 
-def inverse_mod( a, m ):
+def inverse_mod(a, m):
     if a < 0 or m <= a: a = a % m
     c, d = a, m
     uc, vc, ud, vd = 1, 0, 0, 1
     while c != 0:
-        q, c, d = divmod( d, c ) + ( c, )
+        q, c, d = divmod(d, c ) + ( c, )
         uc, vc, ud, vd = ud - q*uc, vd - q*vc, uc, vc
     assert d == 1
     if ud > 0: return ud
@@ -1158,18 +1118,19 @@ def inverse_mod( a, m ):
 def randrange(order):
     entropy = os.urandom
     assert order > 1
-    byts = orderlen(order)
+    byts = (1+len('%x' % order))//2
     dont_try_forever = 10000 # gives about 2**-60 failures for worst case
     while dont_try_forever > 0:
         dont_try_forever -= 1
         candidate = int(binascii.hexlify(entropy(byts)), 16)
         if 1 <= candidate < order: return candidate
         continue
-    raise "randrange() tried hard but gave up. Order was %x" % order
+    raise 'randrange() tried hard but gave up. Order was %x' % order
 
 ####### UTILITIES #########
 
 def rect(x, y, w, h, r=0):
+    "_"
     if r == 0:
         return bytes ('%s %s m %s %s l %s %s l %s %s l h ' %(x, y, x, y+h, x+w, y+h, x+w, y), 'ascii')  
     else:
@@ -1188,6 +1149,7 @@ def luhn(num):
     return (s % 10 == 0)
 
 def format_iban(t):
+    "_"
     bnk = 'FR76%010d%013d ' % (b32toi(bytes(t[_NBNK][2:], 'ascii')), b64toi(bytes(t[_IBAN], 'ascii')))
     tiban = ' '.join([bnk[4*i:4*(i+1)] for i in range(7)]) 
     return tiban[:-1]
@@ -1196,6 +1158,7 @@ def format_iban(t):
 
 class updf:
     def __init__(self, pagew, pageh, letterw=595, letterh=842, binary=True):
+        "_"
         self.pw, self.ph = pagew, pageh
         self.mx, self.my = 0, 0
         self.binary = binary
@@ -1204,11 +1167,13 @@ class updf:
         self.o = b'%PDF-1.4\n%'
     
     def add(self, line):
+        "_"
         self.pos.append(len(self.o))
         self.i += 1
         self.o += bytes('%d 0 obj<<%s>>endobj\n' % (self.i, line), 'ascii')
 
     def addi(self, img, binary=True):
+        "_"
         self.pos.append(len(self.o))
         tf = open(img, 'rb').read()
         if binary: tf = zlib.compress(tf) 
@@ -1218,6 +1183,7 @@ class updf:
         self.o += tf + bytes('endstream endobj\n', 'ascii')
 
     def adds(self, stream):
+        "_"
         self.pos.append(len(self.o))
         self.i += 1
         if self.binary: stream = zlib.compress(stream) 
@@ -1304,7 +1270,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
     date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     date_en = time.strftime('%c', time.localtime(float(epoch)))
     tb = dusr[src].decode('utf8').split('/')
-    pubname, info1, info2 = '', sanity('Reçu - Receipt - '*5), ''
+    pubname, info1, info2, info3 = '', sanity('Reçu - Receipt - '*5), '', ''
     info1 = info1[:-3]
     msgraw = msg
     ttab = dtrx['%s/%s' % (epoch, src)].decode('utf8').split('/')
@@ -1316,7 +1282,10 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
         bnk = '%s' % b32toi(bytes(tb[_NBNK][2:],'ascii'))
         key = '%s/%s' % (bnk[:5], bnk[5:])
         if key.encode('utf8') in dags.keys():
-            info1, info2 = '%s %s - %s - %s' % (tb[_FRST], tb[_LAST], format_iban(tb), tb[_CBIC]), re.sub('/', ' ', sanity(dags[key].decode('utf8')))
+            info1 = '%s %s - %s - %s' % (tb[_FRST], tb[_LAST], format_iban(tb), tb[_CBIC])
+            ti = dags[key].decode('utf8').split('/')
+            info2 = ' '.join(ti[0:4])
+            info3 = 'Tel: %s - Email: %s' % (ti[4],ti[5])
     dpubname = pubname + ' ' + '*'*(30-len(pubname))
     if trvd == 'TR':
         if (efv == '' or int(efv) > int(val)): efv = val
@@ -1384,7 +1353,7 @@ Merci pour l'utilisation de @ppc@,
         (155, 112, 1, 7, gray, 'Public key:'),
         (155, 200, 1, 8, gray, 'Signed message:'),  
         #sign,
-        (155, 11, 1, 6, '.05 .46 .8', sanity(info1)), (155, 17, 1, 6, '.05 .46 .8', sanity(info2)), 
+        (175, 13, 1, 7, '.05 .46 .8', sanity(info1)), (175, 21, 1, 7, '.05 .46 .8', sanity(info2)), (175, 29, 1, 7, '.05 .46 .8', sanity(info3)), 
         (475, 10, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
         ] + bars
     pagec3 = [(84, 80, 1, 60, 1, 'Encart publicitaire'), (50, 140, 1, 10, 1, 'Avec un (QRcode ou Datamatrix) + hyperlien qui redirige directement sur votre site Web.'),]
@@ -1399,13 +1368,13 @@ Merci pour l'utilisation de @ppc@,
                      ] 
     #lurl = 'www.pingpongcash.net'
     lurl = 'pingpongcash.net'
-    url = (urllib.parse.quote('%s/%s/%s' % (lurl, msgraw, sig)), '%s/%s' % (lurl, src), '%s/%s/%s' % (lurl, epoch, src), 'google.fr')
-    qr1, qr2, qr3, qr4 = QRCode(data=url[0]), QRCode(data=url[1]), QRCode(data=url[2]), QRCode(data=url[3])
+    url = (urllib.parse.quote('%s/%s/%s' % (lurl, msgraw, sig)), '%s/%s/%s' % (lurl, epoch, src), 'google.fr')
+    qr1, qr2, qr3 = QRCode(url[0]), QRCode(url[1]), QRCode(url[2])
     dx1, dy1, w1, h1 = 99, 0, 496, 227
     dx2, dy2, w2, h2 = 0, 600, 496, 227
     dx3, dy3, w3, h3 = 393, 229, 200, 611
     graph1 = bytes('[10 2] 0 d .5 .5 .5 RG 1 1 .9 rg %s %s %s %s re B [] 0 d ' % (dx1, dy1, 496, 227), 'ascii') 
-    graph1 += b'q .5 .5 .5 rg ' + rect(527, 90, 52, 30, 10) + b' f 1 1 1 rg BT 1 0 0 1 532 96 Tm /F1 24 Tf (C C) Tj 1 0 0 1 549 104 Tm /F1 14 Tf (2) Tj ET Q '
+    graph1 += b'q .5 .5 .5 rg ' + rect(527, 90, 52, 38, 10) + b' f 1 1 1 rg BT 1 0 0 1 532 96 Tm /F1 24 Tf (C C) Tj 1 0 0 1 549 104 Tm /F1 14 Tf (2) Tj 1 0 0 1 534 116 Tm /F5 9 Tf (SECURE) Tj ET Q '
     graph1 += b'q .3 .5 .9 rg .22 0 0 .22 20 722  cm /Im1 Do Q '
     graph1 += b'q .9 .5 .1 rg .12 0 0 .12 100 170 cm /Im1 Do Q '
     graph1 += b'q .95 .95 .95 rg .6 0 0 .6 220 -30 cm /Im1 Do Q '    
@@ -1420,9 +1389,8 @@ Merci pour l'utilisation de @ppc@,
     pas = 2
     x1, y1, w1, x2, y2, w2 = dx1+17, dy1+14, (61*pas), dx1+420, dy1+80, (29*pas)
     qrt = ( (qr1.pdf(x1, y1+121, pas, True), '%s %s %s %s' % (x1-1, y1-1, x1+w1+2, y1+w1+2), url[0]),
-            #(qr2.pdf(x2, y2+56, pas, False), '%s %s %s %s' % (x2-1, y2-1, x2+w2+2, y2+w2+2), url[1]),
-            (qr3.pdf(310, 300, pas, False), '%s %s %s %s' % (309, 242, 370, 303), url[2]),
-            (qr4.pdf(408, 820, 3, False, b'.7 .7 .7'), '%s %s %s %s' % (407, 759, 471, 823), url[3]))
+            (qr2.pdf(310, 300, pas, False), '%s %s %s %s' % (309, 242, 370, 303), url[1]),
+            (qr3.pdf(408, 820, 3, False, b'.7 .7 .7'), '%s %s %s %s' % (407, 759, 471, 823), url[2]))
     pages = (
         (page2, pagec2, graph2, (dx2, dy2, w2, h2)),
         (page1, pagec1, graph1, (dx1, dy1, w1, h1)),
@@ -1803,7 +1771,7 @@ def rs_blocks(version, error_correction):
     return blocks
 
 class QRCode:
-    def __init__(self, version=None, error_correction=ERR_COR_M, data="hello"):
+    def __init__(self, data='hello', version=None, error_correction=ERR_COR_M):
         self.version = version and int(version)
         self.error_correction = int(error_correction)
         self.m, self.m_count = None, 0
@@ -2286,7 +2254,7 @@ def generate():
         for l in open('search.txt').readlines():
             if reg(re.match('\S{6} -> ([^/]+)/([^/]+)/(\S+)$', l)):
                 k = ecdsa()
-                k.pt = Point(curve_521, b64toi(bytes(reg.v.group(1), 'ascii')), b64toi(bytes(reg.v.group(2), 'ascii')))
+                k.pt = Point(c521, b64toi(bytes(reg.v.group(1), 'ascii')), b64toi(bytes(reg.v.group(2), 'ascii')))
                 k.privkey = int(b64toi(bytes(reg.v.group(3), 'ascii'))) 
                 cm = itob64(k.pt.y())[-6:].decode('utf8')
                 kt.append(k)
@@ -2345,7 +2313,7 @@ def get_k():
     pp = getpass.getpass('Pass Phrase ?')
     k = ecdsa()
     tab = d[user].split(b'/')
-    k.pt = Point(curve_521, b64toi(tab[0]), b64toi(tab[1]))
+    k.pt = Point(c521, b64toi(tab[0]), b64toi(tab[1]))
     pw = hashlib.sha256(pp.encode('utf8')).digest()
     #DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
     #k.privkey = int(DecodeAES(AES.new(pw, AES.MODE_OFB, _IV), tab[3])) # AES from PyCrypto
@@ -2447,7 +2415,7 @@ if __name__ == '__main__':
     #for dat in ('AAAAAAAAAABBBBBCCCCC', 
     #            '+++++++++++++++*/...',
     #            'aaaaaaaaa?-&àé'):
-    #    qr1 = QRCode(data = dat)
+    #    qr1 = QRCode(dat)
     #    toto = qr1.pdf(10, 10, 2, True)
     #    print (dat, ' ', toto)
 
