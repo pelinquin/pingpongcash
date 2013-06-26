@@ -399,7 +399,8 @@ def init_dbs(dbs):
     for dbn in dbs:
         db = '/cup/%s/%s.db' % (__app__, dbn)
         if not os.path.isfile(db):
-            d = dbm.open(db, 'c')
+            dbf =  db if sys.version_info.minor == 3 else db[:-3]
+            d = dbm.open(dbf, 'c')
             d['__N'] = '0'
             d.close()
             os.chmod(db, 511)
@@ -829,7 +830,10 @@ def application(environ, start_response):
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base = environ['PATH_INFO'][1:]
     base1 = urllib.parse.unquote(environ['REQUEST_URI'])[1:]
-    [dtrx, dags, dusr] = [dbm.open('/cup/%s/%s.db' % (__app__, b), 'c') for b in dbs]
+    if sys.version_info.minor == 3:
+        [dtrx, dags, dusr] = [dbm.open('/cup/%s/%s.db' % (__app__, b), 'c') for b in dbs]
+    else:
+        [dtrx, dags, dusr] = [dbm.open('/cup/%s/%s' % (__app__, b), 'c') for b in dbs]
     nb = [dusr['__N'], dtrx['__N']]
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
@@ -2263,7 +2267,9 @@ def generate():
     sk = input('Select one key: ')
     k = kt[int(sk)]
     cm = itob64(k.pt.y())[-6:].decode('utf8')
-    d = dbm.open(__db__, 'c')
+    dbf = __db__ if sys.version_info.minor == 3 else __db__[:-3]
+    d = dbm.open(dbf, 'c')
+
     pw = hashlib.sha256(pp1.encode('utf8')).digest()
     #pad = lambda s:s+(32-len(s)%32)*'@'
     #EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
@@ -2280,7 +2286,8 @@ def generate():
 def find_best():
     "_"
     db = 'search.db'
-    d = dbm.open(db, 'c')
+    dbf =  db if sys.version_info.minor == 3 else db[:-3]
+    d = dbm.open(dbf, 'c')
     i = 0
     while True:
         k = ecdsa()
@@ -2324,14 +2331,16 @@ def get_k():
 
 def set(k, h):
     "_"
-    d = dbm.open(__db__, 'c')
+    dbf =  __db__ if sys.version_info.minor == 3 else __db__[:-3]
+    d = dbm.open(dbf, 'c')
     d[k] = h
     print ('%s->%s' % (k, h))
     d.close()
 
 def info():
     "_"
-    d = dbm.open(__db__)
+    dbf =  __db__ if sys.version_info.minor == 3 else __db__[:-3]
+    d = dbm.open(dbf)
     print ('user:%s host:%s file:%s' % (d['user'].decode('utf8'), d['host'].decode('utf8'), d['file'].decode('utf8')))
     d.close()
     
@@ -2400,7 +2409,8 @@ def genreadme():
 def readdb(arg):
     "_"
     print (arg)
-    d = dbm.open(arg)
+    dbf =  arg if sys.version_info.minor == 3 else arg[:-3]
+    d = dbm.open(dbf)
     for x in d.keys(): print (x.decode('utf-8') ,'->', d[x].decode('utf-8'))
     d.close()
 
@@ -2455,6 +2465,8 @@ if __name__ == '__main__':
 
     #p = argparse.ArgumentParser(description='Process')
     #p.add_argument('generate', metavar='G')
+
+    print (sys.version_info.minor)
 
     sys.exit()
 # End ⊔net!
