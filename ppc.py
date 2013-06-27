@@ -30,9 +30,7 @@
 #      Sam Curren (porting from Javascript)
 #-----------------------------------------------------------------------------
 
-"""
-This code merges the server and the client, so it is easier to move to a full P2P node.
-"""
+""" This code merges the server and the client, so it is easier to move to a full P2P node. """
 
 """
 User Status:
@@ -81,7 +79,7 @@ import getpass, argparse
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:5]
 __app__    = os.path.basename(__file__)[:-3]
 __ppc__    = 'pingpongcash'
-__email__  = 'contact@%s.fr' % __ppc__
+__email__  = 'info@%s.fr' % __ppc__
 __url__    = 'http://%s.fr' % __ppc__
 __acm__    = 'McASHA'
 _XHTMLNS   = 'xmlns="http://www.w3.org/1999/xhtml"'
@@ -341,8 +339,7 @@ def index_html(nb):
     #o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode('www.'+data).svg(10, 10, 4)) 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data).svg(10, 10, 4)) 
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
-    #o += '<p>Enregistrement <a href="login">ici</a></p>\n'
-    o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte. Nous offons un petit chèque symbolique aux premiers inscrits. En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile. La version <i>iOS</i> pour <i>iPhone</i> est actuellement en phase de test. <a href="mailto:contact@pingpongcash.fr">Contactez nous</a> pour participer.</p>'
+    o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte.<br/> Nous offons un petit chèque symbolique aux premiers inscrits.<br/> En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile. La version <i>iOS-7</i> pour <i>iPhone</i> est actuellement en phase de test et sera disponible à l\'automne. <a href="mailto:contact@pingpongcash.fr">Contactez nous</a> pour participer.</p>.'
 
     o += '<div id="wrap">'
     o += '<div id="c1"><h1>Particulier</h1><p>%s</p></div>' % text_particulier()
@@ -2268,7 +2265,6 @@ def generate():
     cm = itob64(k.pt.y())[-6:].decode('utf8')
     dbf = __db__ if sys.version_info.minor == 3 else __db__[:-3]
     d = dbm.open(dbf, 'c')
-
     pw = hashlib.sha256(pp1.encode('utf8')).digest()
     #pad = lambda s:s+(32-len(s)%32)*'@'
     #EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
@@ -2278,9 +2274,9 @@ def generate():
     if b'host' not in d.keys(): set('host', 'pingpongcash.fr')        
     if b'file' not in d.keys(): set('file', 'result.pdf')        
     d.close()
-    os.chmod(db, 511)
+    os.chmod(dbf, 511)
     set('user', email)
-    print ('%s file generated for code %s user: %s' % (db, cm, email))
+    print ('%s file generated for code %s user: %s' % (dbf, cm, email))
 
 def find_best():
     "_"
