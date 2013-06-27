@@ -81,9 +81,9 @@ import getpass, argparse
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:5]
 __app__    = os.path.basename(__file__)[:-3]
 __ppc__    = 'pingpongcash'
-__email__  = 'contact@%s.net' % __ppc__
-__url__    = 'http://%s.net' % __ppc__
-__acm__    = 'JHTmFk'
+__email__  = 'contact@%s.fr' % __ppc__
+__url__    = 'http://%s.fr' % __ppc__
+__acm__    = 'McASHA'
 _XHTMLNS   = 'xmlns="http://www.w3.org/1999/xhtml"'
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 _XLINKNS   = 'xmlns:xlink="http://www.w3.org/1999/xlink"'
@@ -186,7 +186,7 @@ def front_html(dusr, dtrx, cm='', pub=False, total='', msg='', listcm=[]):
     t = dusr[cm].decode('utf8').split('/') if cm else []
     today = '%s' % datetime.datetime.now()
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header()
-    data = 'pingpongcash.net/%s' % __acm__ 
+    data = 'pingpongcash.fr/%s' % __acm__ 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data).svg(10, 10, 4))    
     o += '<p class="stat">%s inscrits | %s transactions courantes</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     dmsg = ' %s' % msg if msg else ''
@@ -330,19 +330,19 @@ def text_ethique():
 De même que l'utilisation d'un billet de banque est gratuit, un paiement à l'aire du numérique doit aussi être gratuit. Ce sont les ordinateurs qui travaillent et ils ont été ammortis par d'autres activités. Nous restons une très petite équipe, en contact privilégier avec le milieu académique et recherche en cryptographie et sécurité informatique, afin de maintenir une offre de qualité. Nous pensons que l'arrivée du numérique ne doit pas créer de nouveaux services complexes, artificiels et financés par le citoyen. Dans le pur état d'esprit de l'Internet à sa conception, chacun a le droit de donner ou recevoir de l'argent par un moyen électronique, sans verser une commision, ni aux banques, ni aux opérateurs de télécommunication, ni aux groupes de la grande distribution. La petite contribution que nous demandons (3,65€/an TTC) permet justement de maintenir une fondation garante de la protection de ce droit, independamment de l'Etat. Parce que l'<i>Internet</i> est un bien commun, offrir au citoyen un moyen de paiement gratuit, ouvert et sécurisé est simplement une <b>nouvelle exigence démocratique</b>."""
 
 def text_propos():
-    return """Notre métier initial est la recherche en informatique. Historiquement, nous travaillons avec des industriels de l'<i>aéronautique</i> et des académiques du domaine du <i>temps réel embarqué critique</i>. Bien que <a class="ppc">Ping-Pong&nbsp;</a> utilise des algorithmes cryptographiques et des protocoles éprouvés, nous sommes principalement sensibles à la sécurité informatique du système complet. Nos développements sont obligatoirement open-source pour rassurer les utilisateurs et nos clients et pour nous décharger d'un quelconque secret à protéger.<br/>Notre petite structure est en pleine phase de recrutement sur toute la France. <a href="mailto:contact@pingpongcash.net">Contactez nous</a> pour savoir si nos besoins peuvent correspondre à vos compétences, votre expérience et vos motivations.Nous envisageons à terme une internationalisation, avec le support de taux de change entre monnaies, mais nos efforts se concentrent actuellement sur la couverture de <a class="ppc">Ping-Pong&nbsp;</a> en €, en France, puis en Europe (zone SEPA).
+    return """Notre métier initial est la recherche en informatique. Historiquement, nous travaillons avec des industriels de l'<i>aéronautique</i> et des académiques du domaine du <i>temps réel embarqué critique</i>. Bien que <a class="ppc">Ping-Pong&nbsp;</a> utilise des algorithmes cryptographiques et des protocoles éprouvés, nous sommes principalement sensibles à la sécurité informatique du système complet. Nos développements sont obligatoirement open-source pour rassurer les utilisateurs et nos clients et pour nous décharger d'un quelconque secret à protéger.<br/>Notre petite structure est en pleine phase de recrutement sur toute la France. <a href="mailto:contact@pingpongcash.fr">Contactez nous</a> pour savoir si nos besoins peuvent correspondre à vos compétences, votre expérience et vos motivations.Nous envisageons à terme une internationalisation, avec le support de taux de change entre monnaies, mais nos efforts se concentrent actuellement sur la couverture de <a class="ppc">Ping-Pong&nbsp;</a> en €, en France, puis en Europe (zone SEPA).
 """
 
 def index_html(nb):
     "_"
     today = '%s' % datetime.datetime.now()
     o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header()
-    data = 'pingpongcash.net/%s' % __acm__ 
+    data = 'pingpongcash.fr/%s' % __acm__ 
     #o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode('www.'+data).svg(10, 10, 4)) 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data).svg(10, 10, 4)) 
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
     #o += '<p>Enregistrement <a href="login">ici</a></p>\n'
-    o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte. Nous offons un petit chèque symbolique aux premiers inscrits. En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile. La version <i>iOS</i> pour <i>iPhone</i> est actuellement en phase de test. <a href="mailto:contact@pingpongcash.net">Contactez nous</a> pour participer.</p>'
+    o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte. Nous offons un petit chèque symbolique aux premiers inscrits. En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile. La version <i>iOS</i> pour <i>iPhone</i> est actuellement en phase de test. <a href="mailto:contact@pingpongcash.fr">Contactez nous</a> pour participer.</p>'
 
     o += '<div id="wrap">'
     o += '<div id="c1"><h1>Particulier</h1><p>%s</p></div>' % text_particulier()
@@ -419,7 +419,7 @@ def same_bic(d, biban, siban):
 
 def smail(dest, content):
     s = smtplib.SMTP('pingpongcash')
-    s.sendmail ('dudule@pingpongcash.net', [dest], content)
+    s.sendmail ('dudule@pingpongcash.fr', [dest], content)
     s.quit()
 
 def old_transaction (d, msg, epoch, s_biban, s_siban, val, s_sig): # a enlever!
@@ -1322,7 +1322,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
 signé le %s par "%s" de code marchand: '%s'\n
 Vous pouvez vérifier sa validité et l'encaisser en ligne sur l'Internet,
 simplement en suivant le lien du large QRcode.Vérifiez que vous êtes bien 
-sur le site dont l'adresse commence par : "pingpongcash.net".
+sur le site dont l'adresse commence par : "pingpongcash.fr".
 Mais vous pouvez aussi l'utiliser comme un chèque classique.
 Découpez-le et déposez-le à votre banque après l'avoir signé au verso,
 ou bien pliez le petit formulaire de remise ci-joint.\n
@@ -1336,7 +1336,7 @@ l'encaissement auprès de votre banque est alors automatique.\n
 N'hésitez pas à nous poser des questions et à nous faire part de vos remarques.
 Merci pour l'utilisation de @ppc@, 
 ...pour un véritable moyen de paiement numérique citoyen!
-\n\n\nwww.pingpongcash.net\nwww.cupfoundation.net\n%s
+\n\n\nwww.pingpongcash.fr\nwww.cupfoundation.net\n%s
 """ % (date_gen[:10], tb[_PUBN], src, __url__)
     if txt != '': txt = '\n'.join([txt[80*i:80*(i+1)] for i in range(3)]) 
     unmsg = [] if txt == '' else [(15, 510, 1, 8, sanity('Message de l\'acheteur (%s) :' % sanity(tb[_PUBN]) )), (15, 520, 5, 8, sanity(txt))]
@@ -1370,8 +1370,7 @@ Merci pour l'utilisation de @ppc@,
                      (150, 580, 1, 7, '.6 .6 .6 ', '%s/%s/%s' % (__url__, epoch, src)),
                      (114, 60, 5, 10, _COLOR['b'], sanity(_AD1)), (114, 71, 5, 10, _COLOR['b'], sanity(_AD2)), 
                      ] 
-    #lurl = 'www.pingpongcash.net'
-    lurl = 'pingpongcash.net'
+    lurl = 'pingpongcash.fr'
     url = (urllib.parse.quote('%s/%s/%s' % (lurl, msgraw, sig)), '%s/%s/%s' % (lurl, epoch, src), 'google.fr')
     qr1, qr2, qr3 = QRCode(url[0]), QRCode(url[1]), QRCode(url[2])
     dx1, dy1, w1, h1 = 99, 0, 496, 227
@@ -2276,7 +2275,7 @@ def generate():
     #ci = EncodeAES(AES.new(pw, AES.MODE_OFB, _IV), '%s' % k.privkey) # AES from PyCrypto
     ci = AES0().encrypt('%s' % k.privkey, pw) # included AES
     d[email] = b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + ci
-    if b'host' not in d.keys(): set('host', 'pingpongcash.net')        
+    if b'host' not in d.keys(): set('host', 'pingpongcash.fr')        
     if b'file' not in d.keys(): set('file', 'result.pdf')        
     d.close()
     os.chmod(db, 511)
@@ -2402,25 +2401,24 @@ def genconf():
     open('ppc.conf', 'w').write('%s\n' % genconf.__doc__ + o)
 
 def genreadme():
-    """\nNow an Easy, Free and Secure way to use Digital Payment!\n\nSee pingpongcash.net or contact us at contact@pingpongcash.net\n"""
+    """\nNow an Easy, Free and Secure way to use Digital Payment!\n\nSee pingpongcash.fr or contact us at contact@pingpongcash.fr\n"""
     o = 'SEPA CT European Support First\nBase64 encoded sha1 short digest:%s\n\n' % (__digest__.decode('ascii'))
     open('README.md', 'w').write('The PingPongCash Project\n%s%s\n' % ('='*24, genreadme.__doc__) + o)
 
 def readdb(arg):
     "_"
     print (arg)
-    dbf =  arg if sys.version_info.minor == 3 else arg[:-3]
-    d = dbm.open(dbf)
+    d = dbm.open(arg)
     for x in d.keys(): print (x.decode('utf-8') ,'->', d[x].decode('utf-8'))
     d.close()
 
 if __name__ == '__main__':
 
-    a = updf(595, 842) # A4
-    page1 = [(52, 20, 1, 40, 'hello @test@'),]
-    pages = ((page1, [], b'', (10, 10, 100, 100)), )
-    o = a.gen1(pages)
-    open('toto.pdf', 'bw').write(o)    
+    #a = updf(595, 842) # A4
+    #page1 = [(52, 20, 1, 40, 'hello @test@'),]
+    #pages = ((page1, [], b'', (10, 10, 100, 100)), )
+    #o = a.gen1(pages)
+    #open('toto.pdf', 'bw').write(o)    
     
     #for dat in ('AAAAAAAAAABBBBBCCCCC', 
     #            '+++++++++++++++*/...',
@@ -2437,7 +2435,7 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'find': find_best()
         elif sys.argv[1] == 'register' : print (register())
         elif sys.argv[1] == 'test' : set('host','localhost')
-        elif sys.argv[1] == 'real' : set('host','pingpongcash.net')
+        elif sys.argv[1] == 'real' : set('host','pingpongcash.fr')
         elif sys.argv[1] == 'list': print (listday())
         elif sys.argv[1] == 'conf': genconf()
         elif sys.argv[1] == 'readme': genreadme()
@@ -2466,7 +2464,7 @@ if __name__ == '__main__':
     #p = argparse.ArgumentParser(description='Process')
     #p.add_argument('generate', metavar='G')
 
-    print (sys.version_info.minor)
+    #print (sys.version_info.minor)
 
     sys.exit()
 # End ⊔net!
