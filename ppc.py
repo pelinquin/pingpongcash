@@ -497,7 +497,6 @@ _PAT_LIST_   = r'LD/(([^/]{6})/([\d-]{10}))/(\S{160,200})$'
 _PAT_SECURL_ = r'([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&(\S{40,50})$'
 _PAT_PRINT_  = r'((\d{10})/(\S{6}))$'
 
-
 def transaction_match(dusr, dtrx, gr):
     "_"
     o = ''
@@ -901,7 +900,7 @@ def application(environ, start_response):
         elif raw.lower() == '_log':
             o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
         elif raw.lower() in ['_%s' % x for x in dbs]: # Just for debug!
-            d, o = dbm.open('/cup/%s/%s.db' % (__app__, raw.lower()[1:])), ''
+            d, o = dbm.open('/cup/%s/%s' % (__app__, raw.lower()[1:])), ''
             for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
             d.close()
         elif raw.lower() in ['_reset_%s' % x for x in dbs]: # Do not allow that in production!
@@ -1155,6 +1154,10 @@ def format_iban(t):
     tiban = ' '.join([bnk[4*i:4*(i+1)] for i in range(7)]) 
     return tiban[:-1]
 
+def format_tel(t):
+    "_"
+    return '.'.join([t[2*i:2*(i+1)] for i in range(5)]) 
+
 ####### PDF #########
 
 class updf:
@@ -1285,8 +1288,8 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
         if key.encode('utf8') in dags.keys():
             info1 = '%s %s - %s - %s' % (tb[_FRST], tb[_LAST], format_iban(tb), tb[_CBIC])
             ti = dags[key].decode('utf8').split('/')
-            info2 = ' '.join(ti[0:4])
-            info3 = 'Tel: %s - Email: %s' % (ti[4],ti[5])
+            info2 = '   '.join(ti[0:4])
+            info3 = 'Tel: %s - E-mail: %s' % (format_tel(ti[4]),ti[5])
     dpubname = pubname + ' ' + '*'*(30-len(pubname))
     if trvd == 'TR':
         if (efv == '' or int(efv) > int(val)): efv = val
@@ -1315,33 +1318,37 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
         (230, 112, 3, 7, pk1[:44]), (230, 120, 3, 7, pk1[44:]), 
         (230, 128, 3, 7, pk2[:44]), (230, 136, 3, 7, pk2[44:-6]), (390, 136, 6, 7, pk2[-6:]),
         ] 
-    rtxt = """Vous trouverez ci dessous un chèque @ppc@,
-signé le %s par "%s" de code marchand: '%s'\n
-Vous pouvez vérifier sa validité et l'encaisser en ligne sur l'Internet,
-simplement en suivant le lien du large QRcode.Vérifiez que vous êtes bien 
-sur le site dont l'adresse commence par : "pingpongcash.fr".
-Mais vous pouvez aussi l'utiliser comme un chèque classique.
-Découpez-le et déposez-le à votre banque après l'avoir signé au verso,
-ou bien pliez le petit formulaire de remise ci-joint.\n
-Pour payer avec un chèque @ppc@, enregistrez-vous sur le site 
-et demandez un certificat @ppc@ à votre conseiller financier.
-Il nous contactera au besoin pour valider son agence bancaire.
-Ensuite envoyez par e-mail ou imprimez vos chèques @ppc@ émis,
-avec obligatoirement le nom du bénéficiaire.
-Si enfin votre créancier est déjà enregistré, gardez le chèque comme reçu,
-l'encaissement auprès de votre banque est alors automatique.\n
+    rtxt = """Vous trouverez ci dessous un chèque @ppc@, signé le %s 
+par "%s" de code marchand: "%s"\n
+Vérifiez sa validité avec un téléphone (Smartphone). 
+Le QRcode du chèque doit vous rediriger vers un site dont l'adresse commence par : 
+"pingpongcash.fr", et vous confirmer l'authenticité de sa signature électronique.\n
+Vous pouvez encaisser ce chèque @ppc@ comme tout autre chèque classique.
+Pour cela, découpez-le et déposez-le à votre banque après l'avoir signé au verso,
+Si besoin, remplissez et pliez le petit formulaire de remise ci-joint.\n
+Vous pouvez aussi encaisser un chèque @ppc@ sur Internet, sans vous déplacer.
+Vous devez au préalable vous enregistrer sur le site de @ppc@ afin d'obtenir 
+un code marchand et choisir un nom public de marchand.\n
+Pour payer vous aussi avec un chèque @ppc@, demandez un certificat 
+@ppc@ à votre conseiller financier de votre banque.
+Il nous contactera au besoin pour certifier son agence bancaire.
+Editez ensuite directement depuis votre téléphone des chèques @ppc@.
+Vous avez toujours le choix de les envoyer à vos créanciers par e-mail oubien 
+de les imprimer pour les leur remettre en mains propres.\n
+Si enfin votre créancier est déjà enregistré @ppc@, utilisez son code marchand.
+et remettez lui le chèque comme reçu, car l'encaissement est automatiquement.\n
 N'hésitez pas à nous poser des questions et à nous faire part de vos remarques.
 Merci pour l'utilisation de @ppc@, 
 ...pour un véritable moyen de paiement numérique citoyen!
 \n\n\nwww.pingpongcash.fr\nwww.cupfoundation.net\n%s
-""" % (date_gen[:10], tb[_PUBN], src, __url__)
+""" % (date_gen[:10], tb[_PUBN], src, __email__)
     if txt != '': txt = '\n'.join([txt[80*i:80*(i+1)] for i in range(3)]) 
     unmsg = [] if txt == '' else [(15, 510, 1, 8, sanity('Message de l\'acheteur (%s) :' % sanity(tb[_PUBN]) )), (15, 520, 5, 8, sanity(txt))]
     page2 = [(114, 42, 1, 28, '@ppc@'), (75, 120, 1, 9, 'Bonjour %s,' % pubname), (20, 160, 1, 9, sanity(rtxt))] + unmsg
     gray, dodger, bluel = '.7 .7 .7', '.1 .1 .6', '.5 .5 .9'
     sign = (195, 198, 1, 240, '.95 .95 .95', '\001') if trvd == 'TR' else (155, 85, 5, 60, '.9 .9 .9', 'PROOF') 
     eurs = (445, 36, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (408, 38, 1, 20, '.1 .2 .7', val)
-    bars = [(325, 118, 1, 120, '.95 .8 .6', '/'), (340, 118, 1, 120, '.95 .8 .6', '/')] if trvd == 'TR' else []
+    bars = [(322, 118, 1, 120, '.95 .8 .6', '/'), (337, 118, 1, 120, '.95 .8 .6', '/')] if trvd == 'TR' else []
     pagec1 = [
         (52, 29, 5, 6, _COLOR['c'], sanity(_AD1)), (52, 36, 5, 5, _COLOR['c'], sanity(_AD2)), 
         (44, 50, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
@@ -2303,7 +2310,7 @@ def register():
     "_"
     k, host, user, fi, t = get_k()
     today = '%s' % datetime.datetime.now()
-    pp = getpass.getpass('Mot de passe du site Internet ?')
+    pp = getpass.getpass('PingPongCash Internet password ?')
     raw = '/'.join([user, t[0].decode('ascii'), t[1].decode('ascii')])    
     msg = '/'.join([today[:10], h10(pp), raw])
     return cmd(True, '/'.join(['PK', '1', raw, k.sign(msg)]), host.decode('utf8'))    
