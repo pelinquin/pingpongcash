@@ -78,7 +78,7 @@ _EFV = 4 # Realised Amount
 _SI1 = 5 # Transaction Signature part1
 _SI2 = 6 # Transaction Signature part2
 
-import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time, smtplib, operator
+import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time, smtplib, operator
 import getpass, argparse
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:5]
@@ -736,12 +736,11 @@ def valid_html(dusr, dtrx, dags, epoch, src):
 
 def pubkey_match(dusr, gr):
     "_"
-    o = ''
-    today = '%s' % datetime.datetime.now()
-    raw, mail, pk1, pk2, sig = gr[0], gr[1], gr[2], gr[3], gr[4] 
+    o, raw, mail, pk1, pk2, sig = '', gr[0], gr[1], gr[2], gr[3], gr[4] 
     if mail.encode('utf8') in dusr.keys(): 
         t, k = dusr[dusr[mail]].decode('utf8').split('/'), ecdsa()
         k.pt = Point(c521, b64toi(pk1.encode('ascii')), b64toi(pk2.encode('ascii')))
+        today = '%s' % datetime.datetime.now()
         msg = '/'.join([today[:10], t[_PAWD], raw])
         if k.verify(sig, msg):
             cm1, cm = pk2[-6:], dusr[mail] 
@@ -1071,16 +1070,15 @@ class Curve:
 _B = b'UZU-uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex-k3sWUsC9O7G_BzVz34g9LDTx70Uf1GtQPwA'
 _GX = b'xoWOBrcEBOnNnj7LZiOVtEKcZIE5BT-1Ifgor2BrTT26oUted-_nWSj-HcEnov-o3jNIs8GFakKb-X5-McLlvWY'
 _GY = b'ARg5KWp4mjvABFyKX7QsfRvZmPVESVebRGgXr70XJz5mLJfucple9CZAxVC5AT-tB2E1PHCGonLCQIi-lHaf0WZQ'
-_P = b'Af' + b'_'*86
 _R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
 
 INFINITY = Point(None, None, None)  
-c521 = CurveFp(b64toi(_P), -3, b64toi(_B))
-NIST521p = Curve(Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R) ))
+c521 = CurveFp(b64toi(b'Af' + b'_'*86), -3, b64toi(_B))
 
 class ecdsa:
     def __init__(self):
-        curve=NIST521p
+        "_"
+        curve = Curve(Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R) ))
         secexp = randrange(curve.order)
         pp = curve.generator*secexp
         self.pkgenerator = curve.generator
@@ -1091,6 +1089,7 @@ class ecdsa:
         self.pkorder, self.privkey = n, secexp
 
     def verify(self, s, data):
+        "_"
         nb, [r, s], G, n = H(data), [b64toi(x) for x in s.encode('ascii').split(b'/')], self.pkgenerator, self.pkorder
         if r < 1 or r > n-1: return False
         if s < 1 or s > n-1: return False
@@ -1100,6 +1099,7 @@ class ecdsa:
         return xy.x() % n == r
 
     def sign(self, data):
+        "_"
         nb, rk, G, n = H(data), randrange(self.pkorder), self.pkgenerator, self.pkorder
         k = rk % n
         p1 = k * G
@@ -1110,6 +1110,7 @@ class ecdsa:
         return '%s/%s' % (itob64(r).decode('ascii'), itob64(s).decode('ascii'))
 
 def inverse_mod(a, m):
+    "_"
     if a < 0 or m <= a: a = a % m
     c, d = a, m
     uc, vc, ud, vd = 1, 0, 0, 1
@@ -1121,6 +1122,7 @@ def inverse_mod(a, m):
     else: return ud + m
 
 def randrange(order):
+    "_"
     entropy = os.urandom
     assert order > 1
     byts = (1+len('%x' % order))//2
@@ -1379,7 +1381,7 @@ Merci pour l'utilisation de @ppc@,
                      (150, 580, 1, 7, '.6 .6 .6 ', '%s/%s/%s' % (__url__, epoch, src)),
                      (114, 60, 5, 10, _COLOR['b'], sanity(_AD1)), (114, 71, 5, 10, _COLOR['b'], sanity(_AD2)), 
                      ] 
-    lurl = 'pingpongcash.fr'
+    lurl = 'www.pingpongcash.fr'
     url = (urllib.parse.quote('%s/%s/%s' % (lurl, msgraw, sig)), '%s/%s/%s' % (lurl, epoch, src), 'google.fr')
     qr1, qr2, qr3 = QRCode(url[0]), QRCode(url[1]), QRCode(url[2])
     dx1, dy1, w1, h1 = 99, 0, 496, 227
