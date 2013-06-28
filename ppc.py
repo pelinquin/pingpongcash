@@ -29,6 +29,11 @@
 #    * QRcode is extented to PDF and SVG from the inspired code of:
 #      Sam Curren (porting from Javascript)
 #-----------------------------------------------------------------------------
+""" SHORT DOTO LIST
+- DataMatrix Support
+- P2P nodes
+- ECDSA signcryption
+"""
 
 """ This code merges the server and the client, so it is easier to move to a full P2P node. """
 
@@ -339,7 +344,7 @@ def index_html(nb):
     #o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode('www.'+data).svg(10, 10, 4)) 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data).svg(10, 10, 4)) 
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
-    o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte.<br/> Nous offons un petit chèque symbolique aux premiers inscrits.<br/> En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile. La version <i>iOS-7</i> pour <i>iPhone</i> est actuellement en phase de test et sera disponible à l\'automne. <a href="mailto:contact@pingpongcash.fr">Contactez nous</a> pour participer.</p>.'
+    o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte.<br/> Nous offons un petit chèque symbolique aux premiers inscrits.<br/> En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile.<br/>La version <i>iOS-7</i> pour <i>iPhone</i> est actuellement en phase de test et sera disponible à l\'automne. <a href="mailto:contact@pingpongcash.fr">Contactez nous</a> pour participer.</p>.'
 
     o += '<div id="wrap">'
     o += '<div id="c1"><h1>Particulier</h1><p>%s</p></div>' % text_particulier()
@@ -1320,7 +1325,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
         ] 
     rtxt = """Vous trouverez ci dessous un chèque @ppc@, signé le %s 
 par "%s" de code marchand: "%s"\n
-Vérifiez sa validité avec un téléphone (Smartphone). 
+Vérifiez sa validité avec un téléphone ('smartphone'). 
 Le QRcode du chèque doit vous rediriger vers un site dont l'adresse commence par : 
 "pingpongcash.fr", et vous confirmer l'authenticité de sa signature électronique.\n
 Vous pouvez encaisser ce chèque @ppc@ comme tout autre chèque classique.
@@ -2449,14 +2454,14 @@ if __name__ == '__main__':
         elif sys.argv[1] in ('host', 'user', 'file'): set(sys.argv[1], sys.argv[2])
         else: usage()
     elif len(sys.argv) == 4: 
-        if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3])
+        if sys.argv[1] in ('buy','pay'): buy(sys.argv[2], sys.argv[3])
         elif sys.argv[1] == 'proof': proof(sys.argv[2], sys.argv[3])
         else: usage()
     elif len(sys.argv) == 5: 
-        if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4])
+        if sys.argv[1] in ('buy','pay'): buy(sys.argv[2], sys.argv[3], sys.argv[4])
         elif sys.argv[1] == 'proof': proof(sys.argv[2], sys.argv[3], sys.argv[4])
         else: usage()
-    elif len(sys.argv) == 6 and sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
+    elif len(sys.argv) == 6 and sys.argv[1] in ('buy','pay'): buy(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     else:
         usage()
     #s, f = 'Jun 1 2005', '%b %d %Y'
@@ -2466,8 +2471,6 @@ if __name__ == '__main__':
 
     #p = argparse.ArgumentParser(description='Process')
     #p.add_argument('generate', metavar='G')
-
-    #print (sys.version_info.minor)
 
     sys.exit()
 # End ⊔net!
