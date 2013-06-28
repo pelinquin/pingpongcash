@@ -1278,7 +1278,9 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
     trvd, msg, epoch, src, dst, val, sig, efv, txt = gr[0], gr[1], gr[2], gr[3], gr[4], gr[5], gr[6], gr[7], gr[8]
     #import locale
     #locale.setlocale(locale.LC_TIME, ('fr_FR', 'IS8859-15'))
-    date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
+    #date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
+    date_gen = time.strftime('%d-%m-%Y %H:%M:%S', time.localtime(float(epoch)))
+
     date_en = time.strftime('%c', time.localtime(float(epoch)))
     tb = dusr[src].decode('utf8').split('/')
     pubname, info1, info2, info3 = '', sanity('Reçu - Receipt - '*5), '', ''
@@ -1343,12 +1345,12 @@ Editez ensuite directement depuis votre téléphone des chèques @ppc@.
 Vous avez toujours le choix de les envoyer à vos créanciers par e-mail oubien 
 de les imprimer pour les leur remettre en mains propres.\n
 Si enfin votre créancier est déjà enregistré @ppc@, utilisez son code marchand.
-et remettez lui le chèque comme reçu, car l'encaissement est automatiquement.\n
+et remettez lui le chèque comme reçu, car l'encaissement est automatique.\n
 N'hésitez pas à nous poser des questions et à nous faire part de vos remarques.
 Merci pour l'utilisation de @ppc@, 
 ...pour un véritable moyen de paiement numérique citoyen!
 \n\n\nwww.pingpongcash.fr\nwww.cupfoundation.net\n%s
-""" % (date_gen[:10], tb[_PUBN], src, __email__)
+""" % (date_gen, tb[_PUBN], src, __email__)
     if txt != '': txt = '\n'.join([txt[80*i:80*(i+1)] for i in range(3)]) 
     unmsg = [] if txt == '' else [(15, 510, 1, 8, sanity('Message de l\'acheteur (%s) :' % sanity(tb[_PUBN]) )), (15, 520, 5, 8, sanity(txt))]
     page2 = [(114, 42, 1, 28, '@ppc@'), (75, 120, 1, 9, 'Bonjour %s,' % pubname), (20, 160, 1, 9, sanity(rtxt))] + unmsg
@@ -1364,7 +1366,7 @@ Merci pour l'utilisation de @ppc@,
         (155, 154, 1, 8, gray, 'Date:'), 
         (155, 168, 1, 4, gray, 'EC-DSA-521P'),
         (155, 177, 1, 9, gray, 'Digital Signature:'), 
-        (180, 212, 1, 8, gray, __url__), (284, 212, 1, 8, gray, __email__), 
+        (230, 212, 1, 8, gray, __url__), (320, 212, 1, 8, gray, __email__), 
         (155, 112, 1, 7, gray, 'Public key:'),
         (155, 200, 1, 8, gray, 'Signed message:'),  
         #sign,
@@ -1377,8 +1379,8 @@ Merci pour l'utilisation de @ppc@,
             (22, 814, 1, 10, 2, sanity('Numéro') ), 
             (32, 814, 1, 10, 2, 'de compte' )] if ttab[_CLR] == 'B' else [(60, 770, 1, 40, 2, sanity('Reçu') ), ]
     pagec2 = form + [(20, 20, 1, 6, 1, date_en ),
-                     (35, 571, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
-                     (150, 580, 1, 7, '.6 .6 .6 ', '%s/%s/%s' % (__url__, epoch, src)),
+                     (35, 576, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
+                     (150, 585, 1, 7, '.6 .6 .6 ', '%s/%s/%s' % (__url__, epoch, src)),
                      (114, 60, 5, 10, _COLOR['b'], sanity(_AD1)), (114, 71, 5, 10, _COLOR['b'], sanity(_AD2)), 
                      ] 
     lurl = 'www.pingpongcash.fr'
