@@ -1329,30 +1329,29 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
         ] 
     rtxt = """Vous trouverez ci dessous un chèque @ppc@, signé le %s 
 par "%s" de code marchand: "%s"\n
-Vérifiez sa validité avec un téléphone ('smartphone'). 
+Vous pouvez vérifier sa validité avec un téléphone ('smartphone'). 
 Le QRcode du chèque doit vous rediriger vers un site dont l'adresse commence par : 
 "pingpongcash.fr", et vous confirmer l'authenticité de sa signature électronique.\n
 Vous pouvez encaisser ce chèque @ppc@ comme tout autre chèque classique.
-Pour cela, découpez-le et déposez-le à votre banque après l'avoir signé au verso,
+Pour cela, découpez-le et déposez-le à votre banque après l'avoir signé au verso.
 Si besoin, remplissez et pliez le petit formulaire de remise ci-joint.\n
 Vous pouvez aussi encaisser un chèque @ppc@ sur Internet, sans vous déplacer.
-Vous devez au préalable vous enregistrer sur le site de @ppc@ afin d'obtenir 
-un code marchand et choisir un nom public de marchand.\n
-Pour payer vous aussi avec un chèque @ppc@, demandez un certificat 
-@ppc@ à votre conseiller financier de votre banque.
+Enregistrez-vous sur le site de @ppc@ afin d'obtenir un 'code marchand'.\n
+Si vous aussi vous voulez payer avec un chèque @ppc@, demandez un certificat 
+@ppc@ à un conseiller financier de votre banque.
 Il nous contactera au besoin pour certifier son agence bancaire.
 Editez ensuite directement depuis votre téléphone des chèques @ppc@.
-Vous avez toujours le choix de les envoyer à vos créanciers par e-mail oubien 
-de les imprimer pour les leur remettre en mains propres.\n
-Si enfin votre créancier est déjà enregistré @ppc@, utilisez son code marchand.
+Vous avez toujours le choix de les envoyer à vos créanciers par e-mail ou bien de les
+imprimer pour les leur remettre en main propre.\n
+Si enfin votre créancier est déjà enregistré @ppc@, utilisez son 'code marchand'
 et remettez lui le chèque comme reçu, car l'encaissement est automatique.\n
 N'hésitez pas à nous poser des questions et à nous faire part de vos remarques.
 Merci pour l'utilisation de @ppc@, 
-...pour un véritable moyen de paiement numérique citoyen!
+...pour un véritable moyen de paiement numérique citoyen !
 \n\n\nwww.pingpongcash.fr\nwww.cupfoundation.net\n%s
 """ % (date_gen, tb[_PUBN], src, __email__)
     if txt != '': txt = '\n'.join([txt[80*i:80*(i+1)] for i in range(3)]) 
-    unmsg = [] if txt == '' else [(15, 510, 1, 8, sanity('Message de l\'acheteur (%s) :' % sanity(tb[_PUBN]) )), (15, 520, 5, 8, sanity(txt))]
+    unmsg = [] if txt == '' else [(15, 525, 1, 8, sanity('Message de l\'acheteur (%s) :' % sanity(tb[_PUBN]) )), (15, 535, 5, 8, sanity(txt))]
     page2 = [(114, 42, 1, 28, '@ppc@'), (75, 120, 1, 9, 'Bonjour %s,' % pubname), (20, 160, 1, 9, sanity(rtxt))] + unmsg
     gray, dodger, bluel = '.7 .7 .7', '.1 .1 .6', '.5 .5 .9'
     sign = (195, 198, 1, 240, '.95 .95 .95', '\001') if trvd == 'TR' else (155, 85, 5, 60, '.9 .9 .9', 'PROOF') 
