@@ -1371,9 +1371,9 @@ Merci pour l'utilisation de @ppc@,
         ] + bars
     pagec3 = [(84, 80, 1, 60, 1, 'Encart publicitaire'), (50, 140, 1, 10, 1, 'Avec un (QRcode ou Datamatrix) + hyperlien qui redirige directement sur votre site Web.'),]
     form = [(82, 760, 1, 10, 2, 'Signature' ), 
-            (55, 816, 1, 10, 2, 'Date' ), 
-            (22, 816, 1, 10, 2, sanity('Numéro') ), 
-            (32, 816, 1, 10, 2, 'de compte' )] if ttab[_CLR] == 'B' else [(60, 770, 1, 40, 2, sanity('Reçu') ), ]
+            (55, 814, 1, 10, 2, 'Date' ), 
+            (22, 814, 1, 10, 2, sanity('Numéro') ), 
+            (32, 814, 1, 10, 2, 'de compte' )] if ttab[_CLR] == 'B' else [(60, 770, 1, 40, 2, sanity('Reçu') ), ]
     pagec2 = form + [(20, 20, 1, 6, 1, date_en ),
                      (35, 571, 1, 7, '.6 .6 .6 ', sanity('Après détachement et encaissement manuel du chèque, il peut être re-imprimé ici: ')),
                      (150, 580, 1, 7, '.6 .6 .6 ', '%s/%s/%s' % (__url__, epoch, src)),
@@ -1392,8 +1392,8 @@ Merci pour l'utilisation de @ppc@,
     graph1 += b'q .95 .95 .95 rg .6 0 0 .6 220 -30 cm /Im1 Do Q '    
     graph1 += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (dx1+402, dy1+184, 78, 25), 'ascii')
     (co, ca) = ('0 0 1', 'B') if ttab[_CLR] == 'B' else ('0 1 0', 'G') if ttab[_CLR] == 'G' else ('1 0 0', 'R')  
-    graph1 += bytes('q %s rg %s RG ' % (co, co), 'ascii') + rect(559, 10, 20, 20, 5) + b' B Q '
-    graph1 += bytes('q 1 1 1 rg BT 1 0 0 1 565 15 Tm /F1 14 Tf (%s) Tj ET Q ' % ca, 'ascii')
+    graph1 += bytes('q %s rg %s RG ' % (co, co), 'ascii') + rect(559, 13, 20, 20, 5) + b' B Q '
+    graph1 += bytes('q 1 1 1 rg BT 1 0 0 1 565 18 Tm /F1 14 Tf (%s) Tj ET Q ' % ca, 'ascii')
     boxes = '42 116 52 100 re 42 36 20 70 re'
     cs = '1 1 1 rg .6 .6 .6 RG ' + ' '.join(['13 %d 24 14 re' % (62+14*i) for i in range(11)]) + ' B %s f ' % boxes if ttab[_CLR] == 'B' else ''
     graph2 = bytes('q [10 2] 0 d .5 .5 .5 RG .9 .9 .9 rg %s %s %s %s re B [] 0 d %s 0 0 0 rg Q ' % (0, 0, 108, 227, cs), 'ascii')
