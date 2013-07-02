@@ -1161,6 +1161,45 @@ def format_iban(t):
     tiban = ' '.join([bnk[4*i:4*(i+1)] for i in range(7)]) 
     return tiban[:-1]
 
+def find_rlmc(epoch, t):
+    "_"
+    num, cnt, bnk = '%s' % int(float(epoch)/4), '%013d' % b64toi(bytes(t[_IBAN], 'ascii')), '%010d' % b32toi(bytes(t[_NBNK][2:], 'ascii'))
+    l = num[-7:] + '0310' + bnk[:5] + '908' + '0' + cnt[:-2] + '00'
+    return '(%02d)' % (97 - int(l+'00') % 97)
+
+def format_cmc7(epoch, t, x, y, cmc7=True):
+    "_"
+    num, cnt, bnk = '%s' % int(float(epoch)/4), '%013d' % b64toi(bytes(t[_IBAN], 'ascii')), '%010d' % b32toi(bytes(t[_NBNK][2:], 'ascii'))
+    w, W, c, l = .4, 2.6, 0.8, 1.2
+    t = {'0': '001100', '1': '100010', '2': '011000', '3': '101000', '4': '100100', '5': '000110', '6': '001010', 
+         '7': '110000', '8': '010010', '9': '010100', 'A': '100001', 'C': '001001', 'E': '000011', ' ': '000000'}
+    f = {'0': ((4,60),       (0,64),       (0,20,44,64),       (0,20,44,64),       (0,20,44,64),       (0,64),       (4,60)), 
+         '1': ((0,26),       (0,18,38,52), (0,18,46,60),       (0,64),             (0,64),             (0,26),       (0,26)), 
+         '2': ((0,24,44,60), (0,26,44,64), (0,32,50,64),       (0,16,26,36,50,64), (0,16,30,40,50,64), (0,16,34,64), (0,16,38,60)), 
+         '3': ((4,22,42,60), (0,22,42,64), (0,18,46,64),       (0,16,26,38,48,64), (0,16,26,38,48,64), (0,64),       (4,28,36,60)),
+         '4': ((10,44),      (10,52),      (10,26,36,60),      (10,26,44,64),      (10,26,46,64),      (0,30),       (0,30)), 
+         '5': ((0,14,28,64), (0,14,28,64), (0,14,28,40,50,64), (0,14,28,40,50,64), (0,14,28,40,50,64), (0,40,50,64), (4,36,50,64)),
+         '6': ((4,60),       (0,64),       (0,14,26,40,50,64), (0,14,26,40,50,64), (0,14,26,40,50,64), (0,40,48,64), (4,36,48,60)),
+         '7': ((40,64),      (40,64),      (0,24,48,64),       (0,30,48,64),       (0,36,48,64),       (26,64),      (36,64)), 
+         '8': ((4,26,36,60), (0,64),       (0,14,26,38,50,64), (0,14,26,38,50,64), (0,14,26,38,50,64), (0,64),       (4,28,36,60)),
+         '9': ((4,16,32,60), (0,16,26,64), (0,14,26,38,50,64), (0,14,26,38,50,64), (0,14,26,38,50,64), (0,64),       (4,60)),
+         'A': ((0,44),       (4,50),       (6,52),             (8,54),             (10,56),            (12,58),      (18,64)), 
+         'C': ((0,44),       (0,44),       (0,44),             (0,44),             (0,44),             (0,44),       (0,44)), 
+         'E': ((0,44),       (6,50),       (12,56),            (18,60),            (18,63),            (8,54),       (0,44)), 
+         ' ': ((),           (),           (),                 (),                 (),                 (),           ()),
+         }
+    o, a = bytes('q %s w 0 0 0 RG ' % w, 'ascii'), 'C' + num[-7:] + ' C0310' + bnk[:5] + '908' + 'E0' + cnt[:-2] + 'A'
+    if not cmc7: return a
+    for j in range(36):
+        for i in range(7):
+            x += c if i == 0 else l if t[a[j]][i-1] == '1' else c
+            op = 'm'
+            for k in f[a[j]][i]:
+                o += bytes('%s %s %s ' % (x, y+k/7, op), 'ascii')
+                op = 'l' if op == 'm' else 'm'
+        x += W
+    return o + b'S Q '
+
 def format_tel(t):
     "_"
     return '.'.join([t[2*i:2*(i+1)] for i in range(5)]) 
@@ -1228,16 +1267,16 @@ class updf:
 
     def gen(self, pages, qrt):
         "_"
-        ft = (1, 3, 5, 6, 8)
+        ft = (1, 3, 5, 6)
         self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
         self.add('/Type/Catalog/Pages 2 0 R')
         self.add('/Type/Pages/MediaBox[0 0 %d %d]/Count 1/Kids[3 0 R]' % (self.pw, self.ph))
-        fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + ' >>'
-        ann = '/Annots[' + ''.join(['%d 0 R ' % (i+6+len(ft))  for i in range(4)]) + ']'
+        fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + '>>'
+        ann = '/Annots[' + ' '.join(['%d 0 R' % (i+6+len(ft))  for i in range(4)]) + ']'
         self.add('/Type/Page/Parent 2 0 R%s/Resources<<%s/XObject<</Im1 %d 0 R>>>>/Contents %d 0 R' % (ann, fonts, len(ft)+4, len(ft)+5))
         enc = '/Encoding<</Type/Encoding/Differences[1 %s]>> ' % __e__
         for f in ft: self.add('/Type/Font/Subtype/Type1/BaseFont/%s %s' % (__fonts__[f-1], enc))
-        self.addi('%s/www/logo.txt' % os.path.dirname(os.path.abspath(__file__))) 
+        self.addi('%s/www/logo1.txt' % os.path.dirname(os.path.abspath(__file__))) 
         o, urlink = b'', []
         for (pa, pc, gr, rect) in pages: o += gr + self.ctext(pc, rect) + self.ltext(pa, rect)
         for (q, h, ur) in qrt: o += q
@@ -1280,7 +1319,6 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
     #locale.setlocale(locale.LC_TIME, ('fr_FR', 'IS8859-15'))
     #date_gen = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
     date_gen = time.strftime('%d-%m-%Y %H:%M:%S', time.localtime(float(epoch)))
-
     date_en = time.strftime('%c', time.localtime(float(epoch)))
     tb = dusr[src].decode('utf8').split('/')
     pubname, info1, info2, info3 = '', sanity('Reçu - Receipt - '*5), '', ''
@@ -1299,7 +1337,7 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
             ti = dags[key].decode('utf8').split('/')
             info2 = '   '.join(ti[0:4])
             info3 = 'Tel: %s - E-mail: %s' % (format_tel(ti[4]),ti[5])
-    dpubname = pubname + ' ' + '*'*(30-len(pubname))
+    dpubname = pubname + ' ' + '*'*(34-len(pubname))
     if trvd == 'TR':
         if (efv == '' or int(efv) > int(val)): efv = val
         v1, v2 = efv[:3], efv[3:]
@@ -1312,20 +1350,24 @@ def pdf_digital_check(dusr, dtrx, dags, gr, host):
     tab = msg.split('/')
     pk1, pk2 = tb[_PBK1], tb[_PBK2]
     page1 = [
-        (52, 20, 1, 12, '@ppc@'),
-        (230, 154, 1, 12, date_gen),
+        ( 52,  20, 1, 12, '@ppc@'),
+        (230, 149, 1, 11, date_gen),
         vv1, vv2,
         (230, 168, 3, 7, sig[:59]), 
         (230, 176, 3, 7, sig[59:118]), 
         (230, 184, 3, 7, sig[118:]), 
-        (230, 200, 3, 7, msg),
-        (393, 78, 1, 6, '%s/%s' % (__url__,src)),
-        (70, 50, 5, 14, dst), (140, 50, 6, 12, dpubname),
-        (10, 69, 6, 11, manu_fr), (10, 79, 3, 8, manu_en),
+        (230, 159, 3, 7, msg),
+        (393,  78, 1, 6, '%s/%s' % (__url__,src)),
+        ( 70,  50, 5, 14, dst), 
+        (140,  50, 6, 12, dpubname),
+        ( 10,  69, 6, 11, manu_fr), 
+        ( 10,  79, 3, 8, manu_en),
         (190, 100, 5, 14, src), 
         (266, 100, 6, 12, sanity(tb[_PUBN])), 
         (230, 112, 3, 7, pk1[:44]), (230, 120, 3, 7, pk1[44:]), 
         (230, 128, 3, 7, pk2[:44]), (230, 136, 3, 7, pk2[44:-6]), (390, 136, 6, 7, pk2[-6:]),
+        #(155, 225, 3, 14, format_cmc7(epoch, tb, 0, 0, False)),
+        (455, 195, 6, 10, find_rlmc(epoch, tb)),
         ] 
     rtxt = """Vous trouverez ci dessous un chèque @ppc@, signé le %s 
 par "%s" de code marchand: "%s"\n
@@ -1358,16 +1400,16 @@ Merci pour l'utilisation de @ppc@,
     eurs = (445, 36, 1, 18, '.1 .2 .7', '\001') if trvd == 'TR' else (408, 38, 1, 20, '.1 .2 .7', val)
     bars = [(322, 118, 1, 120, '.95 .8 .6', '/'), (337, 118, 1, 120, '.95 .8 .6', '/')] if trvd == 'TR' else []
     pagec1 = [
-        (52, 29, 5, 6, _COLOR['c'], sanity(_AD1)), (52, 36, 5, 5, _COLOR['c'], sanity(_AD2)), 
-        (44, 50, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
+        ( 52,  29, 5, 6, _COLOR['c'], sanity(_AD1)), (52, 36, 5, 5, _COLOR['c'], sanity(_AD2)), 
+        ( 44,  50, 1, 10, gray, 'PAY:' if trvd== 'TR' else 'TO:'), eurs,
         (155, 100, 1, 10, gray, 'FROM:'), 
-        (360, 78, 1, 5, gray, 'Anti-Phishing:'), 
-        (155, 154, 1, 8, gray, 'Date:'), 
+        (360,  78, 1, 5, gray, 'Anti-Phishing:'), 
+        (155, 149, 1, 8, gray, 'Date:'), 
         (155, 168, 1, 4, gray, 'EC-DSA-521P'),
         (155, 177, 1, 9, gray, 'Digital Signature:'), 
-        (230, 212, 1, 8, gray, __url__), (320, 212, 1, 8, gray, __email__), 
+        (396,  90, 1, 8, gray, __email__), 
         (155, 112, 1, 7, gray, 'Public key:'),
-        (155, 200, 1, 8, gray, 'Signed message:'),  
+        (155, 159, 1, 8, gray, 'Signed message:'),  
         #sign,
         (175, 13, 1, 7, '.05 .46 .8', sanity(info1)), (175, 21, 1, 7, '.05 .46 .8', sanity(info2)), (175, 29, 1, 7, '.05 .46 .8', sanity(info3)), 
         (475, 10, 1, 4, '.8 .7 .9', __digest__.decode('ascii')), 
@@ -1383,7 +1425,7 @@ Merci pour l'utilisation de @ppc@,
                      (114, 60, 5, 10, _COLOR['b'], sanity(_AD1)), (114, 71, 5, 10, _COLOR['b'], sanity(_AD2)), 
                      ] 
     lurl = 'www.pingpongcash.fr'
-    url = (urllib.parse.quote('%s/%s/%s' % (lurl, msgraw, sig)), '%s/%s/%s' % (lurl, epoch, src), 'google.fr')
+    url = (urllib.parse.quote('%s/%s/%s' % (lurl, msgraw, sig)), '%s/%s/%s' % (lurl, epoch, src), 'www.google.fr')
     qr1, qr2, qr3 = QRCode(url[0]), QRCode(url[1]), QRCode(url[2])
     dx1, dy1, w1, h1 = 99, 0, 496, 227
     dx2, dy2, w2, h2 = 0, 600, 496, 227
@@ -1392,11 +1434,12 @@ Merci pour l'utilisation de @ppc@,
     graph1 += b'q .5 .5 .5 rg ' + rect(527, 90, 52, 38, 10) + b' f 1 1 1 rg BT 1 0 0 1 532 96 Tm /F1 24 Tf (C C) Tj 1 0 0 1 549 104 Tm /F1 14 Tf (2) Tj 1 0 0 1 534 116 Tm /F5 9 Tf (SECURE) Tj ET Q '
     graph1 += b'q .3 .5 .9 rg .22 0 0 .22 20 722  cm /Im1 Do Q '
     graph1 += b'q .9 .5 .1 rg .12 0 0 .12 100 170 cm /Im1 Do Q '
-    graph1 += b'q .95 .95 .95 rg .6 0 0 .6 220 -30 cm /Im1 Do Q '    
-    graph1 += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (dx1+402, dy1+184, 78, 25), 'ascii')
+    graph1 += b'q .95 .95 .95 rg .6 0 0 .6 220 -20 cm /Im1 Do Q '    
+    graph1 += bytes('.9 .9 .9 rg %s %s %s %s re f 0 0 0 rg ' % (dx1+410, dy1+184, 67, 25), 'ascii')
     (co, ca) = ('0 0 1', 'B') if ttab[_CLR] == 'B' else ('0 1 0', 'G') if ttab[_CLR] == 'G' else ('1 0 0', 'R')  
-    graph1 += bytes('q %s rg %s RG ' % (co, co), 'ascii') + rect(559, 13, 20, 20, 5) + b' B Q '
-    graph1 += bytes('q 1 1 1 rg BT 1 0 0 1 565 18 Tm /F1 14 Tf (%s) Tj ET Q ' % ca, 'ascii')
+    graph1 += bytes('q %s rg %s RG ' % (co, co), 'ascii') + rect(559, 67, 20, 20, 5) + b' B Q '
+    graph1 += bytes('q 1 1 1 rg BT 1 0 0 1 565 72 Tm /F1 14 Tf (%s) Tj ET Q ' % ca, 'ascii')
+    graph1 += format_cmc7(epoch, tb, 254, 15)
     boxes = '42 116 52 100 re 42 36 20 70 re'
     cs = '1 1 1 rg .6 .6 .6 RG ' + ' '.join(['13 %d 24 14 re' % (62+14*i) for i in range(11)]) + ' B %s f ' % boxes if ttab[_CLR] == 'B' else ''
     graph2 = bytes('q [10 2] 0 d .5 .5 .5 RG .9 .9 .9 rg %s %s %s %s re B [] 0 d %s 0 0 0 rg Q ' % (0, 0, 108, 227, cs), 'ascii')
@@ -2437,7 +2480,6 @@ if __name__ == '__main__':
     #    qr1 = QRCode(dat)
     #    toto = qr1.pdf(10, 10, 2, True)
     #    print (dat, ' ', toto)
-
 
     if len(sys.argv)==1: info()
     elif len(sys.argv)==2:
