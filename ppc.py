@@ -934,7 +934,7 @@ def application(environ, start_response):
                 o, mime = pdf_digital_check(dusr, dtrx, dags, g, environ['SERVER_NAME']), 'application/pdf'
         else:
             if base.encode('ascii') in dusr.keys(): o, mime = front_html(dusr, dtrx, base, True, raw, 'Facture'), 'text/html; charset=utf8'
-            else: o += 'Request not valid! %s' % environ
+            else: o += 'Request not valid!'
     dags.close()
     dtrx.close()
     dusr.close()
@@ -1186,8 +1186,7 @@ def format_cmc7(epoch, t, x, y, cmc7=True):
          'A': ((0,44),       (4,50),       (6,52),             (8,54),             (10,56),            (12,58),      (18,64)), 
          'C': ((0,44),       (0,44),       (0,44),             (0,44),             (0,44),             (0,44),       (0,44)), 
          'E': ((0,44),       (6,50),       (12,56),            (18,60),            (18,63),            (8,54),       (0,44)), 
-         ' ': ((),           (),           (),                 (),                 (),                 (),           ()),
-         }
+         ' ': ((),           (),           (),                 (),                 (),                 (),           ())}
     o, a = bytes('q %s w 0 0 0 RG ' % w, 'ascii'), 'C' + num[-7:] + ' C0310' + bnk[:5] + '908' + 'E0' + cnt[:-2] + 'A'
     if not cmc7: return a
     for j in range(36):
@@ -1207,40 +1206,43 @@ def format_tel(t):
 ####### PDF #########
 
 class updf:
-    def __init__(self, pagew, pageh, letterw=595, letterh=842, binary=True):
+    def __init__(self, pagew, pageh, letterw=595, letterh=842):
         "_"
         self.pw, self.ph = pagew, pageh
         self.mx, self.my = 0, 0
-        self.binary = binary
-        self.i = 0
         self.pos = []
-        self.o = b'%PDF-1.4\n%'
+        self.o = b'%PDF-1.5\n%\xBF\xF7\xA2\xFE\n'
     
     def add(self, line):
         "_"
         self.pos.append(len(self.o))
-        self.i += 1
-        self.o += bytes('%d 0 obj<<%s>>endobj\n' % (self.i, line), 'ascii')
+        self.o += bytes('%d 0 obj<<%s>>endobj\n' % (len(self.pos), line), 'ascii')
 
-    def addi(self, img, binary=True):
+    def addi(self, img):
         "_"
         self.pos.append(len(self.o))
         tf = open(img, 'rb').read()
-        if binary: tf = zlib.compress(tf) 
-        fil = '/Filter/FlateDecode' if binary else ''
-        self.i += 1
-        self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Form/BBox[0 0 500 500]/FormType 1/Length %s%s>>stream\n' % (self.i, len(tf), fil), 'ascii')
+        tf = zlib.compress(tf) 
+        fil = '/Filter/FlateDecode'
+        self.o += bytes('%s 0 obj<</Type/XObject/Subtype/Form/BBox[0 0 500 500]/FormType 1/Length %s%s>>stream\n' % (len(self.pos), len(tf), fil), 'ascii')
         self.o += tf + bytes('endstream endobj\n', 'ascii')
 
     def adds(self, stream):
         "_"
         self.pos.append(len(self.o))
-        self.i += 1
-        if self.binary: stream = zlib.compress(stream) 
-        fil = '/Filter/FlateDecode' if self.binary else ''
-        self.o += bytes('%d 0 obj<</Length %d%s>>stream\n' % (self.i, len(stream), fil), 'ascii')
+        stream = zlib.compress(stream) 
+        fil = '/Filter/FlateDecode'
+        self.o += bytes('%d 0 obj<</Length %d%s>>stream\n' % (len(self.pos), len(stream), fil), 'ascii')
         self.o += stream
         self.o += b'endstream endobj\n'
+
+    def addref(self):
+        "_"
+        self.pos.append(len(self.o))
+        n, size = len(self.pos), len(self.o)
+        z = zlib.compress(binascii.unhexlify(functools.reduce(lambda y, i: y+bytes('01%04x00' % i, 'ascii'), self.pos, b'000000ff')))
+        self.o += bytes('%s 0 obj<</Type/XRef/Index[0 %s]/Size %s/W[1 2 1]/Root 1 0 R/Length %s/Filter/FlateDecode>>stream\n' % (n, n, n, len(z)), 'ascii') + z + b'endstream endobj\n'
+        return size
 
     def ltext(self, tab, r):
         "_"
@@ -1268,15 +1270,14 @@ class updf:
     def gen(self, pages, qrt):
         "_"
         ft = (1, 3, 5, 6)
-        self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
         self.add('/Type/Catalog/Pages 2 0 R')
         self.add('/Type/Pages/MediaBox[0 0 %d %d]/Count 1/Kids[3 0 R]' % (self.pw, self.ph))
         fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + '>>'
-        ann = '/Annots[' + ' '.join(['%d 0 R' % (i+6+len(ft))  for i in range(4)]) + ']'
+        ann = '/Annots[' + ' '.join(['%d 0 R' % (i+6+len(ft))  for i in range(len(qrt))]) + ']'
         self.add('/Type/Page/Parent 2 0 R%s/Resources<<%s/XObject<</Im1 %d 0 R>>>>/Contents %d 0 R' % (ann, fonts, len(ft)+4, len(ft)+5))
         enc = '/Encoding<</Type/Encoding/Differences[1 %s]>> ' % __e__
         for f in ft: self.add('/Type/Font/Subtype/Type1/BaseFont/%s %s' % (__fonts__[f-1], enc))
-        self.addi('%s/www/logo1.txt' % os.path.dirname(os.path.abspath(__file__))) 
+        self.addi('%s/www/logo.txt' % os.path.dirname(os.path.abspath(__file__))) 
         o, urlink = b'', []
         for (pa, pc, gr, rect) in pages: o += gr + self.ctext(pc, rect) + self.ltext(pa, rect)
         for (q, h, ur) in qrt: o += q
@@ -1285,28 +1286,27 @@ class updf:
             self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (re.sub('www.', '', ur), h))
         n, size = len(self.pos), len(self.o)
         self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
-        self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
-        return self.o
+        return self.o + bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
 
-    def gen1(self, pages):
+    def gen5(self, pages, qrt):
         "_"
-        ft = (1, 3, 5, 6, 8)
-        self.o += b'\xBF\xF7\xA2\xFE\n' if self.binary else b'ASCII!\n'
+        ft = (1, 3, 5, 6)
         self.add('/Type/Catalog/Pages 2 0 R')
         self.add('/Type/Pages/MediaBox[0 0 %d %d]/Count 1/Kids[3 0 R]' % (self.pw, self.ph))
-        fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + ' >>'
-        ann = ''
+        fonts = '/Font<<' + ''.join(['/F%d %d 0 R' % (f, i+4)  for i,f in enumerate(ft)]) + '>>'
+        ann = '/Annots[' + ' '.join(['%d 0 R' % (i+6+len(ft))  for i in range(len(qrt))]) + ']'
         self.add('/Type/Page/Parent 2 0 R%s/Resources<<%s/XObject<</Im1 %d 0 R>>>>/Contents %d 0 R' % (ann, fonts, len(ft)+4, len(ft)+5))
-        enc = '' #'/Encoding<</Type/Encoding/Differences[1 %s]>> ' % __e__
+        enc = '/Encoding<</Type/Encoding/Differences[1 %s]>> ' % __e__
         for f in ft: self.add('/Type/Font/Subtype/Type1/BaseFont/%s %s' % (__fonts__[f-1], enc))
         self.addi('%s/www/logo.txt' % os.path.dirname(os.path.abspath(__file__))) 
         o, urlink = b'', []
         for (pa, pc, gr, rect) in pages: o += gr + self.ctext(pc, rect) + self.ltext(pa, rect)
+        for (q, h, ur) in qrt: o += q
         self.adds(o)
-        n, size = len(self.pos), len(self.o)
-        self.o += functools.reduce(lambda y, i: y+bytes('%010d 00000 n \n' % i, 'ascii'), self.pos, bytes('xref\n0 %d\n0000000000 65535 f \n' % (n+1), 'ascii'))
-        self.o += bytes('trailer <</Size %d/Root 1 0 R>>startxref %s\n' % (n+1, size), 'ascii') + b'%%EOF'
-        return self.o
+        for (q, h, ur) in qrt:
+            self.add('/Border[0 0 1]/Subtype/Link/C[0 1 1]/A<</URI(http://%s)/Type/Action/S/URI>>/Type/Annot/Rect[%s]/H/I' % (re.sub('www.', '', ur), h))
+        size = self.addref()
+        return self.o + bytes('startxref %s\n' % size, 'ascii') + b'%%EOF'
 
 def sanity(s):
     __o__ = r'([çáàâäéèêëíìîïóòôöúùûüŷÿ])'
@@ -1454,7 +1454,7 @@ Merci pour l'utilisation de @ppc@,
         (page1, pagec1, graph1, (dx1, dy1, w1, h1)),
         ([], pagec3, graph3, (dx3, dy3, w3, h3)))
     a = updf(595, 842) # A4
-    return a.gen(pages, qrt)
+    return a.gen5(pages, qrt)
 
 #################### QR CODE ################
 
@@ -1473,11 +1473,11 @@ MODE_SIZE_MEDIUM = { MODE_NUMBER: 12, MODE_ALPHA_NUM: 11, MODE_8BIT_BYTE: 16, MO
 MODE_SIZE_LARGE  = { MODE_NUMBER: 14, MODE_ALPHA_NUM: 13, MODE_8BIT_BYTE: 16, MODE_KANJI: 12,}
 
 ALPHA_NUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:'
-EXP_TABLE = list(range(256))
-LOG_TABLE = list(range(256))
-for i in range(8): EXP_TABLE[i] = 1 << i
-for i in range(8, 256): EXP_TABLE[i] = (EXP_TABLE[i - 4] ^ EXP_TABLE[i - 5] ^ EXP_TABLE[i - 6] ^ EXP_TABLE[i - 8])
-for i in range(255): LOG_TABLE[EXP_TABLE[i]] = i
+TEXP = list(range(256))
+TLOG = list(range(256))
+for i in range(8): TEXP[i] = 1 << i
+for i in range(8, 256): TEXP[i] = (TEXP[i - 4] ^ TEXP[i - 5] ^ TEXP[i - 6] ^ TEXP[i - 8])
+for i in range(255): TLOG[TEXP[i]] = i
 
 NUMBER_LENGTH = {3: 10, 2: 7, 1: 4}
 
@@ -1728,14 +1728,12 @@ def create_bytes(buffer, rs_b):
     for r in range(len(rs_b)):
         dcCount = rs_b[r].data_count
         ecCount = rs_b[r].total_count - dcCount
-        maxDcCount, maxEcCount = max(maxDcCount, dcCount), max(maxEcCount, ecCount)
-        dcdata[r] = [0] * dcCount
+        maxDcCount, maxEcCount, dcdata[r] = max(maxDcCount, dcCount), max(maxEcCount, ecCount), [0] * dcCount
         for i in range(len(dcdata[r])): dcdata[r][i] = 0xff & buffer.buffer[i + offset]
         offset += dcCount
         rsPoly = Poly([1], 0) # Get error correction polynomial.
-        for i in range(ecCount): rsPoly = rsPoly * Poly([1, gexp(i)], 0)
-        rawPoly = Poly(dcdata[r], len(rsPoly) - 1)
-        modPoly = rawPoly % rsPoly
+        for i in range(ecCount): rsPoly = rsPoly * Poly([1, TEXP[i]], 0)
+        modPoly = Poly(dcdata[r], len(rsPoly) - 1) % rsPoly
         ecdata[r] = [0] * (len(rsPoly) - 1)
         for i in range(len(ecdata[r])):
             modIndex = i + len(modPoly) - len(ecdata[r])
@@ -1755,11 +1753,11 @@ def create_bytes(buffer, rs_b):
                 index += 1
     return data
 
-
 class DataOverflowError(Exception):
     pass
 
 def create_data(version, error_correction, data_list):
+    "_"
     rs_b = rs_blocks(version, error_correction)
     buffer = BitBuffer()
     for data in data_list:
@@ -1781,12 +1779,6 @@ def create_data(version, error_correction, data_list):
         buffer.put(PAD1, 8)
     return create_bytes(buffer, rs_b)
 
-def glog(n):
-    return LOG_TABLE[n]
-
-def gexp(n):
-    return EXP_TABLE[n % 255]
-
 class Poly:
     def __init__(self, num, shift):
         offset = 0
@@ -1803,22 +1795,22 @@ class Poly:
     def __mul__(self, e):
         num = [0] * (len(self) + len(e) - 1)
         for i in range(len(self)):
-            for j in range(len(e)): num[i + j] ^= gexp(glog(self[i]) + glog(e[j]))
+            for j in range(len(e)): num[i + j] ^= TEXP[(TLOG[self[i]] + TLOG[e[j]]) % 255]
         return Poly(num, 0)
 
     def __mod__(self, e):
         if len(self) - len(e) < 0: return self
-        ratio = glog(self[0]) - glog(e[0])
-        num = [0] * len(self)
+        ratio, num = TLOG[self[0]] - TLOG[e[0]], [0] * len(self)
         for i in range(len(self)): num[i] = self[i]
-        for i in range(len(e)): num[i] ^= gexp(glog(e[i]) + ratio)
+        for i in range(len(e)): num[i] ^= TEXP[(TLOG[e[i]] + ratio) % 255]
         return Poly(num, 0) % e
 
 class RSBlock:
-    def __init__(self, total_count, data_count):
-        self.total_count, self.data_count = total_count, data_count
+    def __init__(self, total_c, data_c):
+        self.total_count, self.data_count = total_c, data_c
 
 def rs_blocks(version, error_correction):
+    "_"
     if error_correction not in RS_BLOCK_OFFSET:
         raise Exception("bad rs block @ version: %s / error_correction: %s" % (version, error_correction))
     offset = RS_BLOCK_OFFSET[error_correction]
@@ -1956,10 +1948,7 @@ class QRCode:
         self.m[self.m_count - 8][8] = (not test) # fixed module
 
     def map_data(self, data, mask_pattern):
-        inc = -1
-        row = self.m_count - 1
-        bitIndex, byteIndex = 7, 0
-        mask_func1 = mask_func(mask_pattern)
+        inc, row, bitIndex, byteIndex, mask_func1 = -1, self.m_count - 1, 7, 0, mask_func(mask_pattern)
         for col in range(self.m_count - 1, 0, -2):
             if col == 6: col -= 1
             while True:
@@ -2262,7 +2251,6 @@ def gen_pwd():
 
 def cmd(post, cd, host='localhost', binary=False):
     "_"
-    #print (cd, host)
     co, serv = http.client.HTTPConnection(host), '/'
     if post:
         co.request('POST', serv, urllib.parse.quote(cd))
