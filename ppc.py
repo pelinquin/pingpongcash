@@ -426,8 +426,20 @@ def smail(dest, content):
     msg['Subject'] = 'The subject of the mail'
     msg['From'] = 'info@pingpongcash.fr'
     msg['To'] = 'pelinquin@gmail.com'
-    s.send_message(msg)
-    #s.sendmail ('info@pingpongcash.fr', [dest], content)
+    content = 'From: %s\nTo: %s\nSubject: %s\n\n%s' % ('info@pingpongcash.fr', 'pelinquin@gmail.com', 'Bonjour', 'contenu du mail')
+    #s.send_message(msg)
+    s.sendmail ('info@pingpongcash.fr', [dest], content)
+    s.quit()
+
+def smail2(dest, content):
+    s = smtplib.SMTP('localhost')
+    msg = email.mime.text.MIMEText('hello world', 'plain')
+    msg['Subject'] = 'The subject of the mail'
+    msg['From'] = 'info@pingpongcash.fr'
+    msg['To'] = 'pelinquin@gmail.com'
+    content = 'From: %s\nTo: %s\nSubject: %s\n\n%s' % ('info@pingpongcash.fr', 'pelinquin@gmail.com', 'Bonjour', 'contenu du mail')
+    #s.send_message(msg)
+    s.sendmail ('info@pingpongcash.fr', [dest], content)
     s.quit()
 
 def old_transaction (d, msg, epoch, s_biban, s_siban, val, s_sig): # a enlever!
