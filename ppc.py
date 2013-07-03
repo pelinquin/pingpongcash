@@ -307,7 +307,7 @@ Pas besoin de <i>cartes de crédit</i> (<i>CB</i>, <i>Visa</i>, <i>Mastercard</i
 """
 def text_prix():
     return """C'est simplement gratuit !
-L'investissement pour ce service est très faible, aucun terminal de paiement à développer, aucune carte, ni puce à produire, aucune publicité, ni structure commerciale couteuse. L'authentification forte des utilisateurs est directement assurée par leur smartphone, sans NFS. Les signatures numériques sont basées sur un algorithme fiable et reconnu; ECDSA-521P et les noeuds des serveurs sont conçus sur une distribution Linux+Apache épurée et sécurisée. La maintenance/recherche en sécurité/cryptographie est financée par des aides publiques de programmes de recherche et soutenue par des partenaires académiques.<br/>
+L'investissement pour ce service est très faible, aucun terminal de paiement à développer, aucune carte, ni puce à produire, aucune publicité, ni structure commerciale couteuse. L'authentification forte des utilisateurs est directement assurée par leur smartphone, sans puce NFC. Les signatures numériques sont basées sur un algorithme fiable et reconnu; ECDSA-521P et les noeuds des serveurs sont conçus sur une distribution Linux+Apache épurée et sécurisée. La maintenance/recherche en sécurité/cryptographie est financée par des aides publiques de programmes de recherche et soutenue par des partenaires académiques.<br/>
 Ainsi, la très importante économie réalisée permet de proposer aux citoyens, particuliers ou commerçants, un service de paiement numérique gratuit. Une cotisation annuelle de 3€65 est demandée (un centime par jour), pour la fondation <a href="http://cupfoundation.net">⊔FOUNDATION</a>. Face aux grands groupes spécialisés dans la monétique et disposant de moyens gigantesques de communication, notre petite structure ne peut offrir <a class="ppc">Ping-Pong&nbsp;</a> que si les internautes le demandent, l'utilisent et le font savoir sur le Net.
 Pour autant, la <b>qualité de service et la sécurité</b> ne sont jamais impactées par ce prix.
 """
@@ -424,7 +424,21 @@ def smail(host, dest, subject, content):
     "_"
     if re.search('pingpongcash', host):
         s, src = smtplib.SMTP('localhost'), 'info@pingpongcash.fr'
-        s.sendmail (src, [dest], 'From: %s\nTo: %s\nSubject: %s\n\n%s' % (src, dest, subject, content))
+        msg = email.mime.text.MIMEText(content, _charset='UTF-8')
+        msg['Subject'] = subject
+        msg['From'] = src
+        msg['To'] = dest
+        s.sendmail (src, dest, msg.as_string())
+        #s.sendmail (src, [dest], 'From: %s\nTo: %s\nSubject: %s\n\n%s' % (src, dest, subject, content))
+        s.quit()
+    else:
+        dest = 'laurent@cup'
+        s, src = smtplib.SMTP('localhost'), 'laurent@cup'
+        msg = email.mime.text.MIMEText(content, _charset='UTF-8')
+        msg['Subject'] = subject
+        msg['From'] = src
+        msg['To'] = dest
+        s.sendmail (src, dest, msg.as_string())
         s.quit()
 
 def smail2():
@@ -783,6 +797,8 @@ def register_match(dusr, gr):
         if mail.encode('utf8') in dusr.keys() and (dusr[dusr[mail]].decode('utf8'))[0] != 'X':
             o = 'this e-mail is already registered! %s ' % (dusr[dusr[mail]].decode('utf8'))[0]
         else:
+            if mail.encode('utf8') in dusr.keys():
+                del dusr[dusr[mail]]
             while True:
                 epoch = '%s' % time.mktime(time.gmtime())
                 cid = compact(gr[3])
@@ -836,15 +852,17 @@ def login_match(dusr, gr):
         o = 'this e-mail is not registered! %s' % mail
     return cm, o
 
-def mail_welcome(fname, lname):
-    return """
-Bonjour %s %s,\n\n
-Bienvenue sur PingPongCash, le moyen de paiement numérique simple gratuit et sécurisé\n
-Pour vérifier votre addresse mail, merci de suivre le lien suivant:\n\n
+def mail_welcome(gr):
+    return """\nBonjour %s %s,\n\n
+L'address e-mail %s a été saisie pour l'enregistrement à PingPongCash.fr.\n
+Bienvenue sur PingPongCash!,\nle moyen de paiement numérique simple gratuit et sécurisé...\n
+Pour vérifier votre addresse e-mail, merci de suivre le lien suivant:\n\n
+Si vous n'êtes pas l'auteur de cette demande d'enregistrement...
 Cordialement,\n
-Laurent Fournier
+Laurent Fournier\n
+laurent.fournier@cupfoundation.net
 Fondateur de PingPongCash 
-""" % (fname, lname)
+""" % (gr[0], gr[1], gr[2])
 
 def application(environ, start_response):
     "wsgi server app"
@@ -876,9 +894,8 @@ def application(environ, start_response):
             else: o += res
         elif reg(re.match(_PAT_REG_, arg)):
             k, res = register_match(dusr, reg.v.groups())
-            o = 'send mail from %s to %s' % (environ['SERVER_NAME'], reg.v.group(3))
             if k:
-                smail (environ['SERVER_NAME'], reg.v.group(3), 'Bienvenue sur PingPongCash !', mail_welcome(reg.v.group(1), reg.v.group(2)))
+                smail (environ['SERVER_NAME'], reg.v.group(3), 'Bienvenue sur PingPongCash !', mail_welcome(reg.v.groups()))
                 o, mime = front_html(dusr, dtrx, k), 'text/html; charset=utf8'
             else: o += res
         elif reg(re.match(_PAT_INCOME_, arg)):
