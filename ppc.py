@@ -129,7 +129,7 @@ def app_update(host):
     cd = 'cd %s; git pull origin' % os.path.dirname(os.path.abspath(__file__))
     out, err = subprocess.Popen((cd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
     o = '<html><pre>Application Update...\n'
-    o += 'Error: %s\n' % err.decode('utf8') if err else 'Message:%s\n' % out.decode('utf8')
+    o += '%s\n' % err.decode('utf8') if err else 'Message:%s\n' % out.decode('utf8')
     o += '</pre><br/><a href="/">Reload the new version</a></html>'
     return o
 
@@ -420,7 +420,7 @@ def same_bic(d, biban, siban):
     return bs[1] == ps[1]
 
 def smail(dest, content):
-    s = smtplib.SMTP('pingpongcash')
+    s = smtplib.SMTP('localhost')
     s.sendmail ('info@pingpongcash.fr', [dest], content)
     s.quit()
 
@@ -2296,6 +2296,11 @@ def listday(theday=''):
     msg = '/'.join([src, theday])    
     return cmd(True, '/'.join(['LD', msg, k.sign(msg)]), host.decode('utf8'))    
 
+def do_update():
+    "_"
+    k, host, user, fi, t = get_k()
+    return cmd(False, '_update', host.decode('utf8'))    
+
 def generate():
     "_"
     email = input('E-mail: ')
@@ -2390,7 +2395,7 @@ def set(k, h):
     dbf =  __db__ if sys.version_info.minor == 3 else __db__[:-3]
     d = dbm.open(dbf, 'c')
     d[k] = h
-    print ('%s->%s' % (k, h))
+    print ('user:%s host:%s file:%s' % (d['user'].decode('utf8'), d['host'].decode('utf8'), d['file'].decode('utf8')))
     d.close()
 
 def info():
@@ -2495,6 +2500,7 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'list': print (listday())
         elif sys.argv[1] == 'conf': genconf()
         elif sys.argv[1] == 'readme': genreadme()
+        elif sys.argv[1] == 'update': do_update()
         else: usage()
     elif len(sys.argv)== 3: 
         if sys.argv[1] == 'list': print (listday(sys.argv[2]))
