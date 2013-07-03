@@ -79,6 +79,7 @@ _SI1 = 5 # Transaction Signature part1
 _SI2 = 6 # Transaction Signature part2
 
 import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, subprocess, time, smtplib, operator
+import email.mime.text
 import getpass, argparse
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:5]
@@ -421,7 +422,12 @@ def same_bic(d, biban, siban):
 
 def smail(dest, content):
     s = smtplib.SMTP('localhost')
-    s.sendmail ('info@pingpongcash.fr', [dest], content)
+    msg = email.mime.text.MIMEText('hello world', 'plain')
+    msg['Subject'] = 'The subject of the mail'
+    msg['From'] = 'info@pingpongcash.fr'
+    msg['To'] = 'pelinquin@gmail.com'
+    s.send_message(msg)
+    #s.sendmail ('info@pingpongcash.fr', [dest], content)
     s.quit()
 
 def old_transaction (d, msg, epoch, s_biban, s_siban, val, s_sig): # a enlever!
