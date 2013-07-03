@@ -428,8 +428,10 @@ def smail(host, dest, subject, content):
         msg['Subject'] = subject
         msg['From'] = src
         msg['To'] = dest
+        #MIME-Version: 1.0
         #s.sendmail (src, dest, msg.as_string())
-        o = 'Content-Type: text/plain; charset="utf-8"\nFrom: %s\nTo: %s\nSubject: %s\n\n%s' % (src, dest, subject, content)
+        content = 'YmxhYmxhIMOpw6kgw6DDoCBjb3Vjb3U='
+        o = 'Content-Type: text/plain; charset="utf-8"\nContent-Transfer-Encoding: base64\nFrom: %s\nTo: %s\nSubject: %s\n\n%s\n' % (src, dest, subject, content)
         s.sendmail (src, [dest], o)
         s.quit()
     else:
@@ -2565,13 +2567,6 @@ if __name__ == '__main__':
 
     #p = argparse.ArgumentParser(description='Process')
     #p.add_argument('generate', metavar='G')
-
-    msg = email.mime.text.MIMEText('blabla éé ', _charset='UTF-8')
-    msg['Subject'] = 'hello'
-    msg['From'] = 'info@pingpongcash.fr'
-    msg['To'] = 'pelinquin@gmail.com'
-    print (msg.as_string())
-
 
     sys.exit()
 # End ⊔net!
