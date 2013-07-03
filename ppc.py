@@ -867,7 +867,7 @@ Fondateur de PingPongCash
 
 def mail_welcome(gr):
     return """\nBonjour %s %s,\n\n
-L'address e-mail %s saisie pour l'enregistrement à PingPongCash.fr.\n
+L'address e-mail %s saisie pour l'enregistrement a PingPongCash.fr.\n
 Bienvenue sur PingPongCash!,\nle moyen de paiement numerique simple gratuit et securise...\n
 Pour verifier votre addresse e-mail, merci de suivre le lien suivant:\n\n
 Si vous n'etes pas l'auteur de cette demande d'enregistrement...
