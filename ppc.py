@@ -429,7 +429,7 @@ def smail(host, dest, subject, content):
         msg['From'] = src
         msg['To'] = dest
         #s.sendmail (src, dest, msg.as_string())
-        o = 'Content-Type: text/plain; charset="utf-8\nFrom: %s\nTo: %s\nSubject: %s\n\n%s' % (src, dest, subject, content)
+        o = 'Content-Type: text/plain; charset="utf-8"\nFrom: %s\nTo: %s\nSubject: %s\n\n%s' % (src, dest, subject, content)
         s.sendmail (src, [dest], o)
         s.quit()
     else:
