@@ -361,7 +361,7 @@ def index_html(nb):
     o += '</div>'
     return o + footer() + '</html>'
 
-def compact (iban):
+def compact(iban):
     "_"
     CHAR_MAP = {
         "A":"10", "B":"11", "C":"12", "D":"13", "E":"14", "F":"15", "G":"16", "H":"17", "I":"18", "J":"19", "K":"20", "L":"21", "M":"22", 
@@ -420,25 +420,20 @@ def same_bic(d, biban, siban):
     ps = d[siban].decode('utf8').split('/')
     return bs[1] == ps[1]
 
-def smail(dest, content):
-    s = smtplib.SMTP('localhost')
-    msg = email.mime.text.MIMEText('hello world', 'plain')
-    msg['Subject'] = 'The subject of the mail'
-    msg['From'] = 'info@pingpongcash.fr'
-    msg['To'] = 'pelinquin@gmail.com'
-    content = 'From: %s\nTo: %s\nSubject: %s\n\n%s' % ('info@pingpongcash.fr', 'pelinquin@gmail.com', 'Bonjour', 'contenu du mail')
-    #s.send_message(msg)
-    s.sendmail ('info@pingpongcash.fr', [dest], content)
-    s.quit()
+def smail(host, dest, subject, content):
+    "_"
+    if re.search('pingpongcash', host):
+        s, src = smtplib.SMTP('localhost'), 'info@pingpongcash.fr'
+        s.sendmail (src, [dest], 'From: %s\nTo: %s\nSubject: %s\n\n%s' % (src, dest, subject, content))
+        s.quit()
 
-def smail2(dest, content):
+def smail2():
     s = smtplib.SMTP('localhost')
     msg = email.mime.text.MIMEText('hello world', 'plain')
     msg['Subject'] = 'The subject of the mail'
     msg['From'] = 'info@pingpongcash.fr'
     msg['To'] = 'pelinquin@gmail.com'
-    content = 'From: %s\nTo: %s\nSubject: %s\n\n%s' % ('info@pingpongcash.fr', 'pelinquin@gmail.com', 'Bonjour', 'contenu du mail')
-    #s.send_message(msg)
+    s.send_message(msg)
     s.sendmail ('info@pingpongcash.fr', [dest], content)
     s.quit()
 
@@ -785,7 +780,8 @@ def register_match(dusr, gr):
     k, o = None, ''
     mail = gr[2]
     if gr[7] == gr[8]:
-        if mail.encode('utf8') in dusr.keys(): o = 'this e-mail is already registered!'
+        if mail.encode('utf8') in dusr.keys() and (dusr[dusr[mail]].decode('utf8'))[0] != 'X':
+            o = 'this e-mail is already registered! %s ' % (dusr[dusr[mail]].decode('utf8'))[0]
         else:
             while True:
                 epoch = '%s' % time.mktime(time.gmtime())
@@ -840,6 +836,16 @@ def login_match(dusr, gr):
         o = 'this e-mail is not registered! %s' % mail
     return cm, o
 
+def mail_welcome(fname, lname):
+    return """
+Bonjour %s %s,\n\n
+Bienvenue sur PingPongCash, le moyen de paiement numérique simple gratuit et sécurisé\n
+Pour vérifier votre addresse mail, merci de suivre le lien suivant:\n\n
+Cordialement,\n
+Laurent Fournier
+Fondateur de PingPongCash 
+""" % (fname, lname)
+
 def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt'
@@ -856,7 +862,6 @@ def application(environ, start_response):
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
         if reg(re.match(_PAT_LOGIN_, arg)):
-            #smail ('pelinquin@gmail.com', 'LOGIN OK \n')
             cm, res = login_match(dusr, reg.v.groups())
             if cm: o, mime = front_html(dusr, dtrx, cm.decode('ascii')), 'text/html; charset=utf8'
             else: o += res
@@ -871,7 +876,10 @@ def application(environ, start_response):
             else: o += res
         elif reg(re.match(_PAT_REG_, arg)):
             k, res = register_match(dusr, reg.v.groups())
-            if k: o, mime = front_html(dusr, dtrx, k), 'text/html; charset=utf8'
+            o = 'send mail from %s to %s' % (environ['SERVER_NAME'], reg.v.group(3))
+            if k:
+                smail (environ['SERVER_NAME'], reg.v.group(3), 'Bienvenue sur PingPongCash !', mail_welcome(reg.v.group(1), reg.v.group(2)))
+                o, mime = front_html(dusr, dtrx, k), 'text/html; charset=utf8'
             else: o += res
         elif reg(re.match(_PAT_INCOME_, arg)):
             o = 'facture! %s' % base
@@ -891,7 +899,7 @@ def application(environ, start_response):
             if res: o += res
             else: o = 'AGENCY OK' 
         elif reg(re.match(_PAT_LIST_, arg)):
-            smail ('pelinquin@gmail.com', 'THIS IS A TEST\n')
+            #smail ('pelinquin@gmail.com', 'test', 'THIS IS A TEST\n')
             o = listday_match(dusr, dtrx, reg.v.groups())
         elif reg(re.match(_PAT_REQ_, arg)):
             v = req_match(dusr, dtrx, reg.v.groups())
@@ -923,7 +931,7 @@ def application(environ, start_response):
         elif raw.lower() == '_log':
             o = open('/cup/%s/log' % __app__, 'r', encoding='utf8').read()                
         elif raw.lower() in ['_%s' % x for x in dbs]: # Just for debug!
-            d, o = dbm.open('/cup/%s/%s' % (__app__, raw.lower()[1:])), ''
+            d, o = dbm.open('/cup/%s/%s.db' % (__app__, raw.lower()[1:])), ''
             for x in d.keys(): o += '%s -> %s\n'  % (x.decode('utf8') , d[x].decode('utf8'))
             d.close()
         elif raw.lower() in ['_reset_%s' % x for x in dbs]: # Do not allow that in production!
@@ -2518,7 +2526,7 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'list': print (listday())
         elif sys.argv[1] == 'conf': genconf()
         elif sys.argv[1] == 'readme': genreadme()
-        elif sys.argv[1] == 'update': do_update()
+        elif sys.argv[1] == 'update': print(do_update())
         else: usage()
     elif len(sys.argv)== 3: 
         if sys.argv[1] == 'list': print (listday(sys.argv[2]))
