@@ -428,8 +428,9 @@ def smail(host, dest, subject, content):
         msg['Subject'] = subject
         msg['From'] = src
         msg['To'] = dest
-        s.sendmail (src, dest, msg.as_string())
-        #s.sendmail (src, [dest], 'From: %s\nTo: %s\nSubject: %s\n\n%s' % (src, dest, subject, content))
+        #s.sendmail (src, dest, msg.as_string())
+        o = 'Content-Type: text/plain; charset="utf-8\nFrom: %s\nTo: %s\nSubject: %s\n\n%s' % (src, dest, subject, content)
+        s.sendmail (src, [dest], o)
         s.quit()
     else:
         dest = 'laurent@cup'
@@ -895,7 +896,7 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_REG_, arg)):
             k, res = register_match(dusr, reg.v.groups())
             if k:
-                smail (environ['SERVER_NAME'], reg.v.group(3), 'Bienvenue sur PingPongCash !', mail_welcome(reg.v.groups()))
+                smail(environ['SERVER_NAME'], reg.v.group(3), 'Bienvenue sur PingPongCash !', mail_welcome(reg.v.groups()))
                 o, mime = front_html(dusr, dtrx, k), 'text/html; charset=utf8'
             else: o += res
         elif reg(re.match(_PAT_INCOME_, arg)):
@@ -911,12 +912,10 @@ def application(environ, start_response):
             if res: o += res
             else: o, mime = pdf_digital_check(dusr, dtrx, dags, reg.v.groups(), environ['SERVER_NAME']), 'application/pdf'
         elif reg(re.match(_PAT_AGENCY_, arg)):
-            #smail ('pelinquin@gmail.com', 'LOGIN OK \n')
             res = agency_match(dusr, dags, reg.v.groups())
             if res: o += res
             else: o = 'AGENCY OK' 
         elif reg(re.match(_PAT_LIST_, arg)):
-            #smail ('pelinquin@gmail.com', 'test', 'THIS IS A TEST\n')
             o = listday_match(dusr, dtrx, reg.v.groups())
         elif reg(re.match(_PAT_REQ_, arg)):
             v = req_match(dusr, dtrx, reg.v.groups())
@@ -2568,6 +2567,13 @@ if __name__ == '__main__':
 
     #p = argparse.ArgumentParser(description='Process')
     #p.add_argument('generate', metavar='G')
+
+    msg = email.mime.text.MIMEText('blabla éé ', _charset='UTF-8')
+    msg['Subject'] = 'hello'
+    msg['From'] = 'info@pingpongcash.fr'
+    msg['To'] = 'pelinquin@gmail.com'
+    print (msg.as_string())
+
 
     sys.exit()
 # End ⊔net!
