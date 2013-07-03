@@ -421,7 +421,7 @@ def same_bic(d, biban, siban):
 
 def smail(dest, content):
     s = smtplib.SMTP('pingpongcash')
-    s.sendmail ('dudule@pingpongcash.fr', [dest], content)
+    s.sendmail ('info@pingpongcash.fr', [dest], content)
     s.quit()
 
 def old_transaction (d, msg, epoch, s_biban, s_siban, val, s_sig): # a enlever!
@@ -873,6 +873,7 @@ def application(environ, start_response):
             if res: o += res
             else: o = 'AGENCY OK' 
         elif reg(re.match(_PAT_LIST_, arg)):
+            smail ('pelinquin@gmail.com', 'THIS IS A TEST\n')
             o = listday_match(dusr, dtrx, reg.v.groups())
         elif reg(re.match(_PAT_REQ_, arg)):
             v = req_match(dusr, dtrx, reg.v.groups())
