@@ -423,7 +423,7 @@ def same_bic(d, biban, siban):
 def smail(host, dest, subject, content):
     "_"
     if re.search('pingpongcash', host):
-        s, src = smtplib.SMTP('localhost'), 'info@pingpongcash.fr'
+        s, src = smtplib.SMTP('localhost'), 'no-reply@pingpongcash.fr'
         msg = email.mime.text.MIMEText(content, _charset='UTF-8')
         msg['Subject'] = subject
         msg['From'] = src
