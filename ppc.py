@@ -794,10 +794,10 @@ def register_match(dusr, gr):
     k, u, o = None, None, ''
     mail = gr[2]
     if gr[7] == gr[8]:
-        if mail.encode('utf8') in dusr.keys() and (dusr[dusr[mail]].decode('utf8'))[0] != 'X':
+        if mail.encode('utf8') in dusr.keys() and dusr[mail] in dusr.keys() and (dusr[dusr[mail]].decode('utf8'))[0] != 'X':
             o = 'this e-mail is already registered! %s ' % (dusr[dusr[mail]].decode('utf8'))[0]
         else:
-            if mail.encode('utf8') in dusr.keys():
+            if mail.encode('utf8') in dusr.keys() and dusr[mail] in dusr.keys():
                 del dusr[dusr[mail]]
             else:
                 dusr['__N'] = '%d' % (int(dusr['__N']) + 1)                
@@ -810,22 +810,22 @@ def register_match(dusr, gr):
             #dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
             st = 'A' if mail == __email__ else 'X'
             dusr[k] = '/'.join([  
-                    st,             #_STAT
-                    u,              #_LOCK
-                    epoch[:-2],     #_DREG
-                    mail,           #_MAIL 
-                    gr[0].title(),  #_FRST 
-                    gr[1].title(),  #_LSAT
-                    gr[6],          #_PUBN
-                    gr[5],          #_SECU
-                    compact(gr[3]), #_NBNK_IBAN 
-                    gr[4],          # CBIC
-                    '100',          #_THR1
-                    '3000',         #_THR2
-                    '0',            #_BALA
-                    '',             #_DEXP
-                    h10(gr[7]),     #_PAWD
-                    '',''])         #_PBK1_PBK2
+                    st,                #_STAT
+                    u.decode('ascii'), #_LOCK
+                    epoch[:-2],        #_DREG
+                    mail,              #_MAIL 
+                    gr[0].title(),     #_FRST 
+                    gr[1].title(),     #_LSAT
+                    gr[6],             #_PUBN
+                    gr[5],             #_SECU
+                    compact(gr[3]),    #_NBNK_IBAN 
+                    gr[4],             # CBIC
+                    '100',             #_THR1
+                    '3000',            #_THR2
+                    '0',               #_BALA
+                    '',                #_DEXP
+                    h10(gr[7]),        #_PAWD
+                    '',''])            #_PBK1_PBK2
     else:
         o = 'not the same password!'
     # check valid IBAN, IBAN == BIC, valid email, valid ssid
@@ -854,13 +854,12 @@ def login_match(dusr, gr):
     return cm, o
 
 def mail_welcome(k, u, gr):
-    return """\nBonjour %s %s,\n\nVotre addresse e-mail %s a été saisie pour l'inscription à PingPongCash.fr.\n
-Pour confirmer votre inscription, merci de cliquer sur ce lien:\n
-http://pingpongcash.fr/email_validation/%s/%s
-\nNotre objectif est de proposer un moyen de paiement numérique simple gratuit et sécurisé à tous les citoyens.\n
-Pour cela, n'hésitez pas à nous faire part de vos questions ou remarques.\n
-Cordialement,\n\nLaurent Fournier\n\nlaurent.fournier@cupfoundation.net\nFondateur de PingPongCash 
-""" % (gr[0], gr[1], gr[2], k, u)
+    return """\nBonjour %s %s,\n\n\nVotre addresse e-mail '%s' a été saisie pour l'inscription à PingPongCash.fr \n
+Pour confirmer votre inscription, merci de cliquer sur ce lien :\n\n%s/emailvalidation/%s/%s
+\nNotre objectif est de proposer un moyen de paiement numérique simple gratuit et sécurisé à tous les citoyens.
+Pour cela, n'hésitez pas à nous faire part de vos questions ou remarques afin d'améliorer ce service.\n
+Cordialement,\n\nLaurent Fournier\n\nFondateur de PingPongCash\nlaurent.fournier@cupfoundation.net\nFondateur de PingPongCash 
+""" % (gr[0], gr[1], gr[2], __url__, k, u.decode('ascii'))
 
 def application(environ, start_response):
     "wsgi server app"
