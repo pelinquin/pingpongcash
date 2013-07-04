@@ -422,24 +422,15 @@ def same_bic(d, biban, siban):
 
 def smail(host, dest, subject, content):
     "_"
+    s = smtplib.SMTP('localhost')
     if re.search('pingpongcash', host):
-        s, src = smtplib.SMTP('localhost'), 'no-reply@pingpongcash.fr'
-        msg = email.mime.text.MIMEText(content, _charset='UTF-8')
-        msg['Subject'] = subject
-        msg['From'] = src
-        msg['To'] = dest
-        s.sendmail (src, dest, msg.as_string())
-        s.sendmail (src, [dest], o)
-        s.quit()
+        src = 'no-reply@pingpongcash.fr'
     else:
-        dest = 'laurent@cup'
-        s, src = smtplib.SMTP('localhost'), 'laurent@cup'
-        msg = email.mime.text.MIMEText(content, _charset='UTF-8')
-        msg['Subject'] = subject
-        msg['From'] = src
-        msg['To'] = dest
-        s.sendmail (src, dest, msg.as_string())
-        s.quit()
+        dest, src = 'laurent@cup', 'laurent@cup'
+    msg = email.mime.text.MIMEText(content, _charset='UTF-8')
+    msg['Subject'], msg['From'], msg['To'] = subject, src, dest
+    s.sendmail (src, dest, msg.as_string())
+    s.quit()
 
 def smail2():
     s = smtplib.SMTP('localhost')
@@ -734,9 +725,10 @@ def valid_html(dusr, dtrx, dags, epoch, src):
     ts = dusr[src].decode('utf8').split('/')
     x = '%s/%s' % (epoch, src)
     tt = dtrx[x].decode('utf8').split('/')
-    sig = tt[_SI1:_SI2+1]
+    sig, num = tt[_SI1:_SI2+1], '%d' % int(float(epoch)/4)
     o += '<p><b class="biggreen">Chèque Valide</b></p>\n'
-    o += '<h2>Identifiant du chèque: \'%s...\'</h2>\n' % sig[0][:10] 
+    o += '<h2>Identifiant du chèque: \'%s...\'</h2>\n' % sig[0][:10]
+    o += '<h2>Numéro du chèque: \'%s\'</h2>\n' % num[-7:]  
     o += '<h2>Montant: %6.2f €</h2>\n' % float(int(tt[_EFV])/100)
     o += '<h2>Signature de <b>%s</b> <a href="%s/%s">%s</a>: vérifiée</h2>\n' % (ts[_PUBN], __url__, src, src)
     o += '<h2>Date d\'émission: %s</h2>' % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(epoch)))
