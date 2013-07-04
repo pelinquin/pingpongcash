@@ -528,7 +528,7 @@ _PAT_VERIF_  = r'((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(\d{5}))/(\S{160,200})
 _PAT_LIST_   = r'LD/(([^/]{6})/([\d-]{10}))/(\S{160,200})$'
 _PAT_SECURL_ = r'([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&(\S{40,50})$'
 _PAT_PRINT_  = r'((\d{10})/(\S{6}))$'
-
+_PAT_EMAIL_  = r'emailvalidation/([^/]{6})/(\S{40})$'
 def transaction_match(dusr, dtrx, gr):
     "_"
     o = ''
@@ -682,6 +682,19 @@ def verif_match(dusr, dtrx, gr):
     else:
         o = 'unknown user !'
     return o
+
+def verif_email(dusr, dtrx, gr):
+    "_"
+    if gr[0].encode('ascii') in dusr.keys(): 
+        t = dusr[gr[0]].decode('utf8').split('/')
+        if gr[1] == t[_LOCK] and t[_STAT].decode('ascii') == 'X': # + verif date ! 
+            t[_STAT], t[_LOCK] = 'Y', ''
+            dusr[gr[0]] = '/'.join(t)
+        else:
+            return 'wrong validation id!'
+    else:
+        return 'unknown user !'
+    return ''
 
 def do_sepa(dusr, dtrx, dags, gr):
     "_"
@@ -854,12 +867,12 @@ def login_match(dusr, gr):
     return cm, o
 
 def mail_welcome(k, u, gr):
+    "_"
     return """\nBonjour %s %s,\n\n\nVotre addresse e-mail '%s' a été saisie pour l'inscription à PingPongCash.fr \n
 Pour confirmer votre inscription, merci de cliquer sur ce lien :\n\n%s/emailvalidation/%s/%s
 \nNotre objectif est de proposer un moyen de paiement numérique simple gratuit et sécurisé à tous les citoyens.
 Pour cela, n'hésitez pas à nous faire part de vos questions ou remarques afin d'améliorer ce service.\n
-Cordialement,\n\nLaurent Fournier\n\nFondateur de PingPongCash\nlaurent.fournier@cupfoundation.net\nFondateur de PingPongCash 
-""" % (gr[0], gr[1], gr[2], __url__, k, u.decode('ascii'))
+Cordialement,\n\nLaurent Fournier\n\nFondateur de PingPongCash""" % (gr[0], gr[1], gr[2], __url__, k, u.decode('ascii'))
 
 def application(environ, start_response):
     "wsgi server app"
@@ -963,6 +976,10 @@ def application(environ, start_response):
             else: o, mime = valid_html(dusr, dtrx, dags, reg.v.group(2), reg.v.group(3)), 'text/html; charset=utf8'
         elif reg(re.match(_PAT_SECURL_, base)):
             o, mime = change_html(reg.v.group(1), reg.v.group(2), dusr), 'text/html; charset=utf8'
+        elif reg(re.match(_PAT_EMAIL_, base)):
+            res = verif_email(dusr, dtrx, reg.v.groups())
+            if res: o += res
+            else: o, mime = front_html(dusr, dtrx), 'text/html; charset=utf8'
         elif reg(re.match(_PAT_PRINT_, base)):
             o += 'problem !'
             gr = reg.v.groups()
