@@ -791,7 +791,7 @@ def pubkey_match(dusr, gr):
 
 def register_match(dusr, gr):
     "_"
-    k, o = None, ''
+    k, u, o = None, None, ''
     mail = gr[2]
     if gr[7] == gr[8]:
         if mail.encode('utf8') in dusr.keys() and (dusr[dusr[mail]].decode('utf8'))[0] != 'X':
@@ -799,18 +799,19 @@ def register_match(dusr, gr):
         else:
             if mail.encode('utf8') in dusr.keys():
                 del dusr[dusr[mail]]
+            else:
+                dusr['__N'] = '%d' % (int(dusr['__N']) + 1)                
             while True:
                 epoch = '%s' % time.mktime(time.gmtime())
                 cid = compact(gr[3])
                 k = h6(cid + '/' + epoch[:-2])
                 if k not in dusr.keys(): break
-            dusr['__N'] = '%d' % (int(dusr['__N']) + 1)
-            dusr[mail] = k
+            dusr[mail], u = k, itob64(int('0x' + hashlib.sha256(os.urandom(32)).hexdigest(), 16))
             #dusr[cid] = dusr[cid] + bytes('/%s' % k, 'ascii') if cid.encode('ascii') in dusr.keys() else k
             st = 'A' if mail == __email__ else 'X'
             dusr[k] = '/'.join([  
                     st,             #_STAT
-                    '',             #_LOCK
+                    u,              #_LOCK
                     epoch[:-2],     #_DREG
                     mail,           #_MAIL 
                     gr[0].title(),  #_FRST 
@@ -828,7 +829,7 @@ def register_match(dusr, gr):
     else:
         o = 'not the same password!'
     # check valid IBAN, IBAN == BIC, valid email, valid ssid
-    return k, o
+    return k, u, o
 
 def login_match(dusr, gr):
     "_"
@@ -852,15 +853,14 @@ def login_match(dusr, gr):
         o = 'this e-mail is not registered! %s' % mail
     return cm, o
 
-def mail_welcome(gr):
-    return """\nBonjour %s %s,\n\n
-Votre addresse e-mail %s a été saisie pour l'inscription à PingPongCash.fr.\n
+def mail_welcome(k, u, gr):
+    return """\nBonjour %s %s,\n\nVotre addresse e-mail %s a été saisie pour l'inscription à PingPongCash.fr.\n
 Pour confirmer votre inscription, merci de cliquer sur ce lien:\n
-http://pingpongcash.fr/email/validation/
+http://pingpongcash.fr/email_validation/%s/%s
 \nNotre objectif est de proposer un moyen de paiement numérique simple gratuit et sécurisé à tous les citoyens.\n
-Pour cela, n'hésitez pas à nous faire part de vos questions ou remarques.
+Pour cela, n'hésitez pas à nous faire part de vos questions ou remarques.\n
 Cordialement,\n\nLaurent Fournier\n\nlaurent.fournier@cupfoundation.net\nFondateur de PingPongCash 
-""" % (gr[0], gr[1], gr[2])
+""" % (gr[0], gr[1], gr[2], k, u)
 
 def application(environ, start_response):
     "wsgi server app"
@@ -891,9 +891,9 @@ def application(environ, start_response):
             if cm: o, mime = front_html(dusr, dtrx, cm.decode('ascii'), False, '', 'votre mot de passe a été changé!'), 'text/html; charset=utf8'
             else: o += res
         elif reg(re.match(_PAT_REG_, arg)):
-            k, res = register_match(dusr, reg.v.groups())
+            k, u, res = register_match(dusr, reg.v.groups())
             if k:
-                smail(environ['SERVER_NAME'], reg.v.group(3), 'Bienvenue sur PingPongCash !', mail_welcome(reg.v.groups()))
+                smail(environ['SERVER_NAME'], reg.v.group(3), 'Bienvenue sur PingPongCash !', mail_welcome(k, u, reg.v.groups()))
                 o, mime = front_html(dusr, dtrx, k), 'text/html; charset=utf8'
             else: o += res
         elif reg(re.match(_PAT_INCOME_, arg)):
