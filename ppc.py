@@ -428,10 +428,7 @@ def smail(host, dest, subject, content):
         msg['Subject'] = subject
         msg['From'] = src
         msg['To'] = dest
-        #MIME-Version: 1.0
-        #s.sendmail (src, dest, msg.as_string())
-        content = 'YmxhYmxhIMOpw6kgw6DDoCBjb3Vjb3U='
-        o = 'Content-Type: text/plain; charset="utf-8"\nContent-Transfer-Encoding: base64\nFrom: %s\nTo: %s\nSubject: %s\n\n%s\n' % (src, dest, subject, content)
+        s.sendmail (src, dest, msg.as_string())
         s.sendmail (src, [dest], o)
         s.quit()
     else:
@@ -857,26 +854,12 @@ def login_match(dusr, gr):
 
 def mail_welcome(gr):
     return """\nBonjour %s %s,\n\n
-L'address e-mail %s a été saisie pour l'enregistrement à PingPongCash.fr.\n
-Bienvenue sur PingPongCash!,\nle moyen de paiement numérique simple gratuit et sécurisé...\n
-Pour vérifier votre addresse e-mail, merci de suivre le lien suivant:\n\n
-Si vous n'êtes pas l'auteur de cette demande d'enregistrement...
-Cordialement,\n
-Laurent Fournier\n
-laurent.fournier@cupfoundation.net
-Fondateur de PingPongCash 
-""" % (gr[0], gr[1], gr[2])
-
-def mail_welcome(gr):
-    return """\nBonjour %s %s,\n\n
-L'address e-mail %s saisie pour l'enregistrement a PingPongCash.fr.\n
-Bienvenue sur PingPongCash!,\nle moyen de paiement numerique simple gratuit et securise...\n
-Pour verifier votre addresse e-mail, merci de suivre le lien suivant:\n\n
-Si vous n'etes pas l'auteur de cette demande d'enregistrement...
-Cordialement,\n
-Laurent Fournier\n
-laurent.fournier@cupfoundation.net
-Fondateur de PingPongCash 
+Votre addresse e-mail %s a été saisie pour l'inscription à PingPongCash.fr.\n
+Pour confirmer votre inscription, merci de cliquer sur ce lien:\n
+http://pingpongcash.fr/email/validation/
+\nNotre objectif est de proposer un moyen de paiement numérique simple gratuit et sécurisé à tous les citoyens.\n
+Pour cela, n'hésitez pas à nous faire part de vos questions ou remarques.
+Cordialement,\n\nLaurent Fournier\n\nlaurent.fournier@cupfoundation.net\nFondateur de PingPongCash 
 """ % (gr[0], gr[1], gr[2])
 
 def application(environ, start_response):
