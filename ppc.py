@@ -899,7 +899,8 @@ def application(environ, start_response):
             k, u, res = register_match(dusr, reg.v.groups())
             if k:
                 smail(environ['SERVER_NAME'], reg.v.group(3), 'Bienvenue sur PingPongCash !', mail_welcome(k, u, reg.v.groups()))
-                o, mime = front_html(dusr, dtrx, k), 'text/html; charset=utf8'
+                #o, mime = front_html(dusr, dtrx, k), 'text/html; charset=utf8'
+                o = 'Vous avez reçu un e-mail pour confirmer votre enregistrement.'
             else: o += res
         elif reg(re.match(_PAT_INCOME_, arg)):
             o = 'facture! %s' % base
