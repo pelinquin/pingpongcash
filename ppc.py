@@ -28,6 +28,7 @@
 #      Laurent Haan (http://www.progressive-coding.com)
 #    * QRcode is extented to PDF and SVG from the inspired code of:
 #      Sam Curren (porting from Javascript)
+#    * Encryption with ECC use an idea of jackjack-jj on github
 #-----------------------------------------------------------------------------
 """ SHORT DOTO LIST
 - DataMatrix Support
@@ -519,7 +520,7 @@ _PAT_VERIF_  = r'((\d{10})/([^/]{6})/([^/]{4,60}|[^/]{6})/(\d{5}))/(\S{160,200})
 _PAT_LIST_   = r'LD/(([^/]{6})/([\d-]{10}))/(\S{160,200})$'
 _PAT_SECURL_ = r'([^&/]{2,40}@[^&/]{2,30}\.[^&/]{2,10})&(\S{40,50})$'
 _PAT_PRINT_  = r'((\d{10})/(\S{6}))$'
-_PAT_EMAIL_  = r'emailvalidation/([^/]{6})/(\S{40})$'
+_PAT_EMAIL_  = r'emailvalidation/([^/]{6})/(\S{40,50})$'
 def transaction_match(dusr, dtrx, gr):
     "_"
     o = ''
@@ -678,7 +679,7 @@ def verif_email(dusr, dtrx, gr):
     "_"
     if gr[0].encode('ascii') in dusr.keys(): 
         t = dusr[gr[0]].decode('utf8').split('/')
-        if gr[1] == t[_LOCK] and t[_STAT].decode('ascii') == 'X': # + verif date ! 
+        if gr[1] == t[_LOCK] and t[_STAT] == 'X': # + verif date ! 
             t[_STAT], t[_LOCK] = 'Y', ''
             dusr[gr[0]] = '/'.join(t)
         else:
@@ -971,7 +972,7 @@ def application(environ, start_response):
         elif reg(re.match(_PAT_EMAIL_, base)):
             res = verif_email(dusr, dtrx, reg.v.groups())
             if res: o += res
-            else: o, mime = front_html(dusr, dtrx), 'text/html; charset=utf8'
+            else: o, mime = front_html(dusr, dtrx, reg.v.group(1)), 'text/html; charset=utf8'
         elif reg(re.match(_PAT_PRINT_, base)):
             o += 'problem !'
             gr = reg.v.groups()
