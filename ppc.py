@@ -346,7 +346,7 @@ def index_html(nb):
     #o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode('www.'+data).svg(10, 10, 4)) 
     o += '<a class="qr" href="http://%s" title="...notre code marchand \'%s\'">%s</a>\n' % (data, data, QRCode(data).svg(10, 10, 4)) 
     o += '<p class="stat">%s inscrits | %s transactions</p>' % (nb[0].decode('ascii'), nb[1].decode('ascii'))
-    o += '<p><i>Juin 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte.<br/> Nous offons un petit chèque symbolique aux premiers inscrits.<br/> En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile.<br/>La version <i>iOS-7</i> pour <i>iPhone</i> est actuellement en phase de test et sera disponible à l\'automne. <a href="mailto:contact@pingpongcash.fr">Contactez nous</a> pour participer.</p>.'
+    o += '<p><i>Juillet 2013:</i> L\'<a href="login">inscription</a> sur le serveur est ouverte.<br/> Nous offons un petit chèque symbolique aux premiers inscrits.<br/> En revanche, pour payer avec <a class="ppc">Ping-Pong&nbsp;</a>, il faut attendre la sortie de l\'application mobile.<br/>La version <i>iOS-7</i> pour <i>iPhone</i> est actuellement en phase de test et sera disponible début Septembre. <a href="mailto:contact@pingpongcash.fr">Contactez nous</a> pour participer.</p>.'
 
     o += '<div id="wrap">'
     o += '<div id="c1"><h1>Particulier</h1><p>%s</p></div>' % text_particulier()
@@ -899,8 +899,7 @@ def application(environ, start_response):
             k, u, res = register_match(dusr, reg.v.groups())
             if k:
                 smail(environ['SERVER_NAME'], reg.v.group(3), 'Bienvenue sur PingPongCash !', mail_welcome(k, u, reg.v.groups()))
-                #o, mime = front_html(dusr, dtrx, k), 'text/html; charset=utf8'
-                o = 'Vous avez reçu un e-mail pour confirmer votre enregistrement.'
+                o = 'Vous avez reçu un e-mail pour confirmer votre enregistrement.\nDans certains cas, le courrier peut attérir dans votre dossier "spam".'
             else: o += res
         elif reg(re.match(_PAT_INCOME_, arg)):
             o = 'facture! %s' % base
@@ -1010,11 +1009,17 @@ def header():
     o = '<a href="%s"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % (__url__, get_image('www/header.png'))
     return o + '<p class="alpha" title="still in security test phase!">Beta</p>'
 
+PAD = lambda s:(len(s)%2)*'0'+s[2:]
+
 def itob64(n):
     " utility to transform int to base64"
     c = hex(n)[2:]
     if len(c)%2: c = '0'+c
     return re.sub(b'=*$', b'', base64.urlsafe_b64encode(bytes.fromhex(c)))
+
+def itob64(n):
+    " utility to transform int to base64"
+    return re.sub(b'=*$', b'', base64.urlsafe_b64encode(bytes.fromhex(PAD(hex(n)))))
 
 def itob32(n):
     " utility to transform int to base64"
