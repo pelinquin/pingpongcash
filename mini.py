@@ -1081,7 +1081,7 @@ def init_dbs(dbs, port):
     if not os.path.exists(di): os.makedirs(di)
     for dbn in dbs:
         db = '%s/%s.db' % (di, dbn)
-        dbf = db if sys.version_info.minor == 3 else db
+        dbf = db if sys.version_info.minor == 3 else db[:-3]
         if not os.path.isfile(dbf):
             d = dbm.open(dbf, 'c')
             d.close()
