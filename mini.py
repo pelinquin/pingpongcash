@@ -1081,12 +1081,11 @@ def init_dbs(dbs, port):
     if not os.path.exists(di): os.makedirs(di)
     for dbn in dbs:
         db = '%s/%s.db' % (di, dbn)
-        dbf = db if sys.version_info.minor == 3 else db[:-3]
-        if not os.path.isfile(dbf):
-            d = dbm.open(dbf, 'c')
+        if not os.path.isfile(db):
+            d = dbm.open(db if sys.version_info.minor == 3 else db[:-3], 'c')
             d.close()
             os.chmod(db, 511)
-    return {b:dbm.open('%s/%s.db' % (di, b), 'c') for b in dbs}
+    return {b:dbm.open('%s/%s.db' % (di, b), 'c') for b in dbs} if sys.version_info.minor == 3 else {b:dbm.open('%s/%s' % (di, b), 'c') for b in dbs}
 
 def update_peers(env, d, li):
     "_"
