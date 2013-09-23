@@ -890,8 +890,17 @@ def register(name='root'):
         cm = i2b(k.pt.y())[-9:]
     du[cm], dv[name], dv[cm] = i2b(k.pt.x(), 66) + i2b(k.pt.y(), 66), cm, AES0().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
     dv.close(), du.close()
-    print ('Your personnal keys have been generated. Id: 0x%018x [%s]' % (b2i(cm), btob64(cm)))
+    print ('Your personnal keys have been generated. Id: %s' % (btob64(cm)))
     return name    
+
+def get_bank():
+    dc, bnk = dbm.open(__base__+'crt.db', 'c'), None
+    for x in dc.keys():
+        if len(x) == 9: 
+            bnk = btob64(x)
+            break
+    dc.close()
+    return bnk
 
 def certif(name, value=10000):
     "_"
@@ -926,7 +935,7 @@ def buy(src, price):
     for p in du.keys():
         if p != dv[u]: 
             tab.append(p)
-            print ('(%d) 0x%018x [%s]' % (len(tab), b2i(p), btob64(p)))
+            print ('(%d) %s' % (len(tab), btob64(p)))
     c = input('Select a recipient: ')
     dst = tab[int(c)-1]
     if u in dv and dst in du:
@@ -945,7 +954,7 @@ def allcut():
     k.privkey = int(AES0().decrypt(dv[dv['root']], hashlib.sha256(pp.encode('utf8')).digest()))
     for u in du.keys():
         if is_active(u):
-            print ('...for user %018x' % b2i(u))
+            print ('...for user %s' % btob64(u))
             msg = datencode() + s2b(balance(u), 4)
             dc[b'%'+u] = msg + k.sign(u + msg)
     du.close(), dv.close(), dc.close()
@@ -964,7 +973,7 @@ def is_active(cm):
 
 def style_html():
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono{font-family:"Lucida Concole", Courier}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:18;margin:3}input.txt{width:350}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{position:absolute;bottom:0;left:0;color:#999;font-size:10;padding:4}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.5}td,th{font-size:11pt;border:1px solid #666;padding:2pt;}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:DodgerBlue;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.jpg);background-repeat:no-repeat;}svg{background-color:white;}</style>'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono{font-family:"Lucida Concole", Courier}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{position:absolute;bottom:0;left:0;color:#999;font-size:10;padding:4}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.5}td,th{font-size:11pt;border:1px solid #666;padding:2pt;}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.jpg);background-repeat:no-repeat;}svg{background-color:white;}</style>'
     return o
 
 def favicon():
@@ -1004,11 +1013,11 @@ def report(cm):
                 if src == cm: 
                     n += 1
                     bal -= prc
-                    o += '<tr><td class="num">%03d</td><td>%s</td><td class="mono">0x%018x [%s]</td><td class="num">%s €</td><td></td></tr>' % (n, datdecode(dat), b2i(dst), btob64(dst), (prc/100))
+                    o += '<tr><td class="num">%03d</td><td>%s</td><td class="mono">%s</td><td class="num">%s €</td><td></td></tr>' % (n, datdecode(dat), btob64(dst), (prc/100))
                 if dst == cm: 
                     n += 1
                     bal += prc
-                    o += '<tr><td class="num">%03d</td><td>%s</td><td class="mono">0x%018x [%s]</td><td></td><td class="num">%s €</td></tr>' % (n, datdecode(dat), b2i(src), btob64(src), (prc/100))
+                    o += '<tr><td class="num">%03d</td><td>%s</td><td class="mono">%s</td><td></td><td class="num">%s €</td></tr>' % (n, datdecode(dat), btob64(src), (prc/100))
     o += '<tr><td></td><td>%s</td><td><b>Nouveau solde</b></td><td class="num"><b>%s €</b></td><td></td><tr>' % (datdecode(datencode()), bal/100)
     du.close(), dt.close(), dc.close()
     return o + '</table>'
@@ -1044,7 +1053,7 @@ def all_balances():
     "_"
     du = dbm.open(__base__+'pub.db')
     for u in du.keys(): 
-        print ('0x%018x [%s] bal:%d debt:%d' % (b2i(u), btob64(u), balance(u), debt(u)))
+        print ('%s bal:%d debt:%d' % (btob64(u), balance(u), debt(u)))
     du.close()    
 
 def check():
@@ -1136,48 +1145,36 @@ def app_update(host):
 
 def capture_id(d, arg):
     "_"
-    r, res = False, []
-    if len(arg) == 21:
-        ag = bytes.fromhex(arg[3:])
-        if ag in d['pub']: return arg
-    elif len(arg) == 15:
-        ag = i2b(b64toi(arg[3:]))
-        if ag in d['pub']: return 'cm=%018x' % b64toi(arg[3:])
-    else:
-        if re.match('a-f0-9', arg[3:].lower()):
-            for u in d['pub'].keys():
-                if re.match(arg[3:].lower(), '%018x' % b2i(u)): res.append(u)
-        else:
-            for u in d['pub'].keys():
-                if re.match(arg[3:], btob64(u)): res.append(u)            
-        if len(res) == 1: return 'cm=%018x' % b2i(res[0])
+    res = []
+    for u in d['pub'].keys():
+        if re.match(arg[3:], btob64(u)): res.append(u)            
+    if len(res) == 1: return 'cm=%018x' % b2i(res[0])
     return None
 
 def index(d, env):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + '<body><div class="bg"></div>' + header(), 'text/html; charset=utf-8'
-    o1 = '<ol><li><a title="...et sauvegardez" href="./download">Téléchargez</a> et <a title="moins de 1200 lignes Python3" href="./src">analysez</a> le code du client <i>pair-à-pair</i></li>' 
-    o1 += '<li><a href="./?install">Installez</a> l\'application</li>' 
-    o1 += '<li><form method="post">Renseignez votre ID <input class="txt" name="cm" placeholder="hexadécimal ou codage base64"/></form></li></ol>\n'
+    o1 = '<ul><li><a title="moins de 1200 lignes Python3!" href="./src">Téléchargez</a> et analysez le code du client <i>pair-à-pair</i></li>' 
+    o1 += '<li>Installez un <a href="./install">serveur</a> ou <a href="./ios">l\'application iOS</a></li>' 
+    o1 += '<li><form method="post">Consultez votre compte : <input class="txt" name="cm" placeholder="...votre ID"/></form></li></ul>\n'
     if 'HTTP_COOKIE' in env:
         cm = bytes.fromhex(env['HTTP_COOKIE'][3:])
         if cm in d['pub']:
             da = btob64(cm)
-            o += '<h1>Votre ID: 0x%018x [%s]</h1>' % (b2i(cm), da) + report(cm)
+            o += '<h1 title="Effacer le cookie pour changer d\'ID">Votre ID: <b class="green">%s</a></h1>' % da + report(cm)
             o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
-            o += '<p class="note">Crédit initial de compte par virement votre ID dans le message<br/>CUP-FONDATION BIC: CMCIFR2A<br/>IBAN: FR76 1027 8022 3300 0202 8350 157</p>'
-            o += '<p class="note">Envoyer votre IBAN pour transférer tout montant de votre compte</p>'
+            o += '<p class="note">Crédit initial de compte par virement SEPA vers:<br/>CUP-FONDATION BIC: CMCIFR2A<br/>IBAN: FR76 1027 8022 3300 0202 8350 157<br>Votre ID en message</p>'
+            o += '<p class="note">Inversement, tout réglement vers la banque d\'ID: %s<br/> est converti dans la journée en virement SEPA vers un compte<br/>dont vous nous fournissez l\'IBAN.</p>' % get_bank()
         else:
             o += o1
     else:
         o += o1
-    o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous</a>, nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
+    o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
     return o + footer() + '</body></html>\n'
 
 def welcome(cm):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header(), 'text/html; charset=utf-8' 
     o += '<h1>Bienvenu dans le club !</h1>' 
-    o += '<h2>Votre ID en hexadecimal: 0x%s</h2>' % cm 
-    o += '<h2>Votre ID en codage base64: [%s]</h2>' % itob64(int(cm, 16)).decode('ascii')
+    o += '<h2>Votre ID: %s</h2>' % itob64(int(cm, 16)).decode('ascii')
     o += '<h2><a href="./">Voir votre relevé de compte</a></h2>' 
     return o + footer() + '</html>\n'
 
@@ -1194,7 +1191,7 @@ def application(environ, start_response):
         elif arg == 'CRT':    o = '%s' % {x: d['crt'][x] for x in d['crt'].keys()}
         elif arg == 'PUB':    o = '%s' % {x: d['pub'][x] for x in d['pub'].keys()}
         elif arg == 'DIGEST': o = '%s' % dbdigest(d)
-        elif re.match('cm=\w{2,18}', arg):
+        elif re.match('cm=\w{1,12}', arg):
             r = capture_id(d, arg)
             if r: 
                 ncok.append(('set-cookie', r))
@@ -1221,6 +1218,14 @@ def application(environ, start_response):
                 o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
             else:
                 o, mime = index(d, environ), 'text/html; charset=utf-8'
+        elif base == 'install':
+            o = install()
+        elif base == 'ios':
+            o = 'Toujour en phase de test!\nBientôt disponible sur appStore\nNous contacter pour toute question.'
+        elif base == 'src':
+            o = open(__file__, 'r', encoding='utf-8').read() 
+        elif base == 'download':
+            o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
         elif re.match(r'\S{2,40}', base) and base != environ['HTTP_HOST']: # bootstrap
             li = peers_req(d['crt'], base) 
             li.update({base:now[:19]})
@@ -1257,6 +1262,14 @@ votre clé privée est dans le fichier 'private.db'...à protéger absolument de
 Pour tout problème, nous contacter à 'contact@cupfoundation.net'
 """
     return install.__doc__
+
+def gen_root():
+    if not os.path.isfile('private.db'):
+        root = register()
+        bank = register('banker')
+        user = register('user')
+        certif('banker', 1000)
+        buy('banker', 200)
 
 ##### MAIN #####
 
