@@ -1153,7 +1153,7 @@ def capture_id(d, arg):
 
 def index(d, env):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + '<body><div class="bg"></div>' + header(), 'text/html; charset=utf-8'
-    o1 = '<ul><li><a title="moins de 1200 lignes Python3!" href="./src">Téléchargez</a> et analysez le code du client <i>pair-à-pair</i></li>' 
+    o1 = '<ul><li><a title="moins de 1200 lignes Python3!" href="./src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i></li>' 
     o1 += '<li>Installez un <a href="./install">serveur</a> ou <a href="./ios">l\'application iOS</a></li>' 
     o1 += '<li><form method="post">Consultez votre compte : <input class="txt" name="cm" placeholder="...votre ID"/></form></li></ul>\n'
     if 'HTTP_COOKIE' in env:
@@ -1173,8 +1173,7 @@ def index(d, env):
 
 def welcome(cm):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header(), 'text/html; charset=utf-8' 
-    o += '<h1>Bienvenu dans le club !</h1>' 
-    o += '<h2>Votre ID: %s</h2>' % itob64(int(cm, 16)).decode('ascii')
+    o += '<h1>Bienvenu \'%s\'dans le club !</h1>' % itob64(int(cm, 16)).decode('ascii')
     o += '<h2><a href="./">Voir votre relevé de compte</a></h2>' 
     return o + footer() + '</html>\n'
 
@@ -1221,7 +1220,7 @@ def application(environ, start_response):
         elif base == 'install':
             o = install()
         elif base == 'ios':
-            o = 'Toujour en phase de test!\nBientôt disponible sur appStore\nNous contacter pour toute question.'
+            o = 'Toujours en phase de test!\nBientôt disponible sur appStore\n\nNous contacter pour toute question.'
         elif base == 'src':
             o = open(__file__, 'r', encoding='utf-8').read() 
         elif base == 'download':
