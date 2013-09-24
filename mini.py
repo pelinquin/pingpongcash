@@ -31,7 +31,7 @@
 #    * Encryption with ECC use an idea of jackjack-jj on github
 #-----------------------------------------------------------------------------
 
-import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm, datetime, functools, subprocess, time, smtplib, operator, random, getpass
+import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, random, getpass
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:10]
 __app__    = os.path.basename(__file__)[:-3]
@@ -973,7 +973,7 @@ def is_active(cm):
 
 def style_html():
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{position:absolute;bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.5}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.5}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.jpg);background-repeat:no-repeat;}svg{background-color:white;}</style>'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{position:absolute;bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.7}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}svg{background-color:white;}</style>'
     return o
 
 def favicon():
@@ -1011,12 +1011,12 @@ def report(cm):
             if k.verify(z[12:], t + z[:12]):
                 res = None
                 if src == cm: 
-                    typ = '<td title="banque Internet">ibank</td>' if src in dc else '<td title="particulier ou commerçant">part.</td>'
+                    typ = '<td title="Autorité">admin.</td>' if dst == root else '<td title="banque Internet">ibank</td>' if dst in dc else '<td title="particulier ou commerçant">part.</td>'
                     n += 1
                     bal -= prc
                     o += '<tr><td class="num">%03d</td><td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td class="num">%7.2f €</td><td></td></tr>' % (n, datdecode(dat), typ, btob64(dst), btob64(dst), (prc/100))
                 if dst == cm: 
-                    typ = '<td title="banque Internet">ibank</td>' if src in dc else '<td title="particulier ou commerçant">part.</td>'
+                    typ = '<td title="Autorité">admin.</td>' if src == root else '<td title="banque Internet">ibank</td>' if src in dc else '<td title="particulier ou commerçant">part.</td>'
                     n += 1
                     bal += prc
                     o += '<tr><td class="num">%03d</td><td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td></td><td class="num">%7.2f €</td></tr>' % (n, datdecode(dat), typ, btob64(src), btob64(src), (prc/100))
@@ -1168,8 +1168,9 @@ def index(d, env, cm64):
         da, (rpt, bal) = btob64(cm), report(cm)
         o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte: <b class="green">%s</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Solde: <b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
         o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
-        o += '<p class="note">Crédit initial de compte par virement SEPA vers:<br/>CUP-FONDATION BIC: CMCIFR2A<br/>IBAN: FR76 1027 8022 3300 0202 8350 157<br>+ votre ID en message</p>'
-        o += '<p class="note">Inversement, tout réglement vers l\'<i>i-banque</i> [%s]<br/> est converti dans la journée en virement SEPA vers un compte<br/>dont vous nous fournissez l\'IBAN.</p>' % get_bank()
+        o += '<p class="note">Crédit initial de compte par virement SEPA vers:<br/>CUP-FONDATION BIC: CMCIFR2A<br/>IBAN: FR76 1027 8022 3300 0202 8350 157 + votre ID en message</p>'
+        bnk = get_bank()
+        o += '<p class="note">Inversement, tout réglement vers l\'<i>ibank</i> <a href="?%s">%s</a><br/> est converti dans la journée en virement SEPA vers un compte<br/>dont vous nous fournissez l\'IBAN.</p>' % (bnk, bnk)
     else:
         o += o1
         o += '<p>%s</p>'% cm64
@@ -1196,24 +1197,23 @@ def application(environ, start_response):
     base, ncok = environ['PATH_INFO'][1:], []
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
-        if arg == 'PEERS':  
-            o = '%s' % {x.decode('utf8'): d['prs'][x].decode('utf8') for x in d['prs'].keys()}
+        if arg == 'PEERS':  o = '%s' % {x.decode('utf8'): d['prs'][x].decode('utf8') for x in d['prs'].keys()}
         elif re.match(r'(TRX|CRT|PUB)', arg):
             li = eval(urllib.parse.unquote(arg[4:]))
             if re.match(r'TRX', arg): 
+                o = '%s' % {x: d['trx'][x] for x in d['trx'].keys()}
                 for x in li:
                     if x not in d['trx']: d['trx'][x] = li[x]
-                o = '%s' % {x: d['trx'][x] for x in d['trx'].keys()}
             elif re.match(r'CRT', arg): 
+                o = '%s' % {x: d['crt'][x] for x in d['crt'].keys()}
                 for x in li:
                     if x not in d['crt']: d['crt'][x] = li[x]
-                o = '%s' % {x: d['crt'][x] for x in d['crt'].keys()}
             elif re.match(r'PUB', arg): 
+                o = '%s' % {x: d['pub'][x] for x in d['pub'].keys()}
                 for x in li:
                     if x not in d['pub']: d['pub'][x] = li[x]
-                o = '%s' % {x: d['pub'][x] for x in d['pub'].keys()}
-        elif arg == 'DIGEST': 
-            o = '%s' % dbdigest(d)
+                #d['pub'].update(li)
+        elif arg == 'DIGEST': o = '%s' % dbdigest(d)
         elif re.match('cm=\w{1,12}', arg):
             r = capture_id(d, arg[3:])
             if r: 
