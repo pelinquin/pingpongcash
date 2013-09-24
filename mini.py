@@ -973,7 +973,7 @@ def is_active(cm):
 
 def style_html():
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono{font-family:"Lucida Concole", Courier}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{position:absolute;bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.5}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.5}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.jpg);background-repeat:no-repeat;}svg{background-color:white;}</style>'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{position:absolute;bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.5}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.5}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.jpg);background-repeat:no-repeat;}svg{background-color:white;}</style>'
     return o
 
 def favicon():
@@ -997,12 +997,12 @@ def footer():
 def report(cm):
     "_"
     du, dt, dc, bal, k, o = dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db'), dbm.open(__base__+'crt.db'), 0, ecdsa(), '<table>'
-    o += '<tr><th></th><th>Date</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
+    o += '<tr><th></th><th>Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n = b'%'+cm, dc[b'_'], None, 0
     k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
     if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
-        o += '<tr><td></td><td>%s</td><td>Ancien solde</td><td></td><td class="num">%s €</td></tr>' % (datdecode(dar), (bal/100))
+        o += '<tr><td></td><td>%s</td><td colspan="2">Ancien solde</td><td></td><td class="num">%s €</td></tr>' % (datdecode(dar), (bal/100))
     u = sorted([(t[:4], t, dt[t]) for t in dt.keys()], key=operator.itemgetter(1))
     for (dat, t, z) in u:
         if dar==None or is_after(dat, dar):
@@ -1011,16 +1011,22 @@ def report(cm):
             if k.verify(z[12:], t + z[:12]):
                 res = None
                 if src == cm: 
+                    typ = '<td title="banque Internet">ibank</td>' if src in dc else '<td title="particulier ou commerçant">part.</td>'
                     n += 1
                     bal -= prc
-                    o += '<tr><td class="num">%03d</td><td>%s</td><td class="mono">%s</td><td class="num">%7.2f €</td><td></td></tr>' % (n, datdecode(dat), btob64(dst), (prc/100))
+                    o += '<tr><td class="num">%03d</td><td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td class="num">%7.2f €</td><td></td></tr>' % (n, datdecode(dat), typ, btob64(dst), btob64(dst), (prc/100))
                 if dst == cm: 
+                    typ = '<td title="banque Internet">ibank</td>' if src in dc else '<td title="particulier ou commerçant">part.</td>'
                     n += 1
                     bal += prc
-                    o += '<tr><td class="num">%03d</td><td>%s</td><td class="mono">%s</td><td></td><td class="num">%7.2f €</td></tr>' % (n, datdecode(dat), btob64(src), (prc/100))
-    o += '<tr><td></td><td>%s</td><td><b>Nouveau solde</b></td><td class="num"><b>%7.2f €</b></td><td></td><tr>' % (datdecode(datencode()), bal/100)
+                    o += '<tr><td class="num">%03d</td><td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td></td><td class="num">%7.2f €</td></tr>' % (n, datdecode(dat), typ, btob64(src), btob64(src), (prc/100))
+    o += '<tr><td></td><td>%s</td><td colspan="2"><b>Nouveau solde</b></td>' % datdecode(datencode())
+    if bal<0:
+        o += '<td></td><td class="num"><b>%7.2f €</b></td><tr>' % (-bal/100)
+    else:
+        o += '<td class="num"><b>%7.2f €</b></td><td></td><tr>' % (bal/100)
     du.close(), dt.close(), dc.close()
-    return o + '</table>'
+    return o + '</table>', bal
 
 def balance(cm):
     "_"
@@ -1107,9 +1113,9 @@ def hmerge(d, tab):
     "_"
     trx, crt, pub, k = {}, {}, {}, ecdsa()
     for p in tab: 
-        trx.update(req(p.decode('utf8'), 'TRX', '%s' % d['trx'].keys()))
-        crt.update(req(p.decode('utf8'), 'CRT', '%s' % d['crt'].keys()))
-        pub.update(req(p.decode('utf8'), 'PUB', '%s' % d['pub'].keys()))
+        trx.update(req(p.decode('utf8'), 'TRX', '%s' % {x: d['trx'][x] for x in d['trx'].keys()}))
+        crt.update(req(p.decode('utf8'), 'CRT', '%s' % {x: d['crt'][x] for x in d['crt'].keys()}))
+        pub.update(req(p.decode('utf8'), 'PUB', '%s' % {x: d['pub'][x] for x in d['pub'].keys()}))
     if crt:
         if b'_' in d['crt']: 
             assert crt[b'_'] == d['crt'][b'_']
@@ -1147,35 +1153,40 @@ def capture_id(d, arg):
     "_"
     res = []
     for u in d['pub'].keys():
-        if re.match(arg[3:], btob64(u)): res.append(u)            
-    if len(res) == 1: return 'cm=%018x' % b2i(res[0])
+        if re.match(arg, btob64(u)): res.append(btob64(u))            
+    if len(res) == 1: return res[0]
     return None
 
-def index(d, env):
+def index(d, env, cm64):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + '<body><div class="bg"></div>' + header(), 'text/html; charset=utf-8'
     o1 = '<ul><li><a title="moins de 1200 lignes Python3!" href="./src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i></li>' 
     o1 += '<li>Installez un <a href="./install">serveur</a> <i>Linux</i> ou <a href="./ios">l\'application</a> <i>iOS</i></li>' 
     o1 += '<li><form method="post">Consultez votre compte : <input class="txt" name="cm" placeholder="...votre ID"/></form></li></ul>\n'
-    if 'HTTP_COOKIE' in env:
-        cm = bytes.fromhex(env['HTTP_COOKIE'][3:])
-        if cm in d['pub']:
-            da = btob64(cm)
-            o += '<h1 title="Effacer le cookie pour changer d\'ID">Votre ID: <b class="green">%s</a></h1>' % da + report(cm)
-            o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
-            o += '<p class="note">Crédit initial de compte par virement SEPA vers:<br/>CUP-FONDATION BIC: CMCIFR2A<br/>IBAN: FR76 1027 8022 3300 0202 8350 157<br>+ votre ID en message</p>'
-            o += '<p class="note">Inversement, tout réglement vers l\'<i>i-banque</i> [%s]<br/> est converti dans la journée en virement SEPA vers un compte<br/>dont vous nous fournissez l\'IBAN.</p>' % get_bank()
-        else:
-            o += o1
+    if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
+    cm = i2b(b64toi(bytes(cm64, 'ascii')))
+    if cm in d['pub']:
+        da, (rpt, bal) = btob64(cm), report(cm)
+        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte: <b class="green">%s</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Solde: <b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
+        o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
+        o += '<p class="note">Crédit initial de compte par virement SEPA vers:<br/>CUP-FONDATION BIC: CMCIFR2A<br/>IBAN: FR76 1027 8022 3300 0202 8350 157<br>+ votre ID en message</p>'
+        o += '<p class="note">Inversement, tout réglement vers l\'<i>i-banque</i> [%s]<br/> est converti dans la journée en virement SEPA vers un compte<br/>dont vous nous fournissez l\'IBAN.</p>' % get_bank()
     else:
         o += o1
+        o += '<p>%s</p>'% cm64
     o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
     return o + footer() + '</body></html>\n'
 
 def welcome(cm):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header(), 'text/html; charset=utf-8' 
-    o += '<h1>Bienvenu \'%s\' au club !</h1>' % itob64(int(cm, 16)).decode('ascii')
+    o += '<h1>Bienvenu \'%s\' au club !</h1>' % cm
     o += '<h2><a href="./">Voir votre relevé de compte</a></h2>' 
     return o + footer() + '</html>\n'
+
+def diff_peers(d):
+    tab, dg = [], dbdigest(d)
+    for p in d['prs'].keys(): 
+        if dg != digest_req(p.decode('utf8')).decode('utf8'): tab.append(p)
+    if tab: hmerge(d, tab)
 
 def application(environ, start_response):
     "wsgi server app"
@@ -1185,38 +1196,42 @@ def application(environ, start_response):
     base, ncok = environ['PATH_INFO'][1:], []
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
-        if   arg == 'PEERS':  o = '%s' % {x.decode('utf8'): d['prs'][x].decode('utf8') for x in d['prs'].keys()}
-        elif re.match(r'TRX', arg): o = '%s' % {x: d['trx'][x] for x in d['trx'].keys()}
-        elif re.match(r'CRT', arg): o = '%s' % {x: d['crt'][x] for x in d['crt'].keys()}
-        elif re.match(r'PUB', arg): o = '%s' % {x: d['pub'][x] for x in d['pub'].keys()}
-        elif arg == 'DIGEST': o = '%s' % dbdigest(d)
+        if arg == 'PEERS':  
+            o = '%s' % {x.decode('utf8'): d['prs'][x].decode('utf8') for x in d['prs'].keys()}
+        elif re.match(r'(TRX|CRT|PUB)', arg):
+            li = eval(urllib.parse.unquote(arg[4:]))
+            if re.match(r'TRX', arg): 
+                for x in li:
+                    if x not in d['trx']: d['trx'][x] = li[x]
+                o = '%s' % {x: d['trx'][x] for x in d['trx'].keys()}
+            elif re.match(r'CRT', arg): 
+                for x in li:
+                    if x not in d['crt']: d['crt'][x] = li[x]
+                o = '%s' % {x: d['crt'][x] for x in d['crt'].keys()}
+            elif re.match(r'PUB', arg): 
+                for x in li:
+                    if x not in d['pub']: d['pub'][x] = li[x]
+                o = '%s' % {x: d['pub'][x] for x in d['pub'].keys()}
+        elif arg == 'DIGEST': 
+            o = '%s' % dbdigest(d)
         elif re.match('cm=\w{1,12}', arg):
-            r = capture_id(d, arg)
+            r = capture_id(d, arg[3:])
             if r: 
-                ncok.append(('set-cookie', r))
-                o, mime = welcome(r[3:]), 'text/html; charset=utf-8' 
+                ncok.append(('set-cookie', 'cm=%s' % r))
+                o, mime = welcome(r), 'text/html; charset=utf-8' 
             else:
                 o += 'Id not found!' 
         else: o += 'not valid args %s' % arg
     else:
         if base == 'peers': # propagation (pull)
-            fullbase, dg, tab, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], dbdigest(d), [], {}
-            for p in d['prs'].keys(): li.update(peers_req(d['crt'], p.decode('utf8')))
+            fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
+            for p in d['prs'].keys(): li.update(peers_req(d['prs'], p.decode('utf8')))
             o = update_peers(environ, d['prs'], li)
-            for p in d['prs'].keys(): 
-                if dg != digest_req(p.decode('utf8')).decode('utf8'): tab.append(p)
-            if tab: hmerge(d, tab)
+            diff_peers(d)
         elif base == '_update':
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif base == '':
-            if raw == 'install':
-                o = install()
-            elif raw == 'src':
-                o = open(__file__, 'r', encoding='utf-8').read() 
-            elif raw == 'download':
-                o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
-            else:
-                o, mime = index(d, environ), 'text/html; charset=utf-8'
+            o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
         elif base == 'install':
             o = install()
         elif base == 'ios':
@@ -1226,10 +1241,10 @@ def application(environ, start_response):
         elif base == 'download':
             o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
         elif re.match(r'\S{2,40}', base) and base != environ['HTTP_HOST']: # bootstrap
-            li = peers_req(d['crt'], base) 
+            li = peers_req(d['prs'], base) 
             li.update({base:now[:19]})
             o = update_peers(environ, d['prs'], li)
-            hmerge(d, d['prs'].keys())
+            diff_peers(d)
         else:
             o += 'request not valid!'
     for db in d: d[db].close()
