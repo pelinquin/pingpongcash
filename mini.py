@@ -44,8 +44,7 @@ __url__    = 'http://%s.fr' % __ppc__
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 
 ##### ENCODING #####
-PAD    = lambda s:(  len(s)%2)*'0'+s[2:]
-PAD12  = lambda s:( 14-len(s))*'0'+s[2:]
+PAD = lambda s:(len(s)%2)*'0'+s[2:]
 
 def i2b(x, n=1):
     "int to bytes with n padding"
@@ -94,122 +93,87 @@ def is_after(d1, d2):
     "_"
     return datdecode(d1) > datdecode(d2)
 
-def debtencode(val):
-    "30 bits -> 5 chars"
-    assert val < (1<<30)
-    return base64.urlsafe_b64encode(bytes.fromhex(PAD12(hex(val))))[-5:]
-
-def debtdecode(code):
-    "30 bits -> 5 chars"
-    ee = int.from_bytes(base64.urlsafe_b64decode(b'AAA' + code), 'big')
-    return ee & 0x3FFFFFFFF
-
 def random_b64():
     "20 chars url safe"
     return base64.urlsafe_b64encode(bytes.fromhex(hashlib.sha1(os.urandom(32)).hexdigest()[:30]))    
 
-##### ECDSA ####
+##### ECDSA NIST CURVE P-521 #####
 
-class CurveFp(object):
-    def __init__(self, p, a, b):
-        "The curve of points satisfying y^2 = x^3 + a*x + b (mod p)"
-        self.__p, self.__a, self.__b = p, a, b
-    def p(self):
-        return self.__p
-    def a(self):
-        return self.__a
-    def b(self):
-        return self.__b
-    def contains_point(self, x, y ):
-        return (y * y - ( x * x * x + self.__a * x + self.__b )) % self.__p == 0
+_B = b'UZU-uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex-k3sWUsC9O7G_BzVz34g9LDTx70Uf1GtQPwA'
+_GX = b'xoWOBrcEBOnNnj7LZiOVtEKcZIE5BT-1Ifgor2BrTT26oUted-_nWSj-HcEnov-o3jNIs8GFakKb-X5-McLlvWY'
+_GY = b'ARg5KWp4mjvABFyKX7QsfRvZmPVESVebRGgXr70XJz5mLJfucple9CZAxVC5AT-tB2E1PHCGonLCQIi-lHaf0WZQ'
+_R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
 
-class Point(object):
+class CurveFp(): 
+    "The curve of points satisfying y^2 = x^3 + a*x + b (mod p)"
+    def __init__(self, p, a, b): self.__p, self.__a, self.__b = p, a, b
+    def p(self): return self.__p
+    def a(self): return self.__a
+    def b(self): return self.__b
+    def has_point(self, x, y): return (y * y - (x * x * x + self.__a * x + self.__b)) % self.__p == 0
+
+class Point():
     def __init__(self, curve, x, y, order = None):
         self.__curve, self.__x, self.__y, self.__order = curve, x, y, order
-        if self.__curve: assert self.__curve.contains_point(x, y)
+        if self.__curve: assert self.__curve.has_point(x, y)
         if order: assert self * order == INFINITY
-    def __cmp__(self, other):
-        if self.__curve == other.__curve and self.__x == other.__x and self.__y == other.__y: return 0
-        else: return 1
     def __add__(self, other):
         if other == INFINITY: return self
         if self == INFINITY: return other
         assert self.__curve == other.__curve
         if self.__x == other.__x:
-            if (self.__y + other.__y ) % self.__curve.p() == 0: return INFINITY
+            if (self.__y + other.__y) % self.__curve.p() == 0: return INFINITY
             else: return self.double()
         p = self.__curve.p()
-        l = ( ( other.__y - self.__y ) * inverse_mod( other.__x - self.__x, p ) ) % p
-        x3 = ( l * l - self.__x - other.__x ) % p
-        y3 = ( l * ( self.__x - x3 ) - self.__y ) % p
-        return Point( self.__curve, x3, y3 )
-    def __mul__(self, other):
-        def leftmost_bit(x):
-            assert x > 0
-            result = 1
-            while result <= x: result = 2 * result
-            return result // 2
-        e = other
+        l = ((other.__y - self.__y) * inverse_mod(other.__x - self.__x, p)) % p
+        x3 = (l * l - self.__x - other.__x) % p
+        y3 = (l * (self.__x - x3) - self.__y) % p
+        return Point(self.__curve, x3, y3)
+    def __mul__(self, e):
         if self.__order: e = e % self.__order
-        if e == 0: return INFINITY
-        if self == INFINITY: return INFINITY
-        assert e > 0
-        e3 = 3 * e
-        negative_self = Point(self.__curve, self.__x, -self.__y, self.__order)
-        i = leftmost_bit(e3) // 2
+        if e == 0 or self == INFINITY: return INFINITY
+        e3, neg_self = 3*e, Point(self.__curve, self.__x, -self.__y, self.__order)
+        i = 1 << (len(bin(e3))-4)
         result = self
         while i > 1:
             result = result.double()
             if (e3 & i) != 0 and (e & i) == 0: result = result + self
-            if (e3 & i) == 0 and (e & i) != 0: result = result + negative_self
-            i = i // 2
+            if (e3 & i) == 0 and (e & i) != 0: result = result + neg_self
+            i //= 2
         return result
-    def __rmul__(self, other):
-        return self * other
+    def __rmul__(self, other): return self * other
     def double(self):
         if self == INFINITY: return INFINITY
         p, a = self.__curve.p(), self.__curve.a()
-        l = ( ( 3 * self.__x * self.__x + a ) * inverse_mod(2 * self.__y, p ) ) % p
-        x3 = ( l * l - 2 * self.__x ) % p
-        y3 = ( l * ( self.__x - x3 ) - self.__y ) % p
+        l = ((3 * self.__x * self.__x + a) * inverse_mod(2 * self.__y, p)) % p
+        x3 = (l * l - 2 * self.__x) % p
+        y3 = (l * (self.__x - x3) - self.__y) % p
         return Point(self.__curve, x3, y3)
-    def x(self):
-        return self.__x
-    def y(self):
-        return self.__y
-    def curve(self):
-        return self.__curve  
-    def order(self):
-        return self.__order
+    def x(self): return self.__x
+    def y(self): return self.__y
+    def curve(self): return self.__curve  
+    def order(self): return self.__order
+
+INFINITY = Point(None, None, None)  
+c521 = CurveFp(b64toi(b'Af' + b'_'*86), -3, b64toi(_B))
 
 class Curve:
     def __init__(self, generator):
         self.generator = generator
         self.order = generator.order()
 
-# NIST Curve P-521:
-_B = b'UZU-uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex-k3sWUsC9O7G_BzVz34g9LDTx70Uf1GtQPwA'
-_GX = b'xoWOBrcEBOnNnj7LZiOVtEKcZIE5BT-1Ifgor2BrTT26oUted-_nWSj-HcEnov-o3jNIs8GFakKb-X5-McLlvWY'
-_GY = b'ARg5KWp4mjvABFyKX7QsfRvZmPVESVebRGgXr70XJz5mLJfucple9CZAxVC5AT-tB2E1PHCGonLCQIi-lHaf0WZQ'
-_R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
-INFINITY = Point(None, None, None)  
-c521 = CurveFp(b64toi(b'Af' + b'_'*86), -3, b64toi(_B))
-
 class ecdsa:
     def __init__(self):
-        "_"
-        curve = Curve(Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R) ))
+        curve = Curve(Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R)))
         secexp = randrange(curve.order)
         pp = curve.generator*secexp
-        self.pkgenerator = curve.generator
-        self.pt, n = pp, curve.generator.order()
-        if not n: raise 'Generator point must have order'
-        if not n * pp == INFINITY: raise 'Generator point order is bad'
-        if pp.x() < 0 or n <= pp.x() or pp.y() < 0 or n <= pp.y(): raise 'Out of range'
+        self.pkgenerator, self.pt, n = curve.generator, pp, curve.order
+        if not n: raise 'Generator point must have order!'
+        if not n * pp == INFINITY: raise 'Bad Generator point order!'
+        if pp.x() < 0 or n <= pp.x() or pp.y() < 0 or n <= pp.y(): raise 'Out of range!'
         self.pkorder, self.privkey = n, secexp
 
     def verify(self, sig, data):
-        "_"
         r, s, G, n = b2i(sig[:66]), b2i(sig[66:]), self.pkgenerator, self.pkorder
         if r < 1 or r > n-1 or s < 1 or s > n-1: return False
         c = inverse_mod(s, n)
@@ -218,12 +182,11 @@ class ecdsa:
         return z.x() % n == r
 
     def sign(self, data):
-        "_"
         rk, G, n = randrange(self.pkorder), self.pkgenerator, self.pkorder
         k = rk % n
         p1 = k * G
         r = p1.x()
-        s = (inverse_mod(k, n ) * ( H(data) + ( self.privkey * r ) % n ) ) % n
+        s = (inverse_mod(k, n) * (H(data) + (self.privkey * r) % n)) % n
         assert s != 0 and r != 0
         return i2b(r, 66) + i2b(s, 66)
 
@@ -233,7 +196,7 @@ class ecdsa:
             Mx = x + offset
             My2 = pow(Mx, 3, p) + a * Mx + b % p
             My = pow(My2, (p+1)//4, p)
-            if c521.contains_point(Mx, My): return offset, My
+            if c521.has_point(Mx, My): return offset, My
         raise Exception('Y Not found')
 
     def encrypt(self, data):
@@ -260,7 +223,7 @@ def inverse_mod(a, m):
     c, d = a, m
     uc, vc, ud, vd = 1, 0, 0, 1
     while c != 0:
-        q, c, d = divmod(d, c ) + ( c, )
+        q, c, d = divmod(d, c) + (c,)
         uc, vc, ud, vd = ud - q*uc, vd - q*vc, uc, vc
     assert d == 1
     if ud > 0: return ud
@@ -272,10 +235,10 @@ def randrange(order):
     cand = b2i(os.urandom(byts))
     return cand//2 if cand >= order else cand
 
-##### LOCAL AES ##### (replace PyCrypto AES)
+##### LOCAL AES-256 ##### (replace PyCrypto AES)
 _IV = b'ABCDEFGHIJKLMNOP'
 
-class AES0:
+class AES:
     sbox =  [
         0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
         0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
@@ -888,26 +851,17 @@ def register(name='root'):
     while cm in du:
         k = ecdsa()
         cm = i2b(k.pt.y())[-9:]
-    du[cm], dv[name], dv[cm] = i2b(k.pt.x(), 66) + i2b(k.pt.y(), 66)[:-9], cm, AES0().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
+    du[cm], dv[name], dv[cm] = i2b(k.pt.x(), 66) + i2b(k.pt.y(), 66)[:-9], cm, AES().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
     dv.close(), du.close()
     print ('Your personnal keys have been generated. Id: %s' % (btob64(cm)))
     return name    
-
-def get_bank():
-    dc, bnk = dbm.open(__base__+'crt.db', 'c'), None
-    for x in dc.keys():
-        if len(x) == 9: 
-            bnk = btob64(x)
-            break
-    dc.close()
-    return bnk
 
 def certif(name, value=10000):
     "_"
     pp = getpass.getpass('Root Pass Phrase to generate certificat for \'%s\'? ' % name)
     dv, dc = dbm.open('private.db', 'c'), dbm.open(__base__+'crt.db', 'c')
     dat, k, cm, root = datencode(365), ecdsa(), dv[name], dv['root']
-    k.privkey = int(AES0().decrypt(dv[root], hashlib.sha256(pp.encode('utf8')).digest())) 
+    k.privkey = int(AES().decrypt(dv[root], hashlib.sha256(pp.encode('utf8')).digest())) 
     msg = dat + i2b(value, 8)
     if b'_' in dc:
         assert dc[b'_'] == root
@@ -916,9 +870,9 @@ def certif(name, value=10000):
     dc[cm] = msg + k.sign(cm + msg)
     dv.close(), dc.close()
 
-def debt(cm):
+def debt(base, cm):
     "_"
-    du, dc, dbt = dbm.open(__base__+'pub.db'), dbm.open(__base__+'crt.db'), 0
+    du, dc, dbt = dbm.open(base+'pub.db'), dbm.open(base+'crt.db'), 0
     if cm in dc:
         root, k = dc[b'_'], ecdsa()
         k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
@@ -930,7 +884,7 @@ def buy(src, price):
     "_"
     dv, du, dt, u, tab = dbm.open('private.db'), dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db', 'c'), bytes(src, 'utf8'), []
     if u in dv:
-        if balance(dv[u]) + debt(dv[u]) < price: return
+        if balance(dv[u]) + debt(__base__, dv[u]) < price: return
     pp = getpass.getpass('Pass Phrase for \'%s\'? ' % src)
     for p in du.keys():
         if p != dv[u]: 
@@ -940,18 +894,41 @@ def buy(src, price):
     dst = tab[int(c)-1]
     if u in dv and dst in du:
         cm, dat, k = dv[u], datencode(), ecdsa()
-        k.privkey = int(AES0().decrypt(dv[cm], hashlib.sha256(pp.encode('utf8')).digest())) 
+        k.privkey = int(AES().decrypt(dv[cm], hashlib.sha256(pp.encode('utf8')).digest())) 
         msg, u = dst + i2b(price, 3), dat + cm
         if u not in dt:
             dt[u] = msg + k.sign(u + msg)
             print ('transaction recorded')
     dv.close(), du.close(), dt.close()
 
+def nbuy(n, src, price):
+    "_"
+    dv, du, dt, u, tab = dbm.open('private.db'), dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db', 'c'), bytes(src, 'utf8'), []
+    if u in dv:
+        if balance(dv[u]) + debt(__base__, dv[u]) < price: return
+    pp = getpass.getpass('Pass Phrase for \'%s\'? ' % src)
+    for p in du.keys():
+        if p != dv[u]: 
+            tab.append(p)
+            print ('(%d) %s' % (len(tab), btob64(p)))
+    c = input('Select a recipient: ')
+    dst = tab[int(c)-1]
+    if u in dv and dst in du:
+        cm, k = dv[u], ecdsa()
+        k.privkey = int(AES().decrypt(dv[cm], hashlib.sha256(pp.encode('utf8')).digest()))
+        for i in range(n):
+            msg, u = dst + i2b(price, 3), datencode() + cm
+            time.sleep(1)
+            if u not in dt:
+                dt[u] = msg + k.sign(u + msg)
+                print ('transaction %s recorded' % i)
+    dv.close(), du.close(), dt.close()
+
 def allcut():
     "_"
     du, dv, dc, k = dbm.open(__base__+'pub.db'), dbm.open('private.db'), dbm.open(__base__ +'crt.db', 'c'), ecdsa()
     pp = getpass.getpass('Pass Phrase for root? ')
-    k.privkey = int(AES0().decrypt(dv[dv['root']], hashlib.sha256(pp.encode('utf8')).digest()))
+    k.privkey = int(AES().decrypt(dv[dv['root']], hashlib.sha256(pp.encode('utf8')).digest()))
     for u in du.keys():
         if is_active(u):
             print ('...for user %s' % btob64(u))
@@ -990,36 +967,31 @@ def get_image(img):
     here = os.path.dirname(os.path.abspath(__file__))
     return 'data:image/png;base64,%s' % base64.b64encode(open('%s/%s' % (here, img), 'rb').read()).decode('ascii')
 
-def footer():
+def footer(dg=''):
     "_"
-    return '<div id="footer">Contact: <a href="mailto:%s">%s</a><br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>' % (__email__, __email__)
+    dg = ' Digest:%s' % dg if dg else ''
+    return '<div id="footer">Contact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>' % (__email__, __email__, dg)
 
-def report(cm):
+def report(cm, port):
     "_"
-    du, dt, dc, bal, k, o = dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db'), dbm.open(__base__+'crt.db'), 0, ecdsa(), '<table>'
+    base = '/%s/%s_%s/' % (__app__, __app__, port)
+    du, dt, dc, bal, o = dbm.open(base+'pub.db'), dbm.open(base+'trx.db'), dbm.open(base+'crt.db'), 0, '<table>'
     o += '<tr><th></th><th>Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
-    z, root, dar, n = b'%'+cm, dc[b'_'], None, 0
-    k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
-    if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): 
+    z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
+    if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
         o += '<tr><td></td><td>%s</td><td colspan="2">Ancien solde</td><td></td><td class="num">%s €</td></tr>' % (datdecode(dar), (bal/100))
-    u = sorted([(t[:4], t, dt[t]) for t in dt.keys()], key=operator.itemgetter(1))
-    for (dat, t, z) in u:
-        if dar==None or is_after(dat, dar):
-            src, dst, prc = t[4:], z[:9], b2i(z[9:12])
-            k.pt = Point(c521, b2i(du[src][:66]), b2i(du[src][66:]+src))
-            if k.verify(z[12:], t + z[:12]):
-                res = None
+    for t in dt.keys():
+        if dar==None or is_after(t[:4], dar):
+            src, dst, prc = t[4:], dt[t][:9], b2i(dt[t][9:12])
+            if cm in (dst, src):
                 if src == cm: 
-                    typ = '<td title="Autorité">admin.</td>' if dst == root else '<td title="banque Internet">ibank</td>' if dst in dc else '<td title="particulier ou commerçant">part.</td>'
-                    n += 1
-                    bal -= prc
-                    o += '<tr><td class="num">%03d</td><td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td class="num">%7.2f €</td><td></td></tr>' % (n, datdecode(dat), typ, btob64(dst), btob64(dst), (prc/100))
-                if dst == cm: 
-                    typ = '<td title="Autorité">admin.</td>' if src == root else '<td title="banque Internet">ibank</td>' if src in dc else '<td title="particulier ou commerçant">part.</td>'
-                    n += 1
-                    bal += prc
-                    o += '<tr><td class="num">%03d</td><td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td></td><td class="num">%7.2f €</td></tr>' % (n, datdecode(dat), typ, btob64(src), btob64(src), (prc/100))
+                    one, t1, t2, bal = dst, '<td class="num">%7.2f €</td>' % (prc/100), '<td></td>', bal-prc 
+                else: 
+                    one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f €</td>' % (prc/100), bal+prc
+                typ, n = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>', n+1                    
+                tmp.append((t[:4], '<tr><td class="num">%03d</td><td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (n, datdecode(t[:4]), typ, btob64(one), btob64(one), t1, t2)))
+    for d, x in sorted(tmp): o += x
     o += '<tr><td></td><td>%s</td><td colspan="2"><b>Nouveau solde</b></td>' % datdecode(datencode())
     if bal<0:
         o += '<td></td><td class="num"><b>%7.2f €</b></td><tr>' % (-bal/100)
@@ -1059,7 +1031,7 @@ def all_balances():
     "_"
     du = dbm.open(__base__+'pub.db')
     for u in du.keys(): 
-        print ('%s bal:%d debt:%d' % (btob64(u), balance(u), debt(u)))
+        print ('%s bal:%d debt:%d' % (btob64(u), balance(u), debt(__base__, u)))
     du.close()    
 
 def check():
@@ -1069,6 +1041,15 @@ def check():
         bal = sum([balance(u) for u in du.keys()]) 
         assert bal == 0
         du.close()
+
+def get_bank(port):
+    dc, bnk = dbm.open('/%s/%s_%s/crt.db' % (__app__, __app__, port), 'c'), None
+    for x in dc.keys():
+        if len(x) == 9: 
+            bnk = btob64(x)
+            break
+    dc.close()
+    return bnk
 
 ##### WEB APP #####
 
@@ -1081,7 +1062,7 @@ def peers_req(d, host='localhost'):
 def req(host='localhost', db= 'PUB', data=''):
     "_"
     co, serv = http.client.HTTPConnection(host), '/' + __app__
-    co.request('POST', serv, urllib.parse.quote(db + '/%s' % data ))
+    co.request('POST', serv, urllib.parse.quote(db + '/%s' % data))
     return eval(co.getresponse().read())    
 
 def digest_req(host='localhost'):
@@ -1089,6 +1070,11 @@ def digest_req(host='localhost'):
     co, serv = http.client.HTTPConnection(host), '/' + __app__
     co.request('POST', serv, urllib.parse.quote('DIGEST'))
     return co.getresponse().read()    
+
+def reg(value):
+    " function attribute is a way to access matching group in one line test "
+    reg.v = value
+    return value
 
 def init_dbs(dbs, port):
     "_"
@@ -1107,38 +1093,35 @@ def update_peers(env, d, li):
     now = '%s' % datetime.datetime.now()
     for p in li:
         if p != env['HTTP_HOST'] and bytes(p, 'utf8') not in d: d[p] = now[:19]
-    return 'PEERS: %s' % d.keys()
+    return 'Peers: %s' % d.keys()
 
-def hmerge(d, tab):
+def hmerge(d, port, tab):
     "_"
     trx, crt, pub, k = {}, {}, {}, ecdsa()
     for p in tab: 
         trx.update(req(p.decode('utf8'), 'TRX', '%s' % {x: d['trx'][x] for x in d['trx'].keys()}))
         crt.update(req(p.decode('utf8'), 'CRT', '%s' % {x: d['crt'][x] for x in d['crt'].keys()}))
         pub.update(req(p.decode('utf8'), 'PUB', '%s' % {x: d['pub'][x] for x in d['pub'].keys()}))
-    if crt:
-        if b'_' in d['crt']: 
-            assert crt[b'_'] == d['crt'][b'_']
-        else:
-            d['crt'][b'_'] = crt[b'_']
-        root = d['crt'][b'_']
-        for u in pub: 
-            if len(u) !=9 and len(pub[u]) != 123: del pub[u]
-            if u not in d['pub']: d['pub'][u] = pub[u]
-        for t in trx:
-            if len(t) !=13 and len(trx[t]) != 145: del trx[t]
-            src = t[4:]
-            k.pt = Point(c521, b2i(pub[src][:66]), b2i(pub[src][66:]+src))
-            if not k.verify(trx[t][12:], t + trx[t][:12]): del trx[t]
-            if t not in d['trx']: d['trx'][t] = trx[t]
-        for c in crt:
-            k.pt = Point(c521, b2i(pub[root][:66]), b2i(pub[root][66:]+root))
-            if len(c) == 9: # bank certificat
-                if k.verify(crt[c][12:], c + crt[c][:12]) and c not in d['crt']: 
-                    d['crt'][c] = crt[c]
-            elif len(c) == 10: # cut
-                if k.verify(crt[c][8:], c[1:] + crt[c][:8]) and c not in d['crt']: 
-                    d['crt'][c] = crt[c]
+    sys.stderr.write('HMERGE %s\n' % tab)
+    if b'_' in d['crt'] and b'_' in crt: assert crt[b'_'] == d['crt'][b'_']
+    if not b'_' in d['crt']: d['crt'][b'_'] = crt[b'_']
+    root = d['crt'][b'_']
+    for u in pub: 
+        if len(u) !=9 and len(pub[u]) != 123: del pub[u]
+        if u not in d['pub']: d['pub'][u] = pub[u]
+    for t in trx:
+        if len(t) !=13 and len(trx[t]) != 144: del trx[t]
+        src = t[4:]
+        k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
+        if not k.verify(trx[t][12:], t + trx[t][:12]): del trx[t]
+        if t not in d['trx']: d['trx'][t] = trx[t]
+    for c in crt:
+        k.pt = Point(c521, b2i(d['pub'][root][:66]), b2i(d['pub'][root][66:]+root))
+        if len(c) == 9: # bank certificat
+            if k.verify(crt[c][12:], c + crt[c][:12]) and c not in d['crt']: d['crt'][c] = crt[c]
+        elif len(c) == 10: # cut
+            if k.verify(crt[c][8:], c[1:] + crt[c][:8]) and c not in d['crt']: d['crt'][c] = crt[c]
+    wdigest(d, port)
 
 def app_update(host):
     "_"
@@ -1165,17 +1148,18 @@ def index(d, env, cm64):
     if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
     cm = i2b(b64toi(bytes(cm64, 'ascii')))
     if cm in d['pub']:
-        da, (rpt, bal) = btob64(cm), report(cm)
+        da, (rpt, bal) = btob64(cm), report(cm, env['SERVER_PORT'])
+        #da, rpt, bal = btob64(cm), '', 0
         o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte: <b class="green">%s</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Solde: <b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
         o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
         o += '<p class="note">Crédit initial de compte par virement SEPA vers:<br/>CUP-FONDATION BIC: CMCIFR2A<br/>IBAN: FR76 1027 8022 3300 0202 8350 157 + votre ID en message</p>'
-        bnk = get_bank()
+        bnk = get_bank(env['SERVER_PORT'])
         o += '<p class="note">Inversement, tout réglement vers l\'<i>ibank</i> <a href="?%s">%s</a><br/> est converti dans la journée en virement SEPA vers un compte<br/>dont vous nous fournissez l\'IBAN.</p>' % (bnk, bnk)
     else:
         o += o1
         o += '<p>%s</p>'% cm64
     o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
-    return o + footer() + '</body></html>\n'
+    return o + footer(rdigest(env['SERVER_PORT'])) + '</body></html>\n'
 
 def welcome(cm):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header(), 'text/html; charset=utf-8' 
@@ -1183,37 +1167,33 @@ def welcome(cm):
     o += '<h2><a href="./">Voir votre relevé de compte</a></h2>' 
     return o + footer() + '</html>\n'
 
-def diff_peers(d):
-    tab, dg = [], dbdigest(d)
+def diff_peers(d, port):
+    tab = []
     for p in d['prs'].keys(): 
-        if dg != digest_req(p.decode('utf8')).decode('utf8'): tab.append(p)
-    if tab: hmerge(d, tab)
+        if rdigest(port) != digest_req(p.decode('utf8')).decode('utf8'): 
+            tab.append(p)
+    #sys.stderr.write('%s\n' % (tab))
+    if tab: hmerge(d, port, tab)
 
 def application(environ, start_response):
     "wsgi server app"
-    mime, o, now, fname = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt'
-    d = init_dbs(('prs', 'trx', 'pub', 'crt'), environ['SERVER_PORT'])
+    mime, o, now, fname, port = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
+    d = init_dbs(('prs', 'trx', 'pub', 'crt'), port)
+    wdigest(d, port)
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base, ncok = environ['PATH_INFO'][1:], []
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
-        if arg == 'PEERS':  o = '%s' % {x.decode('utf8'): d['prs'][x].decode('utf8') for x in d['prs'].keys()}
-        elif re.match(r'(TRX|CRT|PUB)', arg):
-            li = eval(urllib.parse.unquote(arg[4:]))
-            if re.match(r'TRX', arg): 
-                o = '%s' % {x: d['trx'][x] for x in d['trx'].keys()}
-                for x in li:
-                    if x not in d['trx']: d['trx'][x] = li[x]
-            elif re.match(r'CRT', arg): 
-                o = '%s' % {x: d['crt'][x] for x in d['crt'].keys()}
-                for x in li:
-                    if x not in d['crt']: d['crt'][x] = li[x]
-            elif re.match(r'PUB', arg): 
-                o = '%s' % {x: d['pub'][x] for x in d['pub'].keys()}
-                for x in li:
-                    if x not in d['pub']: d['pub'][x] = li[x]
-                #d['pub'].update(li)
-        elif arg == 'DIGEST': o = '%s' % dbdigest(d)
+        if arg == 'PEERS': o = '%s' % {x.decode('utf8'): d['prs'][x].decode('utf8') for x in d['prs'].keys()}
+        elif reg(re.match(r'(TRX|CRT|PUB)', arg)):
+            li, la, db = eval(urllib.parse.unquote(arg[4:])), {}, reg.v.group(1).lower()
+            for x in d[db].keys():
+                if x not in li: la[x] = d[db][x]
+            for x in li:
+                if x not in d[db]: d[db][x] = li[x]
+            wdigest(d, port)
+            o = '%s' % la
+        elif arg == 'DIGEST': o = rdigest(port)
         elif re.match('cm=\w{1,12}', arg):
             r = capture_id(d, arg[3:])
             if r: 
@@ -1223,11 +1203,11 @@ def application(environ, start_response):
                 o += 'Id not found!' 
         else: o += 'not valid args %s' % arg
     else:
-        if base == 'peers': # propagation (pull)
+        if base == 'peers': # propagation
             fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
             for p in d['prs'].keys(): li.update(peers_req(d['prs'], p.decode('utf8')))
             o = update_peers(environ, d['prs'], li)
-            diff_peers(d)
+            diff_peers(d, port)
         elif base == '_update':
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif base == '':
@@ -1244,19 +1224,23 @@ def application(environ, start_response):
             li = peers_req(d['prs'], base) 
             li.update({base:now[:19]})
             o = update_peers(environ, d['prs'], li)
-            diff_peers(d)
+            diff_peers(d, port)
         else:
             o += 'request not valid!'
     for db in d: d[db].close()
     start_response('200 OK', [('Content-type', mime)] + ncok)
     return [o if mime == 'application/pdf' else o.encode('utf8')] 
 
-def dbdigest(d):
+def wdigest(d, port):
     "computes digest for all databases"
     s = b''
     for a in ('pub', 'trx', 'crt'): 
-        for x in d[a].keys(): s += x + d[a][x]
-    return hashlib.sha1(s).hexdigest()
+        for x in d[a].keys(): s += x + d[a][x]    
+    open('/%s/%s_%s/digest.txt' % (__app__, __app__, port) , 'w').write(hashlib.sha1(s).hexdigest()[:10])
+
+def rdigest(port):
+    "return db digest"
+    return open('/%s/%s_%s/digest.txt' % (__app__, __app__, port)).read()
 
 def install():
     """Quelques instructions d'installation sous Linux\n
@@ -1301,7 +1285,7 @@ if __name__ == '__main__':
         if sys.argv[1] == 'cut':
             allcut()
         else:
-            buy('user', int(float(sys.argv[1])*100))
+            nbuy(20, 'user', int(float(sys.argv[1])*100))
     #check()
     all_balances()
     sys.exit()    
