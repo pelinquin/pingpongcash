@@ -104,35 +104,31 @@ _GX = b'xoWOBrcEBOnNnj7LZiOVtEKcZIE5BT-1Ifgor2BrTT26oUted-_nWSj-HcEnov-o3jNIs8GF
 _GY = b'ARg5KWp4mjvABFyKX7QsfRvZmPVESVebRGgXr70XJz5mLJfucple9CZAxVC5AT-tB2E1PHCGonLCQIi-lHaf0WZQ'
 _R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
 
-class CurveFp(): 
+class Curve(): 
     "The curve of points satisfying y^2 = x^3 + a*x + b (mod p)"
-    def __init__(self, p, a, b): self.__p, self.__a, self.__b = p, a, b
-    def p(self): return self.__p
-    def a(self): return self.__a
-    def b(self): return self.__b
-    def has_point(self, x, y): return (y * y - (x * x * x + self.__a * x + self.__b)) % self.__p == 0
+    def __init__(self, p, a, b): self.p, self.a, self.b = p, a, b
+    def has_pt(self, x, y): return (y*y - (x*x*x + self.a*x + self.b)) % self.p == 0
+
+c521 = Curve(b64toi(b'Af' + b'_'*86), -3, b64toi(_B))
 
 class Point():
     def __init__(self, curve, x, y, order = None):
-        self.__curve, self.__x, self.__y, self.__order = curve, x, y, order
-        if self.__curve: assert self.__curve.has_point(x, y)
-        if order: assert self * order == INFINITY
+        self.curve, self.x, self.y, self.order = curve, x, y, order
     def __add__(self, other):
         if other == INFINITY: return self
         if self == INFINITY: return other
-        assert self.__curve == other.__curve
-        if self.__x == other.__x:
-            if (self.__y + other.__y) % self.__curve.p() == 0: return INFINITY
+        if self.x == other.x:
+            if (self.y + other.y) % self.curve.p == 0: return INFINITY
             else: return self.double()
-        p = self.__curve.p()
-        l = ((other.__y - self.__y) * inverse_mod(other.__x - self.__x, p)) % p
-        x3 = (l * l - self.__x - other.__x) % p
-        y3 = (l * (self.__x - x3) - self.__y) % p
-        return Point(self.__curve, x3, y3)
+        p = self.curve.p
+        l = ((other.y - self.y) * inverse_mod(other.x - self.x, p)) % p
+        x3 = (l*l - self.x - other.x) % p
+        y3 = (l*(self.x - x3) - self.y) % p
+        return Point(self.curve, x3, y3)
     def __mul__(self, e):
-        if self.__order: e = e % self.__order
+        if self.order: e = e % self.order
         if e == 0 or self == INFINITY: return INFINITY
-        e3, neg_self = 3*e, Point(self.__curve, self.__x, -self.__y, self.__order)
+        e3, neg_self = 3*e, Point(self.curve, self.x, -self.y, self.order)
         i = 1 << (len(bin(e3))-4)
         result = self
         while i > 1:
@@ -144,33 +140,23 @@ class Point():
     def __rmul__(self, other): return self * other
     def double(self):
         if self == INFINITY: return INFINITY
-        p, a = self.__curve.p(), self.__curve.a()
-        l = ((3 * self.__x * self.__x + a) * inverse_mod(2 * self.__y, p)) % p
-        x3 = (l * l - 2 * self.__x) % p
-        y3 = (l * (self.__x - x3) - self.__y) % p
-        return Point(self.__curve, x3, y3)
-    def x(self): return self.__x
-    def y(self): return self.__y
-    def curve(self): return self.__curve  
-    def order(self): return self.__order
+        p, a = self.curve.p, self.curve.a
+        l = ((3 * self.x * self.x + a) * inverse_mod(2 * self.y, p)) % p
+        x3 = (l*l - 2 * self.x) % p
+        y3 = (l*(self.x - x3) - self.y) % p
+        return Point(self.curve, x3, y3)
 
 INFINITY = Point(None, None, None)  
-c521 = CurveFp(b64toi(b'Af' + b'_'*86), -3, b64toi(_B))
-
-class Curve:
-    def __init__(self, generator):
-        self.generator = generator
-        self.order = generator.order()
 
 class ecdsa:
     def __init__(self):
-        curve = Curve(Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R)))
-        secexp = randrange(curve.order)
-        pp = curve.generator*secexp
-        self.pkgenerator, self.pt, n = curve.generator, pp, curve.order
+        self.gen = Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R))
+        secexp = randrange(self.gen.order)
+        pp = self.gen*secexp
+        self.pkgenerator, self.pt, n = self.gen, pp, self.gen.order
         if not n: raise 'Generator point must have order!'
         if not n * pp == INFINITY: raise 'Bad Generator point order!'
-        if pp.x() < 0 or n <= pp.x() or pp.y() < 0 or n <= pp.y(): raise 'Out of range!'
+        if pp.x < 0 or n <= pp.x or pp.y < 0 or n <= pp.y: raise 'Out of range!'
         self.pkorder, self.privkey = n, secexp
 
     def verify(self, sig, data):
@@ -179,13 +165,13 @@ class ecdsa:
         c = inverse_mod(s, n)
         u1, u2 = (H(data) * c) % n, (r * c) % n
         z = u1 * G + u2 * self.pt
-        return z.x() % n == r
+        return z.x % n == r
 
     def sign(self, data):
         rk, G, n = randrange(self.pkorder), self.pkgenerator, self.pkorder
         k = rk % n
         p1 = k * G
-        r = p1.x()
+        r = p1.x
         s = (inverse_mod(k, n) * (H(data) + (self.privkey * r) % n)) % n
         assert s != 0 and r != 0
         return i2b(r, 66) + i2b(s, 66)
@@ -196,7 +182,7 @@ class ecdsa:
             Mx = x + offset
             My2 = pow(Mx, 3, p) + a * Mx + b % p
             My = pow(My2, (p+1)//4, p)
-            if c521.has_point(Mx, My): return offset, My
+            if c521.has_pt(Mx, My): return offset, My
         raise Exception('Y Not found')
 
     def encrypt(self, data):
@@ -204,8 +190,8 @@ class ecdsa:
         offset, y = self.find_offset(x)
         M, k = Point(c521, x + offset, y), randrange(self.pkorder)        
         p1, p2 = k*G, M + k*self.pt
-        o1, o2 = p1.y()&1, p2.y()&1
-        return bytes('%02X' % ((o1<<7) + (o2<<6) + offset), 'ascii') + i2b(p1.x(), 66) + i2b(p2.x(), 66)
+        o1, o2 = p1.y&1, p2.y&1
+        return bytes('%02X' % ((o1<<7) + (o2<<6) + offset), 'ascii') + i2b(p1.x, 66) + i2b(p2.x, 66)
 
     def decrypt(self, enctxt):
         oo, x1, x2 =  int(enctxt[:2], 16), b2i(enctxt[2:68]), b2i(enctxt[68:])
@@ -215,7 +201,7 @@ class ecdsa:
         y1, y2 = t1 if int(o1) == t1&1 else (-t1)%p, t2 if int(o2) == t2&1 else (-t2)%p
         p1, p2 = Point(c521, x1, - y1), Point(c521, x2, y2)
         u = p2 + self.privkey * p1
-        return i2b(u.x()-offset)
+        return i2b(u.x-offset)
 
 def inverse_mod(a, m):
     "_"
@@ -225,7 +211,7 @@ def inverse_mod(a, m):
     while c != 0:
         q, c, d = divmod(d, c) + (c,)
         uc, vc, ud, vd = ud - q*uc, vd - q*vc, uc, vc
-    assert d == 1
+    #assert d == 1
     if ud > 0: return ud
     else: return ud + m
 
@@ -950,7 +936,7 @@ def is_active(cm):
 
 def style_html():
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}#footer{position:absolute;bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.7}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}svg{background-color:white;}</style>'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{position:absolute;bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.7}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}svg{background-color:white;}</style>'
     return o
 
 def favicon():
@@ -970,13 +956,12 @@ def get_image(img):
 def footer(dg=''):
     "_"
     dg = ' Digest:%s' % dg if dg else ''
-    return '<div id="footer">Contact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</div>' % (__email__, __email__, dg)
+    return '<footer>Contact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</footer>' % (__email__, __email__, dg)
 
 def report(cm, port):
     "_"
     base = '/%s/%s_%s/' % (__app__, __app__, port)
-    du, dt, dc, bal, o = dbm.open(base+'pub.db'), dbm.open(base+'trx.db'), dbm.open(base+'crt.db'), 0, '<table>'
-    o += '<tr><th></th><th>Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = dbm.open(base+'pub.db'), dbm.open(base+'trx.db'), dbm.open(base+'crt.db'), 0, '<table><tr><th></th><th>Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -989,9 +974,9 @@ def report(cm, port):
                     one, t1, t2, bal = dst, '<td class="num">%7.2f €</td>' % (prc/100), '<td></td>', bal-prc 
                 else: 
                     one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f €</td>' % (prc/100), bal+prc
-                typ, n = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>', n+1                    
-                tmp.append((t[:4], '<tr><td class="num">%03d</td><td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (n, datdecode(t[:4]), typ, btob64(one), btob64(one), t1, t2)))
-    for d, x in sorted(tmp): o += x
+                typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>'
+                tmp.append((t[:4], '<td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), t1, t2)))
+    for i, (d, x) in enumerate(sorted(tmp)): o += '<tr><td class="num">%03d</td>' % (i+1) + x
     o += '<tr><td></td><td>%s</td><td colspan="2"><b>Nouveau solde</b></td>' % datdecode(datencode())
     if bal<0:
         o += '<td></td><td class="num"><b>%7.2f €</b></td><tr>' % (-bal/100)
@@ -1152,9 +1137,9 @@ def index(d, env, cm64):
         #da, rpt, bal = btob64(cm), '', 0
         o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte: <b class="green">%s</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Solde: <b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
         o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
-        o += '<p class="note">Crédit initial de compte par virement SEPA vers:<br/>CUP-FONDATION BIC: CMCIFR2A<br/>IBAN: FR76 1027 8022 3300 0202 8350 157 + votre ID en message</p>'
         bnk = get_bank(env['SERVER_PORT'])
-        o += '<p class="note">Inversement, tout réglement vers l\'<i>ibank</i> <a href="?%s">%s</a><br/> est converti dans la journée en virement SEPA vers un compte<br/>dont vous nous fournissez l\'IBAN.</p>' % (bnk, bnk)
+        o += '<p class="note">Crédit initial de compte par virement SEPA vers CUP-FONDATION<br/>BIC: CMCIFR2A IBAN: FR76 1027 8022 3300 0202 8350 157 + votre ID en message<br/>'
+        o += 'Inversement, tout réglement vers l\'<i>ibank</i> <a href="?%s">%s</a> est converti dans la journée<br/> en virement SEPA vers un compte dont vous fournissez l\'IBAN.</p>' % (bnk, bnk)
     else:
         o += o1
         o += '<p>%s</p>'% cm64
@@ -1233,9 +1218,8 @@ def application(environ, start_response):
 
 def wdigest(d, port):
     "computes digest for all databases"
-    s = b''
-    for a in ('pub', 'trx', 'crt'): 
-        for x in d[a].keys(): s += x + d[a][x]    
+    dbs = ('pub', 'trx', 'crt')
+    s = b''.join([b''.join([x + d[a][x] for x in sorted(d[a].keys())]) for a in dbs])
     open('/%s/%s_%s/digest.txt' % (__app__, __app__, port) , 'w').write(hashlib.sha1(s).hexdigest()[:10])
 
 def rdigest(port):
