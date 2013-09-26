@@ -829,22 +829,22 @@ def register(name='root'):
     while bytes(name, 'utf8') in dv: name = input('Find a public name:')
     print ('Hi! \'%s\'' % name)
     while pp1 != pp2 or len(pp1) < 4:
-        pp1 = getpass.getpass('Select a Pass-Phrase? ')
-        pp2 = getpass.getpass('The Pass-Phrase Again? ')
+        pp1 = getpass.getpass('Select a passphrase? ')
+        pp2 = getpass.getpass('The passphrase again? ')
     print ('...wait')
     k = ecdsa()
-    cm = i2b(k.pt.y())[-9:]
+    cm = i2b(k.pt.y)[-9:]
     while cm in du:
         k = ecdsa()
-        cm = i2b(k.pt.y())[-9:]
-    du[cm], dv[name], dv[cm] = i2b(k.pt.x(), 66) + i2b(k.pt.y(), 66)[:-9], cm, AES().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
+        cm = i2b(k.pt.y)[-9:]
+    du[cm], dv[name], dv[cm] = i2b(k.pt.x, 66) + i2b(k.pt.y, 66)[:-9], cm, AES().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
     dv.close(), du.close()
     print ('Your personnal keys have been generated. Id: %s' % (btob64(cm)))
     return name    
 
 def certif(name, value=10000):
     "_"
-    pp = getpass.getpass('Root Pass Phrase to generate certificat for \'%s\'? ' % name)
+    pp = getpass.getpass('Root passphrase to generate certificat for \'%s\'? ' % name)
     dv, dc = dbm.open('private.db', 'c'), dbm.open(__base__+'crt.db', 'c')
     dat, k, cm, root = datencode(365), ecdsa(), dv[name], dv['root']
     k.privkey = int(AES().decrypt(dv[root], hashlib.sha256(pp.encode('utf8')).digest())) 
@@ -871,7 +871,7 @@ def buy(src, price):
     dv, du, dt, u, tab = dbm.open('private.db'), dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db', 'c'), bytes(src, 'utf8'), []
     if u in dv:
         if balance(dv[u]) + debt(__base__, dv[u]) < price: return
-    pp = getpass.getpass('Pass Phrase for \'%s\'? ' % src)
+    pp = getpass.getpass('Passphrase for \'%s\'? ' % src)
     for p in du.keys():
         if p != dv[u]: 
             tab.append(p)
@@ -892,7 +892,7 @@ def nbuy(n, src, price):
     dv, du, dt, u, tab = dbm.open('private.db'), dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db', 'c'), bytes(src, 'utf8'), []
     if u in dv:
         if balance(dv[u]) + debt(__base__, dv[u]) < price: return
-    pp = getpass.getpass('Pass Phrase for \'%s\'? ' % src)
+    pp = getpass.getpass('Passphrase for \'%s\'? ' % src)
     for p in du.keys():
         if p != dv[u]: 
             tab.append(p)
@@ -913,7 +913,7 @@ def nbuy(n, src, price):
 def allcut():
     "_"
     du, dv, dc, k = dbm.open(__base__+'pub.db'), dbm.open('private.db'), dbm.open(__base__ +'crt.db', 'c'), ecdsa()
-    pp = getpass.getpass('Pass Phrase for root? ')
+    pp = getpass.getpass('Passphrase for root? ')
     k.privkey = int(AES().decrypt(dv[dv['root']], hashlib.sha256(pp.encode('utf8')).digest()))
     for u in du.keys():
         if is_active(u):
@@ -1044,10 +1044,10 @@ def peers_req(d, host='localhost'):
     co.request('POST', serv, urllib.parse.quote('PEERS'))
     return eval(co.getresponse().read().decode('utf8'))    
 
-def req(host='localhost', db= 'PUB', data=''):
+def req(host='localhost', data=''):
     "_"
     co, serv = http.client.HTTPConnection(host), '/' + __app__
-    co.request('POST', serv, urllib.parse.quote(db + '/%s' % data))
+    co.request('POST', serv, urllib.parse.quote(data))
     return eval(co.getresponse().read())    
 
 def digest_req(host='localhost'):
@@ -1078,16 +1078,15 @@ def update_peers(env, d, li):
     now = '%s' % datetime.datetime.now()
     for p in li:
         if p != env['HTTP_HOST'] and bytes(p, 'utf8') not in d: d[p] = now[:19]
-    return 'Peers: %s' % d.keys()
+    return 'Peers: %s\nDigest: %s' % ({x.decode('utf8'):d[x].decode('utf8') for x in d.keys()}, rdigest(env['SERVER_PORT']))
 
 def hmerge(d, port, tab):
     "_"
     trx, crt, pub, k = {}, {}, {}, ecdsa()
     for p in tab: 
-        trx.update(req(p.decode('utf8'), 'TRX', '%s' % {x: d['trx'][x] for x in d['trx'].keys()}))
-        crt.update(req(p.decode('utf8'), 'CRT', '%s' % {x: d['crt'][x] for x in d['crt'].keys()}))
-        pub.update(req(p.decode('utf8'), 'PUB', '%s' % {x: d['pub'][x] for x in d['pub'].keys()}))
-    sys.stderr.write('HMERGE %s\n' % tab)
+        trx.update(req(p.decode('utf8'), 'TRX%s' % {x: d['trx'][x] for x in d['trx'].keys()}))
+        crt.update(req(p.decode('utf8'), 'CRT%s' % {x: d['crt'][x] for x in d['crt'].keys()}))
+        pub.update(req(p.decode('utf8'), 'PUB%s' % {x: d['pub'][x] for x in d['pub'].keys()}))
     if b'_' in d['crt'] and b'_' in crt: assert crt[b'_'] == d['crt'][b'_']
     if not b'_' in d['crt']: d['crt'][b'_'] = crt[b'_']
     root = d['crt'][b'_']
@@ -1127,8 +1126,8 @@ def capture_id(d, arg):
 
 def index(d, env, cm64):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + '<body><div class="bg"></div>' + header(), 'text/html; charset=utf-8'
-    o1 = '<ul><li><a title="moins de 1200 lignes Python3!" href="./src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i></li>' 
-    o1 += '<li>Installez un <a href="./install">serveur</a> <i>Linux</i> ou <a href="./ios">l\'application</a> <i>iOS</i></li>' 
+    o1 = '<ul><li><a title="moins de 1200 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i></li>'
+    o1 += '<li>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i></li>' 
     o1 += '<li><form method="post">Consultez votre compte : <input class="txt" name="cm" placeholder="...votre ID"/></form></li></ul>\n'
     if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
     cm = i2b(b64toi(bytes(cm64, 'ascii')))
@@ -1142,22 +1141,21 @@ def index(d, env, cm64):
         o += 'Inversement, tout réglement vers l\'<i>ibank</i> <a href="?%s">%s</a> est converti dans la journée<br/> en virement SEPA vers un compte dont vous fournissez l\'IBAN.</p>' % (bnk, bnk)
     else:
         o += o1
-        o += '<p>%s</p>'% cm64
+        #o += '<p>%s</p>'% cm64
     o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
     return o + footer(rdigest(env['SERVER_PORT'])) + '</body></html>\n'
 
 def welcome(cm):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header(), 'text/html; charset=utf-8' 
     o += '<h1>Bienvenu \'%s\' au club !</h1>' % cm
-    o += '<h2><a href="./">Voir votre relevé de compte</a></h2>' 
+    o += '<h2><a href="?">Voir votre relevé de compte</a></h2>' 
     return o + footer() + '</html>\n'
 
-def diff_peers(d, port):
+def diff_dbs(d, port):
     tab = []
     for p in d['prs'].keys(): 
         if rdigest(port) != digest_req(p.decode('utf8')).decode('utf8'): 
             tab.append(p)
-    #sys.stderr.write('%s\n' % (tab))
     if tab: hmerge(d, port, tab)
 
 def application(environ, start_response):
@@ -1171,7 +1169,7 @@ def application(environ, start_response):
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
         if arg == 'PEERS': o = '%s' % {x.decode('utf8'): d['prs'][x].decode('utf8') for x in d['prs'].keys()}
         elif reg(re.match(r'(TRX|CRT|PUB)', arg)):
-            li, la, db = eval(urllib.parse.unquote(arg[4:])), {}, reg.v.group(1).lower()
+            li, la, db = eval(urllib.parse.unquote(arg[3:])), {}, reg.v.group(1).lower()
             for x in d[db].keys():
                 if x not in li: la[x] = d[db][x]
             for x in li:
@@ -1192,24 +1190,22 @@ def application(environ, start_response):
             fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
             for p in d['prs'].keys(): li.update(peers_req(d['prs'], p.decode('utf8')))
             o = update_peers(environ, d['prs'], li)
-            diff_peers(d, port)
+            diff_dbs(d, port)
         elif base == '_update':
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif base == '':
-            o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
-        elif base == 'install':
-            o = install()
-        elif base == 'ios':
-            o = 'Toujours en phase de test!\nBientôt disponible sur appStore\n\nNous contacter pour toute question.'
-        elif base == 'src':
-            o = open(__file__, 'r', encoding='utf-8').read() 
-        elif base == 'download':
-            o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
+            if raw == 'install': o = install()
+            elif raw == 'ios': o = 'Toujours en phase de test!\nBientôt disponible sur appStore\n\nNous contacter pour toute question.'
+            elif raw == 'src': o = open(__file__, 'r', encoding='utf-8').read() 
+            elif raw == 'download': o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
+            else:
+                o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
+                diff_dbs(d, port)
         elif re.match(r'\S{2,40}', base) and base != environ['HTTP_HOST']: # bootstrap
             li = peers_req(d['prs'], base) 
             li.update({base:now[:19]})
             o = update_peers(environ, d['prs'], li)
-            diff_peers(d, port)
+            diff_dbs(d, port)
         else:
             o += 'request not valid!'
     for db in d: d[db].close()
@@ -1269,7 +1265,7 @@ if __name__ == '__main__':
         if sys.argv[1] == 'cut':
             allcut()
         else:
-            nbuy(20, 'user', int(float(sys.argv[1])*100))
+            buy('user', int(float(sys.argv[1])*100))
     #check()
     all_balances()
     sys.exit()    
