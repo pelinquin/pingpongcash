@@ -145,15 +145,6 @@ class ecdsa:
         assert s != 0 and r != 0
         return i2b(r, 66) + i2b(s, 66)
 
-    def find_offset(self, x):
-        p, a, b = b64toi(b'Af' + b'_'*86), -3, b64toi(_B)
-        for offset in range(64):
-            Mx = x + offset
-            My2 = pow(Mx, 3, p) + a * Mx + b % p
-            My = pow(My2, (p+1)//4, p)
-            if c521.has_pt(Mx, My): return offset, My
-        raise Exception('Y Not found')
-
 def inverse_mod(a, m):
     "_"
     if a < 0 or m <= a: a = a % m
@@ -419,25 +410,24 @@ def readdb(arg):
 ##### MAIN #####
 
 def usage():
-    """If 'keys.db' file does not exist './client.py' creates a new private key in this file and sent public key to a public node
-'./client.pt <a_dbfile>' displays any gnu_berkeleydb database content in base64 format
-'./client.pt <a_price> <a_recipient_id>' generates and sent a transaction of a float <price> for a string valid <recipient id>
-Bad transactions may be that:
-- recipient is unknown 
-- price is higher than your balance
-- signature verification returns false"""
-    return usage.__doc__
+    """If 'keys.db' file does not exist\n'./client.py' creates a new private key in this file and sent public key to a public node
+'./client.pt <dbfile>' displays any gnu_berkeley-database content in base64 format
+'./client.pt <price> <recipient>' generates and sent a transaction of a float <price> for a string valid <recipient> id
+Bad transactions may result from:\n- recipient is unknown or yourself\n- price is higher than your balance\n- signature verification returns false
+Connect to %s to see balance report\nContact %s for any question"""
+    return usage.__doc__ % (__url__, __email__)
 
 if __name__ == '__main__':
-    #node = 'cup:36369'
-    node = 'pingpongcash.fr'
+    #node = 'cup:36369' # for debugging
+    node = '%s.fr' % __ppc__
     if not os.path.isfile('keys.db'):
-        print(send(node, register()))
+        r = register() 
+        print(send(node, r)) # need Net connexion
     elif len(sys.argv)==2 and os.path.isfile(sys.argv[1]):
         readdb(sys.argv[1])
     elif len(sys.argv)==3:
         s = buy(i2b(b64toi(bytes(sys.argv[2], 'ascii'))), int(float(sys.argv[1])*100))
-        print (send(node, s))
+        print (send(node, s)) # need Net connexion
     else:
         print (usage())
 # End ⊔net!
