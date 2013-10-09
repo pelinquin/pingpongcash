@@ -866,6 +866,16 @@ def debt(base, cm):
     du.close(), dc.close()
     return dbt
 
+def ldebt(cm):
+    "_"
+    du, dc, dbt = dbm.open(__base__+'pub.db'), dbm.open(__base__+'crt.db'), 0
+    if cm in dc:
+        root, k = dc[b'_'], ecdsa()
+        k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
+        if is_after(dc[cm][:4], datencode()): dbt = b2i(dc[cm][4:12]) if k.verify(dc[cm][12:], cm + dc[cm][:12]) else 0
+    du.close(), dc.close()
+    return dbt
+
 def buy(src, price):
     "_"
     dv, du, dt, u, tab = dbm.open('private.db'), dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db', 'c'), bytes(src, 'utf8'), []
@@ -1038,21 +1048,21 @@ def get_bank(port):
 
 ##### WEB APP #####
 
-def peers_req(d, host='localhost'):
+def peers_req(host='localhost'):
     "_"
-    co, serv = http.client.HTTPConnection(host), '/' + __app__
+    co, serv = http.client.HTTPConnection(host), '/' #+ __app__
     co.request('POST', serv, urllib.parse.quote('PEERS'))
     return eval(co.getresponse().read().decode('utf8'))    
 
 def req(host='localhost', data=''):
     "_"
-    co, serv = http.client.HTTPConnection(host), '/' + __app__
+    co, serv = http.client.HTTPConnection(host), '/' #+ __app__
     co.request('POST', serv, urllib.parse.quote(data))
     return eval(co.getresponse().read())    
 
 def digest_req(host='localhost'):
     "_"
-    co, serv = http.client.HTTPConnection(host), '/' + __app__
+    co, serv = http.client.HTTPConnection(host), '/' #+ __app__
     co.request('POST', serv, urllib.parse.quote('DIGEST'))
     return co.getresponse().read()    
 
@@ -1186,8 +1196,10 @@ def valid_trx(d, arg):
     u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
-        d['trx'][u] = m + k.sign(u + m) 
-        return True
+        if balance(src) + ldebt(src) > b2i(prc): 
+        #if True:
+            d['trx'][u] = m + k.sign(u + m) 
+            return True
     return False
 
 def application(environ, start_response):
@@ -1226,7 +1238,7 @@ def application(environ, start_response):
     else:
         if base == 'peers': # propagation
             fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
-            for p in d['prs'].keys(): li.update(peers_req(d['prs'], p.decode('utf8')))
+            for p in d['prs'].keys(): li.update(peers_req(p.decode('utf8')))
             o = update_peers(environ, d['prs'], li)
             #diff_dbs(d, port)
         elif base == '_update':
@@ -1240,7 +1252,7 @@ def application(environ, start_response):
                 o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
                 #diff_dbs(d, port)
         elif re.match(r'\S{2,40}', base) and base != environ['HTTP_HOST']: # bootstrap
-            li = peers_req(d['prs'], base) 
+            li = peers_req(base) 
             li.update({base:now[:19]})
             o = update_peers(environ, d['prs'], li)
             #diff_dbs(d, port)
@@ -1268,12 +1280,12 @@ def install():
 - Installer un serveur Web; le plus simple est Apache2 le mod 'wsgi' pour Python3 
 sudo apt-get install apache2 libapache2-mod-wsgi-py3
 - Configurer Apache en ajoutant un fichier ppc.conf sous /etc/apache/conf.d avec la ligne:
-WSGIScriptAlias /mini /home/mon_repertoire_install/mini.py
+WSGIScriptAlias / /home/mon_repertoire_install/mini.py
 - Relancer le serveur Apache
 sudo /etc/init.d/apache restart
 - Ouvrez la page installée 
-"http://mon_serveur/mini/"
-une copie des bases 'peers', 'transactions', 'public keys' et 'certificats' est installée dans le répertoire /mini
+"http://mon_serveur/"
+une copie des bases 'peers', 'transactions', 'publickeys' et 'certificats' est installée dans le répertoire /mini
 - enfin lancez 'mini.py' en ligne de commande pour générer vos clés
 votre clé privée est dans le fichier 'private.db'...à protéger absolument des intrus et à ne pas perdre.\n
 Pour tout problème, nous contacter à 'contact@cupfoundation.net'
@@ -1295,9 +1307,9 @@ if __name__ == '__main__':
         if not os.path.isfile('private.db'):
             root = register()
             bank = register('banker')
-            user = register('user')
+            #user = register('user')
             certif('banker', 100000)
-            buy('banker', 20000)
+            #buy('banker', 20000)
         #else:
         #    cleantr()
     else:

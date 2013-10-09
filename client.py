@@ -53,15 +53,6 @@ def b2i(x):
     "bytes to int"
     return int.from_bytes(x, 'big')
 
-def s2b(x, n=1):
-    "signed int to bytes with n padding"
-    z = bytes.fromhex(PAD(hex(x + (1<<(8*n-1)))))
-    return ((n-len(z))%n)*bytes.fromhex('00') + z
-
-def b2s(x, n=1):
-    "signed bytes to int"
-    return int.from_bytes(x, 'big') - (1<<(8*n-1)) 
-
 def itob64(n):
     "transform int to base64"
     return re.sub(b'=*$', b'', base64.urlsafe_b64encode(bytes.fromhex(PAD(hex(n)))))
@@ -82,18 +73,6 @@ def H(*tab):
 def datencode(n=0):
     "4 chars"
     return i2b(int(time.mktime(time.gmtime()) + 3600*24*n), 4)
-
-def datdecode(tt):
-    "4 chars"
-    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(b2i(tt))))
-
-def is_after(d1, d2): 
-    "_"
-    return datdecode(d1) > datdecode(d2)
-
-def random_b64():
-    "20 chars url safe"
-    return base64.urlsafe_b64encode(bytes.fromhex(hashlib.sha1(os.urandom(32)).hexdigest()[:30]))    
 
 ##### ECDSA NIST CURVE P-521 #####
 
@@ -157,14 +136,6 @@ class ecdsa:
         if pp.x < 0 or n <= pp.x or pp.y < 0 or n <= pp.y: raise 'Out of range!'
         self.pkorder, self.privkey = n, secexp
 
-    def verify(self, sig, data):
-        r, s, G, n = b2i(sig[:66]), b2i(sig[66:]), self.pkgenerator, self.pkorder
-        if r < 1 or r > n-1 or s < 1 or s > n-1: return False
-        c = inverse_mod(s, n)
-        u1, u2 = (H(data) * c) % n, (r * c) % n
-        z = u1 * G + u2 * self.pt
-        return z.x % n == r
-
     def sign(self, data):
         rk, G, n = randrange(self.pkorder), self.pkgenerator, self.pkorder
         k = rk % n
@@ -182,24 +153,6 @@ class ecdsa:
             My = pow(My2, (p+1)//4, p)
             if c521.has_pt(Mx, My): return offset, My
         raise Exception('Y Not found')
-
-    def encrypt(self, data):
-        p, a, b, G, x = b64toi(b'Af' + b'_'*86), -3, b64toi(_B), self.pkgenerator, int.from_bytes(data, 'big')
-        offset, y = self.find_offset(x)
-        M, k = Point(c521, x + offset, y), randrange(self.pkorder)        
-        p1, p2 = k*G, M + k*self.pt
-        o1, o2 = p1.y&1, p2.y&1
-        return bytes('%02X' % ((o1<<7) + (o2<<6) + offset), 'ascii') + i2b(p1.x, 66) + i2b(p2.x, 66)
-
-    def decrypt(self, enctxt):
-        oo, x1, x2 =  int(enctxt[:2], 16), b2i(enctxt[2:68]), b2i(enctxt[68:])
-        o1, o2, offset, p, a, b = (oo & 0x80)>>7,(oo & 0x40)>>6, oo & 0x3F, b64toi(b'Af' + b'_'*86), -3, b64toi(_B)
-        z1, z2 = pow(x1, 3, p) + a * x1 + b % p, pow(x2, 3, p) + a * x2 + b % p
-        t1, t2 = pow(z1, (p+1)//4, p), pow(z2, (p+1)//4, p)
-        y1, y2 = t1 if int(o1) == t1&1 else (-t1)%p, t2 if int(o2) == t2&1 else (-t2)%p
-        p1, p2 = Point(c521, x1, - y1), Point(c521, x2, y2)
-        u = p2 + self.privkey * p1
-        return i2b(u.x-offset)
 
 def inverse_mod(a, m):
     "_"
@@ -451,8 +404,9 @@ def buy(dst, prc):
     db.close()
     return btob64(msg + k.sign(msg))
 
-def send(host='localhost', app='', data=''):
+def send(host='localhost', data=''):
     "_"
+    app = ''
     co, serv = http.client.HTTPConnection(host), '/' + app
     co.request('POST', serv, urllib.parse.quote(data))
     return co.getresponse().read().decode('utf8')    
@@ -462,22 +416,29 @@ def readdb(arg):
     d = dbm.open(arg)
     for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x),'->', btob64(d[x]))
 
-
 ##### MAIN #####
 
+def usage():
+    """If 'keys.db' file does not exist './client.py' creates a new private key in this file and sent public key to a public node
+'./client.pt <a_dbfile>' displays any gnu_berkeleydb database content in base64 format
+'./client.pt <a_price> <a_recipient_id>' generates and sent a transaction of a float <price> for a string valid <recipient id>
+Bad transactions may be that:
+- recipient is unknown 
+- price is higher than your balance
+- signature verification returns false"""
+    return usage.__doc__
+
 if __name__ == '__main__':
+    #node = 'cup:36369'
+    node = 'pingpongcash.fr'
     if not os.path.isfile('keys.db'):
-        #print(send('cup:36368', 'mini', register()))
-        #print(send('cup:36369', '', register()))
-        print(send('pingpongcash.fr', '', register()))
+        print(send(node, register()))
     elif len(sys.argv)==2 and os.path.isfile(sys.argv[1]):
         readdb(sys.argv[1])
     elif len(sys.argv)==3:
         s = buy(i2b(b64toi(bytes(sys.argv[2], 'ascii'))), int(float(sys.argv[1])*100))
-        #print (send('cup:36368', 'mini', s))
-        print (send('pingpongcash.fr', '', s))
-        #print (send('cup:36369', '', s))
+        print (send(node, s))
     else:
-        print ('usage:...')
+        print (usage())
 # End ⊔net!
 
