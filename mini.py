@@ -31,7 +31,7 @@
 #    * Encryption with ECC use an idea of jackjack-jj on github
 #-----------------------------------------------------------------------------
 
-import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, random, getpass
+import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.gnu, datetime, functools, subprocess, time, smtplib, operator, random, getpass
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:10]
 __app__    = os.path.basename(__file__)[:-3]
@@ -833,10 +833,10 @@ def register(name='root'):
         pp2 = getpass.getpass('The passphrase again? ')
     print ('...wait')
     k = ecdsa()
-    cm = i2b(k.pt.y)[-9:]
+    cm = i2b(k.pt.y, 66)[-9:]
     while cm in du:
         k = ecdsa()
-        cm = i2b(k.pt.y)[-9:]
+        cm = i2b(k.pt.y, 66)[-9:]
     du[cm], dv[name], dv[cm] = i2b(k.pt.x, 66) + i2b(k.pt.y, 66)[:-9], cm, AES().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
     dv.close(), du.close()
     print ('Your personnal keys have been generated. Id: %s' % (btob64(cm)))
@@ -1143,7 +1143,7 @@ def index(d, env, cm64):
         o += o1
         #o += '<p>%s</p>'% cm64
     o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
-    return o + footer(rdigest(env['SERVER_PORT'])) + '</body></html>\n'
+    return o + footer('%s [%s:%s]' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx'])) ) + '</body></html>\n'
 
 def welcome(cm):
     "_"
@@ -1160,15 +1160,35 @@ def diff_dbs(d, port):
             tab.append(p)
     if tab: hmerge(d, port, tab)
 
-def valid_reg(d, arg):
+def push_dbs(d, port):
+    "_"
+    tab = []
+    for p in d['prs'].keys(): 
+        if rdigest(port) != digest_req(p.decode('utf8')).decode('utf8'): 
+            tab.append(p)
+    for p in tab: 
+        req(p.decode('utf8'), 'TRX%s' % {x: d['trx'][x] for x in d['trx'].keys()})
+        req(p.decode('utf8'), 'CRT%s' % {x: d['crt'][x] for x in d['crt'].keys()})
+        req(p.decode('utf8'), 'PUB%s' % {x: d['pub'][x] for x in d['pub'].keys()})
+
+def valid_pub(d, arg):
     "_"
     pub = i2b(b64toi(bytes(arg, 'ascii')))
     cm, key = pub[-9:], pub[:-9]
-    if cm in d['pub']:
-        return False
-    else:
+    if cm not in d['pub']:
         d['pub'][cm] = key
         return True
+    return False
+
+def valid_trx(d, arg):
+    "_"
+    r, k = i2b(b64toi(bytes(arg, 'ascii'))), ecdsa()
+    u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
+    k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
+    if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
+        d['trx'][u] = m + k.sign(u + m) 
+        return True
+    return False
 
 def application(environ, start_response):
     "wsgi server app"
@@ -1189,25 +1209,26 @@ def application(environ, start_response):
             wdigest(d, port)
             o = '%s' % la
         elif arg == 'DIGEST': o = rdigest(port)
-        elif re.match('cm=\w{1,12}', arg):
+        elif re.match('cm=\S{1,12}$', arg):
             r = capture_id(d, arg[3:])
             if r: 
                 ncok.append(('set-cookie', 'cm=%s' % r))
                 o, mime = welcome(r), 'text/html; charset=utf-8' 
             else:
                 o += 'Id not found!' 
-        elif re.match('\S{174,176}', arg):
-            if valid_reg(d, arg):
-                o = 'valid public key !'
-            else:
-                o += 'not valid key'
-        else: o += 'not valid args %s' % arg
+        elif re.match('\S{174,176}$', arg): 
+            if valid_pub(d, arg): o = 'New public key registered [%s]' % len(d['pub'])
+            else: o += 'public key already registered!'
+        elif re.match('\S{210,212}$', arg): 
+            if valid_trx(d, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
+            else: o += 'not valid transaction !' 
+        else: o += 'not valid args %s' % len(arg)
     else:
         if base == 'peers': # propagation
             fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
             for p in d['prs'].keys(): li.update(peers_req(d['prs'], p.decode('utf8')))
             o = update_peers(environ, d['prs'], li)
-            diff_dbs(d, port)
+            #diff_dbs(d, port)
         elif base == '_update':
             o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif base == '':
@@ -1217,12 +1238,13 @@ def application(environ, start_response):
             elif raw == 'download': o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
             else:
                 o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
-                diff_dbs(d, port)
+                #diff_dbs(d, port)
         elif re.match(r'\S{2,40}', base) and base != environ['HTTP_HOST']: # bootstrap
             li = peers_req(d['prs'], base) 
             li.update({base:now[:19]})
             o = update_peers(environ, d['prs'], li)
-            diff_dbs(d, port)
+            #diff_dbs(d, port)
+            push_dbs(d, port)
         else:
             o += 'request not valid!'
     for db in d: d[db].close()

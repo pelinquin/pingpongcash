@@ -19,218 +19,189 @@
 #    along with ⊔net.  If not, see <http://www.gnu.org/licenses/>.
 #
 #    Acknowledgements:
+#    * ECDSA has been adapted to Python3 and simplified for 512P curve only 
+#      code inspired from:
+#      Brian Warner  
 #    * The PyCrypt library is far too complex for our needs so we used a code 
-#    for AES inspired from:
+#      for AES inspired from:
 #      Josh Davis ( http://www.josh-davis.org )
 #      Laurent Haan (http://www.progressive-coding.com)
-#    * ECDSA has been adapted to Python3 and simplified for 512P curve only 
-#     code inspired from:
-#      Brian Warner  
+#    * Encryption with ECC use an idea of jackjack-jj on github
 #-----------------------------------------------------------------------------
 
-"""
-This code simulates the device used to store user's private key...usually a smartPhone
-"""
+import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.gnu, datetime, functools, subprocess, time, smtplib, operator, random, getpass
 
-import re, os, sys, math, urllib.parse, hashlib, http.client, base64, dbm, binascii, datetime, zlib, functools, time, smtplib, getpass, argparse
+__digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:10]
+__app__    = os.path.basename(__file__)[:-3]
+__dfprt__  = 36368
+__base__   = '/%s/%s_%s/' % (__app__,__app__,__dfprt__)
+__ppc__    = 'pingpongcash'
+__email__  = 'info@%s.fr' % __ppc__
+__url__    = 'http://%s.fr' % __ppc__
 
-__db__ = 'keys.db'
+_SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 
-# NIST Curve P-521:
-_B = b'UZU-uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex-k3sWUsC9O7G_BzVz34g9LDTx70Uf1GtQPwA'
-_GX = b'xoWOBrcEBOnNnj7LZiOVtEKcZIE5BT-1Ifgor2BrTT26oUted-_nWSj-HcEnov-o3jNIs8GFakKb-X5-McLlvWY'
-_GY = b'ARg5KWp4mjvABFyKX7QsfRvZmPVESVebRGgXr70XJz5mLJfucple9CZAxVC5AT-tB2E1PHCGonLCQIi-lHaf0WZQ'
-_P = b'Af' + b'_'*86
-_R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
+##### ENCODING #####
+PAD = lambda s:(len(s)%2)*'0'+s[2:]
 
-_IV = b'ABCDEFGHIJKLMNOP'
+def i2b(x, n=1):
+    "int to bytes with n padding"
+    z = bytes.fromhex(PAD(hex(x)))
+    return ((n-len(z))%n)*bytes.fromhex('00') + z
+
+def b2i(x):
+    "bytes to int"
+    return int.from_bytes(x, 'big')
+
+def s2b(x, n=1):
+    "signed int to bytes with n padding"
+    z = bytes.fromhex(PAD(hex(x + (1<<(8*n-1)))))
+    return ((n-len(z))%n)*bytes.fromhex('00') + z
+
+def b2s(x, n=1):
+    "signed bytes to int"
+    return int.from_bytes(x, 'big') - (1<<(8*n-1)) 
 
 def itob64(n):
-    "utility to transform int to base64"
-    c = hex(n)[2:]
-    if len(c)%2: c = '0'+c
-    return re.sub(b'=*$', b'', base64.urlsafe_b64encode(bytes.fromhex(c)))
-
-def itob32(n):
-    "utility to transform int to base64"
-    c = hex(n)[2:]
-    if len(c)%2: c = '0'+c
-    return re.sub(b'=*$', b'', base64.b32encode(bytes.fromhex(c))).lower()
+    "transform int to base64"
+    return re.sub(b'=*$', b'', base64.urlsafe_b64encode(bytes.fromhex(PAD(hex(n)))))
 
 def b64toi(c):
     "transform base64 to int"
     if c == '': return 0
     return int.from_bytes(base64.urlsafe_b64decode(c + b'='*((4-(len(c)%4))%4)), 'big')
 
-def b32toi(c):
-    "transform base64 to int"
-    c = c.upper()
-    if c == '': return 0
-    return int.from_bytes(base64.b32decode(c + b'='*((4-(len(c)%4))%4)), 'big')
+def btob64(c):
+    "_"
+    return itob64(b2i(c)).decode('ascii')
 
 def H(*tab):
     "hash"
-    return int(hashlib.sha1(b''.join(bytes('%s' % i, 'utf8') for i in tab)).hexdigest(), 16)
+    return int(hashlib.sha1(b''.join(tab)).hexdigest(), 16)
 
-##### ECDSA ####
-def encode_oid(first, second, *pieces):
-    assert first <= 2
-    assert second <= 39
-    encoded_pieces = [chr(40*first+second)] + [encode_number(p) for p in pieces]
-    body = "".join(encoded_pieces)
-    return "\x06" + encode_length(len(body)) + body
+def datencode(n=0):
+    "4 chars"
+    return i2b(int(time.mktime(time.gmtime()) + 3600*24*n), 4)
 
-def encode_number(n):
-    b128_digits = []
-    while n:
-        b128_digits.insert(0, (n & 0x7f) | 0x80)
-        n = n >> 7
-    if not b128_digits: b128_digits.append(0)
-    b128_digits[-1] &= 0x7f
-    return "".join([chr(d) for d in b128_digits])
+def datdecode(tt):
+    "4 chars"
+    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(b2i(tt))))
 
-def encode_length(l):
-    assert l >= 0
-    if l < 0x80: return chr(l)
-    s = "%x" % l
-    if len(s)%2: s = "0"+s
-    s = binascii.unhexlify(s)
-    llen = len(s)
-    return chr(0x80|llen) + s
+def is_after(d1, d2): 
+    "_"
+    return datdecode(d1) > datdecode(d2)
 
-class CurveFp( object ):
-    def __init__( self, p, a, b ):
-        "The curve of points satisfying y^2 = x^3 + a*x + b (mod p)."
-        self.__p, self.__a, self.__b = p, a, b
-    def p( self ):
-        return self.__p
-    def a( self ):
-        return self.__a
-    def b( self ):
-        return self.__b
-    def contains_point( self, x, y ):
-        return ( y * y - ( x * x * x + self.__a * x + self.__b ) ) % self.__p == 0
+def random_b64():
+    "20 chars url safe"
+    return base64.urlsafe_b64encode(bytes.fromhex(hashlib.sha1(os.urandom(32)).hexdigest()[:30]))    
 
-class Point(object):
-    def __init__( self, curve, x, y, order = None ):
-        "curve, x, y, order; order (optional) is the order of this point"
-        self.__curve = curve
-        self.__x = x
-        self.__y = y
-        self.__order = order
-        if self.__curve: assert self.__curve.contains_point( x, y )
-        if order: assert self * order == INFINITY
-    def __cmp__( self, other ):
-        "Return 0 if the points are identical, 1 otherwise"
-        if self.__curve == other.__curve and self.__x == other.__x and self.__y == other.__y: return 0
-        else: return 1
-    def __add__( self, other ):
-        "Add one point to another point"
+##### ECDSA NIST CURVE P-521 #####
+
+_B = b'UZU-uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex-k3sWUsC9O7G_BzVz34g9LDTx70Uf1GtQPwA'
+_GX = b'xoWOBrcEBOnNnj7LZiOVtEKcZIE5BT-1Ifgor2BrTT26oUted-_nWSj-HcEnov-o3jNIs8GFakKb-X5-McLlvWY'
+_GY = b'ARg5KWp4mjvABFyKX7QsfRvZmPVESVebRGgXr70XJz5mLJfucple9CZAxVC5AT-tB2E1PHCGonLCQIi-lHaf0WZQ'
+_R = b'Af' + b'_'*42 + b'-lGGh4O_L5Zrf8wBSPcJpdA7tcm4iZxHrrtvtx6ROGQJ'
+
+class Curve(): 
+    "The curve of points satisfying y^2 = x^3 + a*x + b (mod p)"
+    def __init__(self, p, a, b): self.p, self.a, self.b = p, a, b
+    def has_pt(self, x, y): return (y*y - (x*x*x + self.a*x + self.b)) % self.p == 0
+
+c521 = Curve(b64toi(b'Af' + b'_'*86), -3, b64toi(_B))
+
+class Point():
+    def __init__(self, curve, x, y, order = None):
+        self.curve, self.x, self.y, self.order = curve, x, y, order
+    def __add__(self, other):
         if other == INFINITY: return self
         if self == INFINITY: return other
-        assert self.__curve == other.__curve
-        if self.__x == other.__x:
-            if ( self.__y + other.__y ) % self.__curve.p() == 0: return INFINITY
+        if self.x == other.x:
+            if (self.y + other.y) % self.curve.p == 0: return INFINITY
             else: return self.double()
-        p = self.__curve.p()
-        l = ( ( other.__y - self.__y ) * inverse_mod( other.__x - self.__x, p ) ) % p
-        x3 = ( l * l - self.__x - other.__x ) % p
-        y3 = ( l * ( self.__x - x3 ) - self.__y ) % p
-        return Point( self.__curve, x3, y3 )
-    def __mul__( self, other ):
-        "Multiply a point by an integer"
-        def leftmost_bit( x ):
-            assert x > 0
-            result = 1
-            while result <= x: result = 2 * result
-            return result // 2
-        e = other
-        if self.__order: e = e % self.__order
-        if e == 0: return INFINITY
-        if self == INFINITY: return INFINITY
-        assert e > 0
-        e3 = 3 * e
-        negative_self = Point( self.__curve, self.__x, -self.__y, self.__order )
-        i = leftmost_bit( e3 ) // 2
+        p = self.curve.p
+        l = ((other.y - self.y) * inverse_mod(other.x - self.x, p)) % p
+        x3 = (l*l - self.x - other.x) % p
+        y3 = (l*(self.x - x3) - self.y) % p
+        return Point(self.curve, x3, y3)
+    def __mul__(self, e):
+        if self.order: e = e % self.order
+        if e == 0 or self == INFINITY: return INFINITY
+        e3, neg_self = 3*e, Point(self.curve, self.x, -self.y, self.order)
+        i = 1 << (len(bin(e3))-4)
         result = self
         while i > 1:
             result = result.double()
-            if ( e3 & i ) != 0 and ( e & i ) == 0: result = result + self
-            if ( e3 & i ) == 0 and ( e & i ) != 0: result = result + negative_self
-            i = i // 2
+            if (e3 & i) != 0 and (e & i) == 0: result = result + self
+            if (e3 & i) == 0 and (e & i) != 0: result = result + neg_self
+            i //= 2
         return result
-    def __rmul__( self, other ):
-        "Multiply a point by an integer"
-        return self * other
-    def double( self ):
+    def __rmul__(self, other): return self * other
+    def double(self):
         if self == INFINITY: return INFINITY
-        p = self.__curve.p()
-        a = self.__curve.a()
-        l = ( ( 3 * self.__x * self.__x + a ) * inverse_mod( 2 * self.__y, p ) ) % p
-        x3 = ( l * l - 2 * self.__x ) % p
-        y3 = ( l * ( self.__x - x3 ) - self.__y ) % p
-        return Point( self.__curve, x3, y3 )
-    def x( self ):
-        return self.__x
-    def y( self ):
-        return self.__y
-    def curve( self ):
-        return self.__curve  
-    def order( self ):
-        return self.__order
+        p, a = self.curve.p, self.curve.a
+        l = ((3 * self.x * self.x + a) * inverse_mod(2 * self.y, p)) % p
+        x3 = (l*l - 2 * self.x) % p
+        y3 = (l*(self.x - x3) - self.y) % p
+        return Point(self.curve, x3, y3)
 
-def orderlen(order):
-    return (1+len("%x"%order))//2 # bytes
-
-class Curve:
-    def __init__(self, name, curve, generator, oid):
-        self.name = name
-        self.curve = curve
-        self.generator = generator
-        self.order = generator.order()
-        self.baselen = orderlen(self.order)
-        self.verifying_key_length = 2*self.baselen
-        self.signature_length = 2*self.baselen
-        self.oid = oid
-        self.encoded_oid = encode_oid(*oid)
-
-INFINITY = Point( None, None, None )  
-curve_521 = CurveFp( b64toi(_P), -3, b64toi(_B) )
-#encoded_oid_ecPublicKey = encode_oid(*(1, 2, 840, 10045, 2, 1))
-NIST521p = Curve("NIST521p", curve_521, Point( curve_521, b64toi(_GX), b64toi(_GY), b64toi(_R) ), (1, 3, 132, 0, 35))
+INFINITY = Point(None, None, None)  
 
 class ecdsa:
     def __init__(self):
-        curve=NIST521p
-        secexp = randrange(curve.order)
-        pp = curve.generator*secexp
-        self.pkgenerator = curve.generator
-        self.pt, n = pp, curve.generator.order()
-        if not n: raise "Generator point must have order"
-        if not n * pp == INFINITY: raise "Generator point order is bad"
-        if pp.x() < 0 or n <= pp.x() or pp.y() < 0 or n <= pp.y(): raise "Out of range"
+        self.gen = Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R))
+        secexp = randrange(self.gen.order)
+        pp = self.gen*secexp
+        self.pkgenerator, self.pt, n = self.gen, pp, self.gen.order
+        if not n: raise 'Generator point must have order!'
+        if not n * pp == INFINITY: raise 'Bad Generator point order!'
+        if pp.x < 0 or n <= pp.x or pp.y < 0 or n <= pp.y: raise 'Out of range!'
         self.pkorder, self.privkey = n, secexp
 
-    def verify(self, s, data):
-        nb, [r, s], G, n = H(data), [b64toi(x) for x in s.encode('ascii').split(b'/')], self.pkgenerator, self.pkorder
-        if r<1 or r>n-1: return False
-        if s<1 or s>n-1: return False
+    def verify(self, sig, data):
+        r, s, G, n = b2i(sig[:66]), b2i(sig[66:]), self.pkgenerator, self.pkorder
+        if r < 1 or r > n-1 or s < 1 or s > n-1: return False
         c = inverse_mod(s, n)
-        u1, u2 = (nb*c)%n, (r*c)%n
-        xy = u1*G+u2*self.pt
-        return xy.x() % n == r
+        u1, u2 = (H(data) * c) % n, (r * c) % n
+        z = u1 * G + u2 * self.pt
+        return z.x % n == r
 
     def sign(self, data):
-        nb, rk, G, n = H(data), randrange(self.pkorder), self.pkgenerator, self.pkorder
+        rk, G, n = randrange(self.pkorder), self.pkgenerator, self.pkorder
         k = rk % n
         p1 = k * G
-        r = p1.x()
-        if r == 0: raise "amazingly unlucky random number r"
-        s = (inverse_mod(k, n)*(nb+(self.privkey*r)%n))%n
-        if s == 0: raise "amazingly unlucky random number s"
-        return '%s/%s' % (itob64(r).decode('ascii'), itob64(s).decode('ascii'))
+        r = p1.x
+        s = (inverse_mod(k, n) * (H(data) + (self.privkey * r) % n)) % n
+        assert s != 0 and r != 0
+        return i2b(r, 66) + i2b(s, 66)
 
-def inverse_mod( a, m ):
+    def find_offset(self, x):
+        p, a, b = b64toi(b'Af' + b'_'*86), -3, b64toi(_B)
+        for offset in range(64):
+            Mx = x + offset
+            My2 = pow(Mx, 3, p) + a * Mx + b % p
+            My = pow(My2, (p+1)//4, p)
+            if c521.has_pt(Mx, My): return offset, My
+        raise Exception('Y Not found')
+
+    def encrypt(self, data):
+        p, a, b, G, x = b64toi(b'Af' + b'_'*86), -3, b64toi(_B), self.pkgenerator, int.from_bytes(data, 'big')
+        offset, y = self.find_offset(x)
+        M, k = Point(c521, x + offset, y), randrange(self.pkorder)        
+        p1, p2 = k*G, M + k*self.pt
+        o1, o2 = p1.y&1, p2.y&1
+        return bytes('%02X' % ((o1<<7) + (o2<<6) + offset), 'ascii') + i2b(p1.x, 66) + i2b(p2.x, 66)
+
+    def decrypt(self, enctxt):
+        oo, x1, x2 =  int(enctxt[:2], 16), b2i(enctxt[2:68]), b2i(enctxt[68:])
+        o1, o2, offset, p, a, b = (oo & 0x80)>>7,(oo & 0x40)>>6, oo & 0x3F, b64toi(b'Af' + b'_'*86), -3, b64toi(_B)
+        z1, z2 = pow(x1, 3, p) + a * x1 + b % p, pow(x2, 3, p) + a * x2 + b % p
+        t1, t2 = pow(z1, (p+1)//4, p), pow(z2, (p+1)//4, p)
+        y1, y2 = t1 if int(o1) == t1&1 else (-t1)%p, t2 if int(o2) == t2&1 else (-t2)%p
+        p1, p2 = Point(c521, x1, - y1), Point(c521, x2, y2)
+        u = p2 + self.privkey * p1
+        return i2b(u.x-offset)
+
+def inverse_mod(a, m):
     "_"
     if a < 0 or m <= a: a = a % m
     c, d = a, m
@@ -238,31 +209,20 @@ def inverse_mod( a, m ):
     while c != 0:
         q, c, d = divmod(d, c) + (c,)
         uc, vc, ud, vd = ud - q*uc, vd - q*vc, uc, vc
-    assert d == 1
+    #assert d == 1
     if ud > 0: return ud
     else: return ud + m
 
 def randrange(order):
     "_"
-    entropy = os.urandom
-    assert order > 1
-    byts = orderlen(order)
-    dont_try_forever = 10000 
-    while dont_try_forever > 0:
-        dont_try_forever -= 1
-        cand = int(binascii.hexlify(entropy(byts)), 16)
-        if 1 <= cand < order: return cand
-        continue
-    raise "randrange() tried hard but gave up. Order was %x" % order
+    byts = (1+len('%x' % order))//2
+    cand = b2i(os.urandom(byts))
+    return cand//2 if cand >= order else cand
 
-################
-def h10 (code):
-    "_"
-    return base64.urlsafe_b64encode(hashlib.sha1(code.encode('utf8')).digest())[:10].decode('ascii')
+##### LOCAL AES-256 ##### (replace PyCrypto AES)
+_IV = b'ABCDEFGHIJKLMNOP'
 
-### LOCAL AES ### (replace PyCrypto AES mainly for macOSX)
-
-class AES0:
+class AES:
     sbox =  [
         0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
         0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
@@ -440,10 +400,10 @@ class AES0:
                     else: cipher[i] = plain[i] ^ output[i]
                 for k in range(end-start): cipherOut.append(cipher[k])
                 iput = output
-        return base64.urlsafe_b64encode(bytes(cipherOut))
+        return bytes(cipherOut)
 
     def decrypt(self, cIn, key):
-        cipher, iput, output, plain, stringOut, fround, cipherIn = [], [], [], [0]*16, '', True, [i for i in base64.urlsafe_b64decode(cIn)]
+        cipher, iput, output, plain, stringOut, fround, cipherIn = [], [], [], [0]*16, '', True, [i for i in cIn]
         if cipherIn != None:
             for j in range(1+(len(cipherIn)-1)//16):
                 start, end = j*16, j*16+16
@@ -460,219 +420,64 @@ class AES0:
                 iput = output
         return stringOut.rstrip('@');
 
-###########
-
-def gen_pwd ():
-    "_"
-    code = '%s' % time.mktime(time.gmtime())
-    return base64.urlsafe_b64encode(hashlib.sha1(code.encode('ascii')).digest())[:4]
-
-def cmd(post, cd, host='localhost', binary=False):
-    "_"
-    #print (cd, host)
-    co, serv = http.client.HTTPConnection(host), '/'
-    if post:
-        co.request('POST', serv, urllib.parse.quote(cd))
-    else:
-        co.request('GET', serv + '?' + urllib.parse.quote(cd))
-    return co.getresponse().read() if binary else co.getresponse().read().decode('utf8')    
-
-def agency(ag):
-    "_"
-    # example: 'Crédit Mutuel/6, Route de Castres/31130/Quint Fonsegrives/0562572138/02233@creditmutuel.fr'
-    k, host, user, fi, t = get_k()
-    src = t[2][-6:].decode('utf8')
-    d = dbm.open('banks')
-    if ag.encode('ascii') in d.keys():
-        tab = d[ag].decode('utf8').split('/')
-        print (tab)
-        msg = '/'.join([src, ag, tab[1], tab[4], tab[2], tab[3].title(), tab[5], tab[6]])
-        o = msg
-        o = cmd(True, '/'.join(['AG', msg, k.sign(msg)]), host.decode('utf8'))
-    else:
-        o = 'Agency not found!'
-    d.close()
-    return o 
-
-def listday(theday=''):
-    "_"
-    k, host, user, fi, t = get_k()
-    src = t[2][-6:].decode('utf8')
-    if theday == '': theday = ('%s' % datetime.datetime.now())[:10]
-    msg = '/'.join([src, theday])    
-    return cmd(True, '/'.join(['LD', msg, k.sign(msg)]), host.decode('utf8'))    
-
-def generate():
-    "_"
-    email = input('E-mail: ')
-    pp1, pp2 = '', ''
-    print ('Enter a PassPhrase > 4 characters: ')
-    while pp1 != pp2 or len(pp1) < 4:
-        pp1 = getpass.getpass('Pass Phrase ?')
-        pp2 = getpass.getpass('Retype Pass Phrase ?')
-    db = 'keys.db'
-    print ('...wait')
-    kt = []
-    for i in range(10):
-        k = ecdsa()
-        cm = itob64(k.pt.y())[-6:].decode('utf8')
-        kt.append(k)
-        print ('(%d)' %i, cm)
-    sk = input('Select one key: ')
-    k = kt[int(sk)]
-    cm = itob64(k.pt.y())[-6:].decode('utf8')
-    d = dbm.open(db[:-3], 'c')
-    pw = hashlib.sha256(pp1.encode('utf8')).digest()
-    #pad = lambda s:s+(32-len(s)%32)*'@'
-    #EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
-    #ci = EncodeAES(AES.new(pw, AES.MODE_OFB, _IV), '%s' % k.privkey) # AES from PyCrypto
-    ci = AES0().encrypt('%s' % k.privkey, pw) # included AES
-    d[email] = gen_pwd() + b'/' + b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + ci
-    d.close()
-    os.chmod(db, 511)
-    set('user', email)
-    print ('%s file generated for code %s user: %s' % (db, cm, email))
-
-def find_best():
-    "_"
-    db = 'search.db'
-    d = dbm.open(db[:-3], 'c')
-    i = 0
-    while True:
-        k = ecdsa()
-        i += 1
-        cm = itob64(k.pt.y())[-6:].decode('utf8')
-        if re.search('(bank|cash|ping|pong|money|france)', cm, re.I):
-            d[cm] = b'/'.join([itob64(x) for x in [k.pt.x(), k.pt.y()]]) + b'/' + itob64(k.privkey)
-            break
-        else:
-            sys.stdout.write('.')
-            sys.stdout.flush()
-            if i%100==0 : print (i)
-    d.close()
-    os.chmod(db, 511)  
-    print ('%s CM found' % db)
+###### API #####
 
 def register():
     "_"
-    k, host, user, fi, t = get_k()
-    today = '%s' % datetime.datetime.now()
-    raw = '/'.join([user, t[1].decode('ascii'), t[2].decode('ascii')])    
-    msg = '/'.join([today[:10], h10(t[0].decode('ascii')), raw])
-    return cmd(True, '/'.join(['PK', '1', raw, k.sign(msg)]), host.decode('utf8'))    
-
-def get_k():
-    "_"
-    d = dbm.open(__db__[:-3])
-    user = d['user'].decode('utf8')
-    pp = getpass.getpass('Pass Phrase ?')
+    pp1, pp2, cm = '', '', ''
+    db = dbm.open('keys.db', 'c')
+    while pp1 != pp2 or len(pp1) < 4:
+        pp1 = getpass.getpass('Select a passphrase? ')
+        pp2 = getpass.getpass('The passphrase again? ')
+    print ('...wait')
     k = ecdsa()
-    tab = d[user].split(b'/')
-    k.pt = Point(curve_521, b64toi(tab[1]), b64toi(tab[2]))
-    pw = hashlib.sha256(pp.encode('utf8')).digest()
-    #DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
-    #k.privkey = int(DecodeAES(AES.new(pw, AES.MODE_OFB, _IV), tab[3])) # AES from PyCrypto
-    k.privkey = int(AES0().decrypt(tab[3], pw)) # included AES
-    host, fi = d['host'], d['file']
-    d.close()
-    return (k, host, user, fi, tab)
+    cm = i2b(k.pt.y)[-9:]
+    while cm in db:
+        k = ecdsa()
+        cm = i2b(k.pt.y)[-9:]
+    pub, priv = i2b(k.pt.x, 66) + i2b(k.pt.y, 66), AES().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
+    db[cm] = pub+priv
+    db.close()
+    print ('Your personnal keys generated in keys.db file. Id: %s' % (btob64(cm)))
+    return btob64(pub)
 
-def set(k, h):
+def buy(dst, prc):
     "_"
-    d = dbm.open(__db__[:-3], 'c')
-    d[k] = h
-    print ('%s->%s' % (k, h))
-    d.close()
+    db, src, k, dat = dbm.open('keys.db'), None, ecdsa(), datencode()
+    assert(len(dst) == 9)
+    for u in db.keys():  src, val, pub = u, db[u][132:], db[u][:132]
+    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    k.privkey, msg = int(AES().decrypt(val, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3)
+    db.close()
+    return btob64(msg + k.sign(msg))
 
-def info():
+def send(host='localhost', app='', data=''):
     "_"
-    d = dbm.open(__db__[:-3])
-    print ('user:%s host:%s file:%s' % (d['user'].decode('utf8'), d['host'].decode('utf8'), d['file'].decode('utf8')))
-    d.close()
-    
-def buy(dest, value, var1='', var2=''):
-    "_"
-    evalue, txt = '', ''
-    if var2 != '': txt = var2
-    if re.match('[\d\.]{1,6}', var1): evalue = '%05d' % int(float(var1)*100)
-    else: txt = var1
-    k, host, user, fi , t = get_k()
-    src = t[2][-6:].decode('utf8')
-    print (src)
-    epoch = '%s' % time.mktime(time.gmtime())
-    msg = '/'.join([epoch[:-2], src, dest, '%05d' % int(float(value)*100)])
-    o = cmd(True, '/'.join(['TR', '1', msg, k.sign(msg), evalue, txt]), host.decode('utf8'), True)
-    if o[:5].decode('ascii') == 'Error':
-        print (o.decode('utf8'))
-    else:
-        open(fi.decode('utf8'), 'bw').write(o)    
-        print ('%s GENERATED' % fi.decode('utf8'))
+    co, serv = http.client.HTTPConnection(host), '/' + app
+    co.request('POST', serv, urllib.parse.quote(data))
+    return co.getresponse().read().decode('utf8')    
 
-def proof(dest, status):
+def readdb(arg):
     "_"
-    k, host, user, fi, t = get_k()
-    src = t[2][-6:].decode('utf8')
-    epoch = '%s' % time.mktime(time.gmtime())
-    msg = '/'.join([epoch[:-2], src, dest, status])
-    o = cmd(True, '/'.join(['VD', '1', msg, k.sign(msg)]), host.decode('utf8'), True)
-    if o[:5].decode('ascii') == 'Error':
-        print (o.decode('utf8'))
-    else:
-        open(fi.decode('utf8'), 'bw').write(o)    
-        print ('%s CERTIFICATE GENERATED' % fi.decode('utf8'))
+    d = dbm.open(arg)
+    for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x),'->', btob64(d[x]))
 
-def usage():
-    "_"
-    print ('usage TODO!')
 
-def compare():
-    from Crypto.Cipher import AES
-    pp = 'this is a password'
-    msg = 'X'*32
-    pw = hashlib.sha256(pp.encode('utf8')).digest()
-    pad = lambda s:s+(32-len(s)%32)*'@'
-    EncodeAES = lambda c,s: base64.urlsafe_b64encode(c.encrypt(pad(s)))
-    DecodeAES = lambda c,e: c.decrypt(base64.urlsafe_b64decode(e)).rstrip(b'@')
-    ci1 = EncodeAES(AES.new(pw, AES.MODE_OFB, _IV), msg) # AES from PyCrypto
-    ci2 = AES0().encrypt(msg, pw) # included AES
-    kp1 = DecodeAES(AES.new(pw, AES.MODE_OFB, _IV), ci1).decode('ascii') # AES from PyCrypto
-    kp2 = AES0().decrypt(ci2, pw) # included AES
-    kp3 = DecodeAES(AES.new(pw, AES.MODE_OFB, _IV), ci2).decode('ascii') # AES mixed
-    kp4 = AES0().decrypt(ci1, pw) # AES mixed
-    assert msg==kp1==kp2==kp3==kp4
-    
+##### MAIN #####
 
 if __name__ == '__main__':
-    if len(sys.argv)==1: info()
-    elif len(sys.argv)==2:
-        if sys.argv[1] == 'generate': generate()
-        elif sys.argv[1] == 'find': find_best()
-        elif sys.argv[1] == 'register' : print (register())
-        elif sys.argv[1] == 'test' : set('host','localhost')
-        elif sys.argv[1] == 'real' : set('host','pingpongcash.net')
-        elif sys.argv[1] == 'list': print (listday())
-        else: usage()
-    elif len(sys.argv)== 3: 
-        if sys.argv[1] == 'list': print (listday(sys.argv[2]))
-        elif sys.argv[1] == 'agency': print (agency(sys.argv[2]))
-        elif sys.argv[1] in ('host', 'user', 'file'): set(sys.argv[1], sys.argv[2])
-        else: usage()
-    elif len(sys.argv) == 4: 
-        if sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3])
-        elif sys.argv[1] == 'proof': proof(sys.argv[2], sys.argv[3])
-        else: usage()
-    elif len(sys.argv) == 5 and sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4])
-    elif len(sys.argv) == 6 and sys.argv[1] == 'buy': buy(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
+    if not os.path.isfile('keys.db'):
+        #print(send('cup:36368', 'mini', register()))
+        #print(send('cup:36369', '', register()))
+        print(send('pingpongcash.fr', '', register()))
+    elif len(sys.argv)==2 and os.path.isfile(sys.argv[1]):
+        readdb(sys.argv[1])
+    elif len(sys.argv)==3:
+        s = buy(i2b(b64toi(bytes(sys.argv[2], 'ascii'))), int(float(sys.argv[1])*100))
+        #print (send('cup:36368', 'mini', s))
+        print (send('pingpongcash.fr', '', s))
+        #print (send('cup:36369', '', s))
     else:
-        usage()
-    #s, f = 'Jun 1 2005', '%b %d %Y'
-    #z1 = time.strptime(s, f)
-    #z2 = datetime.datetime.strptime(s, f).date() + datetime.timedelta(days=1)
-    #print (int(time.mktime(z1)), z2)
-
-
-    #p = argparse.ArgumentParser(description='Process')
-    #p.add_argument('generate', metavar='G')
-
-    sys.exit()
+        print ('usage:...')
 # End ⊔net!
+
