@@ -1182,7 +1182,7 @@ def valid_pub(d, arg):
 
 def valid_trx(d, port, arg):
     "_"
-    di = '/%s/%s_%s' % (__app__, __app__, port)
+    di = '/%s/%s_%s/' % (__app__, __app__, port)
     r, k = i2b(b64toi(bytes(arg, 'ascii'))), ecdsa()
     u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
