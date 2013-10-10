@@ -428,7 +428,7 @@ if __name__ == '__main__':
         readdb(sys.argv[1])
     elif len(sys.argv)==3:
         s = buy(i2b(b64toi(bytes(sys.argv[2], 'ascii'))), int(float(sys.argv[1])*100))
-        print (send(node2, s)) # need Net connexion
+        print (send(node, s)) # need Net connexion
     else:
         print (usage())
 # End ⊔net!
