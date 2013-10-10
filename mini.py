@@ -866,21 +866,11 @@ def debt(base, cm):
     du.close(), dc.close()
     return dbt
 
-def ldebt(cm):
-    "_"
-    du, dc, dbt = dbm.open(__base__+'pub'), dbm.open(__base__+'crt'), 0
-    if cm in dc:
-        root, k = dc[b'_'], ecdsa()
-        k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
-        if is_after(dc[cm][:4], datencode()): dbt = b2i(dc[cm][4:12]) if k.verify(dc[cm][12:], cm + dc[cm][:12]) else 0
-    du.close(), dc.close()
-    return dbt
-
 def buy(src, price):
     "_"
     dv, du, dt, u, tab = dbm.open('private'), dbm.open(__base__+'pub'), dbm.open(__base__+'trx', 'c'), bytes(src, 'utf8'), []
     if u in dv:
-        if balance(dv[u]) + debt(__base__, dv[u]) < price: return
+        if balance(__base__, dv[u]) + debt(__base__, dv[u]) < price: return
     pp = getpass.getpass('Passphrase for \'%s\'? ' % src)
     for p in du.keys():
         if p != dv[u]: 
@@ -901,7 +891,7 @@ def nbuy(n, src, price):
     "_"
     dv, du, dt, u, tab = dbm.open('private'), dbm.open(__base__+'pub'), dbm.open(__base__+'trx', 'c'), bytes(src, 'utf8'), []
     if u in dv:
-        if balance(dv[u]) + debt(__base__, dv[u]) < price: return
+        if balance(__base__, dv[u]) + debt(__base__, dv[u]) < price: return
     pp = getpass.getpass('Passphrase for \'%s\'? ' % src)
     for p in du.keys():
         if p != dv[u]: 
@@ -928,7 +918,7 @@ def allcut():
     for u in du.keys():
         if is_active(u):
             print ('...for user %s' % btob64(u))
-            msg = datencode() + s2b(balance(u), 4)
+            msg = datencode() + s2b(balance(__base__, u), 4)
             dc[b'%'+u] = msg + k.sign(u + msg)
     du.close(), dv.close(), dc.close()
 
@@ -995,9 +985,9 @@ def report(cm, port):
     du.close(), dt.close(), dc.close()
     return o + '</table>', bal
 
-def balance(cm):
+def balance(base, cm):
     "_"
-    du, dt, dc, bal, k = dbm.open(__base__+'pub'), dbm.open(__base__+'trx'), dbm.open(__base__+'crt'), 0, ecdsa()
+    du, dt, dc, bal, k = dbm.open(base+'pub'), dbm.open(base+'trx'), dbm.open(base+'crt'), 0, ecdsa()
     z, root, dar = b'%'+cm, dc[b'_'], None
     k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
     if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -1026,14 +1016,14 @@ def all_balances():
     "_"
     du = dbm.open(__base__+'pub')
     for u in du.keys(): 
-        print ('%s bal:%d debt:%d' % (btob64(u), balance(u), debt(__base__, u)))
+        print ('%s bal:%d debt:%d' % (btob64(u), balance(__base__, u), debt(__base__, u)))
     du.close()    
 
 def check():
     "_"
     if os.path.isfile(__base__+'trx') or os.path.isfile(__base__+'trx'):
         du, bal = dbm.open(__base__+'pub'), 0
-        bal = sum([balance(u) for u in du.keys()]) 
+        bal = sum([balance(__base__, u) for u in du.keys()]) 
         assert bal == 0
         du.close()
 
@@ -1190,14 +1180,14 @@ def valid_pub(d, arg):
         return True
     return False
 
-def valid_trx(d, arg):
+def valid_trx(d, port, arg):
     "_"
+    di = '/%s/%s_%s' % (__app__, __app__, port)
     r, k = i2b(b64toi(bytes(arg, 'ascii'))), ecdsa()
     u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
-        #if balance(src) + ldebt(src) > b2i(prc): 
-        if True:
+        if balance(di, src) + debt(di, src) > b2i(prc): 
             d['trx'][u] = m + k.sign(u + m) 
             return True
     return False
@@ -1232,7 +1222,7 @@ def application(environ, start_response):
             if valid_pub(d, arg): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
         elif re.match('\S{210,212}$', arg): 
-            if valid_trx(d, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
+            if valid_trx(d, port, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid transaction !' 
         else: o += 'not valid args %s' % len(arg)
     else:
