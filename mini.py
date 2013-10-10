@@ -79,6 +79,7 @@ def btob64(c):
 
 def b64tob(c):
     "_"
+    if c == '': return b''
     return base64.urlsafe_b64decode(c + '='*((4-(len(c)%4))%4))
 
 def H(*tab):
@@ -1134,7 +1135,8 @@ def index(d, env, cm64):
     o1 += '<li>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i></li>' 
     o1 += '<li><form method="post">Consultez votre compte : <input class="txt" name="cm" placeholder="...votre ID"/></form></li></ul>\n'
     if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
-    cm = b64tob(cm64)
+    #cm = b64tob(cm64)
+    cm = i2b(b64toi(bytes(cm64, 'ascii')))
     if cm in d['pub']:
         da, (rpt, bal) = btob64(cm), report(cm, env['SERVER_PORT'])
         #da, rpt, bal = btob64(cm), '', 0
