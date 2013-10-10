@@ -75,7 +75,11 @@ def b64toi(c):
 
 def btob64(c):
     "_"
-    return itob64(b2i(c)).decode('ascii')
+    return base64.urlsafe_b64encode(c).decode('ascii').strip('=')
+
+def b64tob(c):
+    "_"
+    return base64.urlsafe_b64decode(c + '='*((4-(len(c)%4))%4))
 
 def H(*tab):
     "hash"
@@ -1130,7 +1134,7 @@ def index(d, env, cm64):
     o1 += '<li>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i></li>' 
     o1 += '<li><form method="post">Consultez votre compte : <input class="txt" name="cm" placeholder="...votre ID"/></form></li></ul>\n'
     if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
-    cm = i2b(b64toi(bytes(cm64, 'ascii')))
+    cm = b64tob(cm64)
     if cm in d['pub']:
         da, (rpt, bal) = btob64(cm), report(cm, env['SERVER_PORT'])
         #da, rpt, bal = btob64(cm), '', 0
@@ -1173,7 +1177,7 @@ def push_dbs(d, port):
 
 def valid_pub(d, arg):
     "_"
-    pub = i2b(b64toi(bytes(arg, 'ascii')))
+    pub = b64tob(arg)
     cm, key = pub[-9:], pub[:-9]
     if cm not in d['pub']:
         d['pub'][cm] = key
@@ -1183,7 +1187,7 @@ def valid_pub(d, arg):
 def valid_trx(d, port, arg):
     "_"
     di = '/%s/%s_%s/' % (__app__, __app__, port)
-    r, k = i2b(b64toi(bytes(arg, 'ascii'))), ecdsa()
+    r, k = b64tob(arg), ecdsa()
     u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
@@ -1195,7 +1199,7 @@ def valid_trx(d, port, arg):
 def valid_trx2(d, port, arg):
     "_"
     di = '/%s/%s_%s/' % (__app__, __app__, port)
-    r, k = i2b(b64toi(bytes(arg, 'ascii'))), ecdsa()
+    r, k = b64tob(arg), ecdsa()
     u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if src in d['pub'] and dst in d['pub'] and src != dst:

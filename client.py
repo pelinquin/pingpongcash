@@ -64,7 +64,7 @@ def b64toi(c):
 
 def btob64(c):
     "_"
-    return itob64(b2i(c)).decode('ascii')
+    return base64.urlsafe_b64encode(c).decode('ascii').strip('=')
 
 def H(*tab):
     "hash"
@@ -391,6 +391,7 @@ def buy(dst, prc):
     assert(len(dst) == 9)
     for u in db.keys():  src, val, pub = u, db[u][132:], db[u][:132]
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    print ('...please wait')
     k.privkey, msg = int(AES().decrypt(val, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3)
     db.close()
     return btob64(msg + k.sign(msg))
@@ -410,7 +411,7 @@ def readdb(arg):
 ##### MAIN #####
 
 def usage():
-    """If 'keys.db' file does not exist\n'./client.py' creates a new private key in this file and sent public key to a public node
+    """If 'keys.db' or 'keys' file does not exist\n'./client.py' creates a new private key in this file and sent public key to a public node
 './client.pt <dbfile>' displays any gnu_berkeley-database content in base64 format
 './client.pt <price> <recipient>' generates and sent a transaction of a float <price> for a string valid <recipient> id
 Bad transactions may result from:\n- recipient is unknown or yourself\n- price is higher than your balance\n- signature verification returns false
@@ -418,8 +419,8 @@ Connect to %s to see balance report\nContact %s for any question"""
     return usage.__doc__ % (__url__, __email__)
 
 if __name__ == '__main__':
-    node1 = 'cup:36368' # for debugging
-    node2 = 'cup:36369' # for debugging
+    #node1 = 'cup:36368' # for debugging
+    #node2 = 'cup:36369' # for debugging
     node = '%s.fr' % __ppc__
     if not (os.path.isfile('keys') or os.path.isfile('keys.db')):
         r = register() 
