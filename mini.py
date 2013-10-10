@@ -74,16 +74,16 @@ def b64toi(c):
     return int.from_bytes(base64.urlsafe_b64decode(c + b'='*((4-(len(c)%4))%4)), 'big')
 
 def btob64(c):
-    "_"
+    "byte tp base64"
     return base64.urlsafe_b64encode(c).decode('ascii').strip('=')
 
-def b64tob(c): # pb with Python 3.2
-    "_"
-    if c == '': return b''
+def b64tob(c): # pb with Python 3.2 !
+    "base64 to byte"
+    if c == '': return b'\x00'
     return base64.urlsafe_b64decode(c + '='*((4-(len(c)%4))%4))
 
-def b64tob(c):
-    "_"
+def b64tob(c): # not optimized!
+    "base64 to byte"
     return i2b(b64toi(bytes(c, 'ascii')))
 
 def H(*tab):
@@ -992,7 +992,7 @@ def report(cm, port):
     else:
         o += '<td class="num"><b>%7.2f €</b></td><td></td><tr>' % (bal/100)
     du.close(), dt.close(), dc.close()
-    return o + '</table>', bal
+    return o + '</table>\n', bal
 
 def balance(base, cm):
     "_"
@@ -1144,10 +1144,10 @@ def index(d, env, cm64):
         da, (rpt, bal) = btob64(cm), report(cm, env['SERVER_PORT'])
         #da, rpt, bal = btob64(cm), '', 0
         o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte: <b class="green">%s</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Solde: <b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
-        o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
         bnk = get_bank(env['SERVER_PORT'])
         o += '<p class="note">Crédit initial de compte par virement SEPA vers CUP-FONDATION<br/>BIC: CMCIFR2A IBAN: FR76 1027 8022 3300 0202 8350 157 + votre ID en message<br/>'
         o += 'Inversement, tout réglement vers l\'<i>ibank</i> <a href="?%s">%s</a> est converti dans la journée<br/> en virement SEPA vers un compte dont vous fournissez l\'IBAN.</p>' % (bnk, bnk)
+        o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
     else:
         o += o1
         #o += '<p>%s</p>'% cm64
