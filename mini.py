@@ -1135,7 +1135,8 @@ def index(d, env, cm64):
     o1 += '<li>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i></li>' 
     o1 += '<li><form method="post">Consultez votre compte : <input class="txt" name="cm" placeholder="...votre ID"/></form></li></ul>\n'
     if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
-    cm = b64tob(cm64)
+    #cm = b64tob(cm64)
+    cm = i2b(b64toi(bytes(cm64, 'ascii')))
     if cm in d['pub']:
         da, (rpt, bal) = btob64(cm), report(cm, env['SERVER_PORT'])
         #da, rpt, bal = btob64(cm), '', 0
@@ -1326,11 +1327,9 @@ if __name__ == '__main__':
         if not (os.path.isfile('private') or os.path.isfile('private.db')):
             root = register()
             bank = register('banker')
-            #user = register('user')
             certif('banker', 100000)
         else:
             buy('banker', 10000)
-            #cleantr()
     else:
         if sys.argv[1] == 'cut':
             allcut()

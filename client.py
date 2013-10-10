@@ -419,8 +419,7 @@ Connect to %s to see balance report\nContact %s for any question"""
     return usage.__doc__ % (__url__, __email__)
 
 if __name__ == '__main__':
-    #node1 = 'cup:36368' # for debugging
-    #node2 = 'cup:36369' # for debugging
+    localnode = 'cup:36368' # for debugging
     node = '%s.fr' % __ppc__
     if not (os.path.isfile('keys') or os.path.isfile('keys.db')):
         r = register() 
