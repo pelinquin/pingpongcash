@@ -1192,6 +1192,27 @@ def valid_trx(d, port, arg):
             return True
     return False
 
+def valid_trx2(d, port, arg):
+    "_"
+    di = '/%s/%s_%s/' % (__app__, __app__, port)
+    r, k = i2b(b64toi(bytes(arg, 'ascii'))), ecdsa()
+    u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
+    k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
+    if src in d['pub'] and dst in d['pub'] and src != dst:
+        if u not in d['trx']:
+            if k.verify(sig, msg):
+                if balance(di, src) + debt(di, src) > b2i(prc): 
+                    d['trx'][u] = m + k.sign(u + m) 
+                    return None
+                else:
+                    return 'negative balance'
+            else:
+                return 'wrong signature'
+        else:
+            return 'transaction already recorded'
+    else:
+        return 'recipient unknown or yourself'
+        
 def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname, port = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
@@ -1222,8 +1243,11 @@ def application(environ, start_response):
             if valid_pub(d, arg): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
         elif re.match('\S{210,212}$', arg): 
-            if valid_trx(d, port, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
-            else: o += 'not valid transaction !' 
+            #if valid_trx(d, port, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
+            #else: o += 'not valid transaction !' 
+            err = valid_trx2(d, port, arg) 
+            if err == None: o = 'New transaction recorded [%s]' % len(d['trx'])
+            else: o += 'not valid transaction: %s !' % err 
         else: o += 'not valid args %s' % len(arg)
     else:
         if base == 'peers': # propagation
