@@ -29,7 +29,7 @@
 #    * Encryption with ECC use an idea of jackjack-jj on github
 #-----------------------------------------------------------------------------
 
-import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.gnu, datetime, functools, subprocess, time, smtplib, operator, random, getpass
+import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, random, getpass
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:10]
 __app__    = os.path.basename(__file__)[:-3]
@@ -369,7 +369,7 @@ class AES:
 def register():
     "_"
     pp1, pp2, cm = '', '', ''
-    db = dbm.open('keys.db', 'c')
+    db = dbm.open('keys', 'c')
     while pp1 != pp2 or len(pp1) < 4:
         pp1 = getpass.getpass('Select a passphrase? ')
         pp2 = getpass.getpass('The passphrase again? ')
@@ -387,7 +387,7 @@ def register():
 
 def buy(dst, prc):
     "_"
-    db, src, k, dat = dbm.open('keys.db'), None, ecdsa(), datencode()
+    db, src, k, dat = dbm.open('keys'), None, ecdsa(), datencode()
     assert(len(dst) == 9)
     for u in db.keys():  src, val, pub = u, db[u][132:], db[u][:132]
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
@@ -420,7 +420,7 @@ Connect to %s to see balance report\nContact %s for any question"""
 if __name__ == '__main__':
     #node = 'cup:36369' # for debugging
     node = '%s.fr' % __ppc__
-    if not os.path.isfile('keys.db'):
+    if not (os.path.isfile('keys') or os.path.isfile('keys.db')):
         r = register() 
         print(send(node, r)) # need Net connexion
     elif len(sys.argv)==2 and os.path.isfile(sys.argv[1]):

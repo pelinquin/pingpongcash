@@ -31,7 +31,7 @@
 #    * Encryption with ECC use an idea of jackjack-jj on github
 #-----------------------------------------------------------------------------
 
-import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.gnu, datetime, functools, subprocess, time, smtplib, operator, random, getpass
+import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, random, getpass
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:10]
 __app__    = os.path.basename(__file__)[:-3]
@@ -825,7 +825,7 @@ class QRCode:
 def register(name='root'):
     "_"
     pp1, pp2, cm = '', '', ''
-    dv, du = dbm.open('private.db', 'c'), dbm.open(__base__ + 'pub.db', 'c')
+    dv, du = dbm.open('private', 'c'), dbm.open(__base__ + 'pub', 'c')
     while bytes(name, 'utf8') in dv: name = input('Find a public name:')
     print ('Hi! \'%s\'' % name)
     while pp1 != pp2 or len(pp1) < 4:
@@ -845,7 +845,7 @@ def register(name='root'):
 def certif(name, value=10000):
     "_"
     pp = getpass.getpass('Root passphrase to generate certificat for \'%s\'? ' % name)
-    dv, dc = dbm.open('private.db', 'c'), dbm.open(__base__+'crt.db', 'c')
+    dv, dc = dbm.open('private', 'c'), dbm.open(__base__+'crt', 'c')
     dat, k, cm, root = datencode(365), ecdsa(), dv[name], dv['root']
     k.privkey = int(AES().decrypt(dv[root], hashlib.sha256(pp.encode('utf8')).digest())) 
     msg = dat + i2b(value, 8)
@@ -858,7 +858,7 @@ def certif(name, value=10000):
 
 def debt(base, cm):
     "_"
-    du, dc, dbt = dbm.open(base+'pub.db'), dbm.open(base+'crt.db'), 0
+    du, dc, dbt = dbm.open(base+'pub'), dbm.open(base+'crt'), 0
     if cm in dc:
         root, k = dc[b'_'], ecdsa()
         k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
@@ -868,7 +868,7 @@ def debt(base, cm):
 
 def ldebt(cm):
     "_"
-    du, dc, dbt = dbm.open(__base__+'pub.db'), dbm.open(__base__+'crt.db'), 0
+    du, dc, dbt = dbm.open(__base__+'pub'), dbm.open(__base__+'crt'), 0
     if cm in dc:
         root, k = dc[b'_'], ecdsa()
         k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
@@ -878,7 +878,7 @@ def ldebt(cm):
 
 def buy(src, price):
     "_"
-    dv, du, dt, u, tab = dbm.open('private.db'), dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db', 'c'), bytes(src, 'utf8'), []
+    dv, du, dt, u, tab = dbm.open('private'), dbm.open(__base__+'pub'), dbm.open(__base__+'trx', 'c'), bytes(src, 'utf8'), []
     if u in dv:
         if balance(dv[u]) + debt(__base__, dv[u]) < price: return
     pp = getpass.getpass('Passphrase for \'%s\'? ' % src)
@@ -899,7 +899,7 @@ def buy(src, price):
 
 def nbuy(n, src, price):
     "_"
-    dv, du, dt, u, tab = dbm.open('private.db'), dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db', 'c'), bytes(src, 'utf8'), []
+    dv, du, dt, u, tab = dbm.open('private'), dbm.open(__base__+'pub'), dbm.open(__base__+'trx', 'c'), bytes(src, 'utf8'), []
     if u in dv:
         if balance(dv[u]) + debt(__base__, dv[u]) < price: return
     pp = getpass.getpass('Passphrase for \'%s\'? ' % src)
@@ -922,7 +922,7 @@ def nbuy(n, src, price):
 
 def allcut():
     "_"
-    du, dv, dc, k = dbm.open(__base__+'pub.db'), dbm.open('private.db'), dbm.open(__base__ +'crt.db', 'c'), ecdsa()
+    du, dv, dc, k = dbm.open(__base__+'pub'), dbm.open('private'), dbm.open(__base__ +'crt', 'c'), ecdsa()
     pp = getpass.getpass('Passphrase for root? ')
     k.privkey = int(AES().decrypt(dv[dv['root']], hashlib.sha256(pp.encode('utf8')).digest()))
     for u in du.keys():
@@ -934,7 +934,7 @@ def allcut():
 
 def is_active(cm):
     "_"
-    du, dt, k = dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db'), ecdsa()
+    du, dt, k = dbm.open(__base__+'pub'), dbm.open(__base__+'trx'), ecdsa()
     for t in dt.keys():
         src, dst = t[4:], dt[t][:9]
         k.pt = Point(c521, b2i(du[src][:66]), b2i(du[src][66:]+src))
@@ -971,7 +971,7 @@ def footer(dg=''):
 def report(cm, port):
     "_"
     base = '/%s/%s_%s/' % (__app__, __app__, port)
-    du, dt, dc, bal, o = dbm.open(base+'pub.db'), dbm.open(base+'trx.db'), dbm.open(base+'crt.db'), 0, '<table><tr><th></th><th>Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = dbm.open(base+'pub'), dbm.open(base+'trx'), dbm.open(base+'crt'), 0, '<table><tr><th></th><th>Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -997,7 +997,7 @@ def report(cm, port):
 
 def balance(cm):
     "_"
-    du, dt, dc, bal, k = dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db'), dbm.open(__base__+'crt.db'), 0, ecdsa()
+    du, dt, dc, bal, k = dbm.open(__base__+'pub'), dbm.open(__base__+'trx'), dbm.open(__base__+'crt'), 0, ecdsa()
     z, root, dar = b'%'+cm, dc[b'_'], None
     k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
     if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -1013,7 +1013,7 @@ def balance(cm):
 
 def cleantr():
     "_"
-    du, dt, dc, k = dbm.open(__base__+'pub.db'), dbm.open(__base__+'trx.db', 'c'), dbm.open(__base__+'crt.db'), ecdsa()
+    du, dt, dc, k = dbm.open(__base__+'pub'), dbm.open(__base__+'trx', 'c'), dbm.open(__base__+'crt'), ecdsa()
     for u in du.keys(): 
         z, root, dar = b'%'+u, dc[b'_'], None
         k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
@@ -1024,21 +1024,21 @@ def cleantr():
 
 def all_balances():
     "_"
-    du = dbm.open(__base__+'pub.db')
+    du = dbm.open(__base__+'pub')
     for u in du.keys(): 
         print ('%s bal:%d debt:%d' % (btob64(u), balance(u), debt(__base__, u)))
     du.close()    
 
 def check():
     "_"
-    if os.path.isfile(__base__+'trx.db'):
-        du, bal = dbm.open(__base__+'pub.db'), 0
+    if os.path.isfile(__base__+'trx') or os.path.isfile(__base__+'trx'):
+        du, bal = dbm.open(__base__+'pub'), 0
         bal = sum([balance(u) for u in du.keys()]) 
         assert bal == 0
         du.close()
 
 def get_bank(port):
-    dc, bnk = dbm.open('/%s/%s_%s/crt.db' % (__app__, __app__, port), 'c'), None
+    dc, bnk = dbm.open('/%s/%s_%s/crt' % (__app__, __app__, port), 'c'), None
     for x in dc.keys():
         if len(x) == 9: 
             bnk = btob64(x)
@@ -1076,14 +1076,12 @@ def init_dbs(dbs, port):
     di = '/%s/%s_%s' % (__app__, __app__, port)
     if not os.path.exists(di): os.makedirs(di)
     for dbn in dbs:
-        db = '%s/%s.db' % (di, dbn)
-        if not os.path.isfile(db):
-            d = dbm.open(db if sys.version_info.minor == 3 else db[:-3], 'c')
-            #d = dbm.open(db, 'c')
+        db = '%s/%s' % (di, dbn)
+        if not (os.path.isfile(db) or os.path.isfile(db+'.db')):
+            d = dbm.open(db, 'c')
             d.close()
             os.chmod(db, 511)
-    return {b:dbm.open('%s/%s.db' % (di, b), 'c') for b in dbs} if sys.version_info.minor == 3 else {b:dbm.open('%s/%s' % (di, b), 'c') for b in dbs}
-    #return {b:dbm.open('%s/%s.db' % (di, b), 'c') for b in dbs}
+    return {b:dbm.open('%s/%s' % (di, b), 'c') for b in dbs}
 
 def update_peers(env, d, li):
     "_"
@@ -1289,13 +1287,13 @@ sudo /etc/init.d/apache restart
 "http://mon_serveur/"
 une copie des bases 'peers', 'transactions', 'publickeys' et 'certificats' est installée dans le répertoire /mini
 - enfin lancez 'mini.py' en ligne de commande pour générer vos clés
-votre clé privée est dans le fichier 'private.db'...à protéger absolument des intrus et à ne pas perdre.\n
+votre clé privée est dans le fichier 'private'...à protéger absolument des intrus et à ne pas perdre.\n
 Pour tout problème, nous contacter à 'contact@cupfoundation.net'
 """
     return install.__doc__
 
 def gen_root():
-    if not os.path.isfile('private.db'):
+    if not (os.path.isfile('private') or os.path.isfile('private.db')):
         root = register()
         bank = register('banker')
         user = register('user')
@@ -1306,7 +1304,7 @@ def gen_root():
 
 if __name__ == '__main__':
     if len(sys.argv)==1:
-        if not os.path.isfile('private.db'):
+        if not (os.path.isfile('private') or os.path.isfile('private.db')):
             root = register()
             bank = register('banker')
             #user = register('user')
