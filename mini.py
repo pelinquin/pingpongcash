@@ -1196,8 +1196,8 @@ def valid_trx(d, arg):
     u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
-        if balance(src) + ldebt(src) > b2i(prc): 
-        #if True:
+        #if balance(src) + ldebt(src) > b2i(prc): 
+        if True:
             d['trx'][u] = m + k.sign(u + m) 
             return True
     return False
@@ -1309,9 +1309,9 @@ if __name__ == '__main__':
             bank = register('banker')
             #user = register('user')
             certif('banker', 100000)
-            #buy('banker', 20000)
-        #else:
-        #    cleantr()
+        else:
+            buy('banker', 10000)
+            #cleantr()
     else:
         if sys.argv[1] == 'cut':
             allcut()

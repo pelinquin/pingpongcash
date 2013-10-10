@@ -418,11 +418,14 @@ Connect to %s to see balance report\nContact %s for any question"""
     return usage.__doc__ % (__url__, __email__)
 
 if __name__ == '__main__':
-    #node = 'cup:36369' # for debugging
+    node1 = 'cup:36368' # for debugging
+    node2 = '%s.fr' % __ppc__
     node = '%s.fr' % __ppc__
+    node3 = 'cup:36369' # for debugging
     if not (os.path.isfile('keys') or os.path.isfile('keys.db')):
         r = register() 
-        print(send(node, r)) # need Net connexion
+        print(send(node1, r)) # need Net connexion
+        print(send(node2, r)) # need Net connexion
     elif len(sys.argv)==2 and os.path.isfile(sys.argv[1]):
         readdb(sys.argv[1])
     elif len(sys.argv)==3:
