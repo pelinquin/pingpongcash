@@ -385,6 +385,13 @@ def register():
     print ('Your personnal keys generated in keys.db file. Id: %s' % (btob64(cm)))
     return btob64(pub)
 
+def getpub():
+    "_"
+    db = dbm.open('keys')
+    pub = None 
+    for u in db.keys():  pub = db[u][:132]    
+    return btob64(pub)
+
 def buy(dst, prc):
     "_"
     db, src, k, dat = dbm.open('keys'), None, ecdsa(), datencode()
@@ -421,11 +428,11 @@ Connect to %s to see balance report\nContact %s for any question"""
 if __name__ == '__main__':
     localnode = 'cup:36368' # for debugging
     node = '%s.fr' % __ppc__
-    if not (os.path.isfile('keys') or os.path.isfile('keys.db')):
-        r = register() 
-        print(send(node, r)) # need Net connexion
-    elif len(sys.argv)==2 and os.path.isfile(sys.argv[1]):
+    if len(sys.argv)==2 and os.path.isfile(sys.argv[1]):
         readdb(sys.argv[1])
+    elif len(sys.argv)==1: 
+        r = getpub() if os.path.isfile('keys') else register()
+        print(send(node, r)) # need Net connexion
     elif len(sys.argv)==3:
         s = buy(i2b(b64toi(bytes(sys.argv[2], 'ascii'))), int(float(sys.argv[1])*100))
         print (send(node, s)) # need Net connexion
