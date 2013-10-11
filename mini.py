@@ -869,6 +869,15 @@ def debt(base, cm):
     du.close(), dc.close()
     return dbt
 
+def ndebt(d, cm):
+    "_"
+    du, dc, dbt = d['pub'], d['crt'], 0
+    if cm in dc:
+        root, k = dc[b'_'], ecdsa()
+        k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
+        if is_after(dc[cm][:4], datencode()): dbt = b2i(dc[cm][4:12]) if k.verify(dc[cm][12:], cm + dc[cm][:12]) else 0
+    return dbt
+
 def buy(src, price):
     "_"
     dv, du, dt, u, tab = dbm.open('private'), dbm.open(__base__+'pub'), dbm.open(__base__+'trx', 'c'), bytes(src, 'utf8'), []
@@ -888,29 +897,6 @@ def buy(src, price):
         if u not in dt:
             dt[u] = msg + k.sign(u + msg)
             print ('transaction recorded')
-    dv.close(), du.close(), dt.close()
-
-def nbuy(n, src, price):
-    "_"
-    dv, du, dt, u, tab = dbm.open('private'), dbm.open(__base__+'pub'), dbm.open(__base__+'trx', 'c'), bytes(src, 'utf8'), []
-    if u in dv:
-        if balance(__base__, dv[u]) + debt(__base__, dv[u]) < price: return
-    pp = getpass.getpass('Passphrase for \'%s\'? ' % src)
-    for p in du.keys():
-        if p != dv[u]: 
-            tab.append(p)
-            print ('(%d) %s' % (len(tab), btob64(p)))
-    c = input('Select a recipient: ')
-    dst = tab[int(c)-1]
-    if u in dv and dst in du:
-        cm, k = dv[u], ecdsa()
-        k.privkey = int(AES().decrypt(dv[cm], hashlib.sha256(pp.encode('utf8')).digest()))
-        for i in range(n):
-            msg, u = dst + i2b(price, 3), datencode() + cm
-            time.sleep(1)
-            if u not in dt:
-                dt[u] = msg + k.sign(u + msg)
-                print ('transaction %s recorded' % i)
     dv.close(), du.close(), dt.close()
 
 def allcut():
@@ -939,7 +925,7 @@ def is_active(cm):
 
 def style_html():
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{position:absolute;bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.7}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}svg{background-color:white;}</style>'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{position:absolute;bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.7}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}svg{background-color:white;}</style>'
     return o
 
 def favicon():
@@ -964,7 +950,7 @@ def footer(dg=''):
 def report(cm, port):
     "_"
     base = '/%s/%s_%s/' % (__app__, __app__, port)
-    du, dt, dc, bal, o = dbm.open(base+'pub'), dbm.open(base+'trx'), dbm.open(base+'crt'), 0, '<table><tr><th></th><th>Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = dbm.open(base+'pub'), dbm.open(base+'trx'), dbm.open(base+'crt'), 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -980,11 +966,11 @@ def report(cm, port):
                 typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>'
                 tmp.append((t[:4], '<td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), t1, t2)))
     for i, (d, x) in enumerate(sorted(tmp)): o += '<tr><td class="num">%03d</td>' % (i+1) + x
-    o += '<tr><td></td><td>%s</td><td colspan="2"><b>Nouveau solde</b></td>' % datdecode(datencode())
+    o += '<tr><th colspan="2">%s</th><th colspan="2"><b>Nouveau solde</b></th>' % datdecode(datencode())
     if bal<0:
-        o += '<td></td><td class="num"><b>%7.2f €</b></td><tr>' % (-bal/100)
+        o += '<th></th><th class="num"><b>%7.2f €</b></th></tr>' % (-bal/100)
     else:
-        o += '<td class="num"><b>%7.2f €</b></td><td></td><tr>' % (bal/100)
+        o += '<th class="num"><b>%7.2f €</b></th><th></th></tr>' % (bal/100)
     du.close(), dt.close(), dc.close()
     return o + '</table>\n', bal
 
@@ -1002,6 +988,21 @@ def balance(base, cm):
                 if src == cm: bal -= prc
                 if dst == cm: bal += prc 
     du.close(), dt.close(), dc.close()
+    return bal
+
+def nbalance(d, cm):
+    "_"
+    du, dt, dc, bal, k = d['pub'], d['trx'], d['crt'], 0, ecdsa()
+    z, root, dar = b'%'+cm, dc[b'_'], None
+    k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
+    if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
+    for t in dt.keys():
+        if dar==None or is_after(t[:4], dar):
+            src, dst, prc = t[4:], dt[t][:9], b2i(dt[t][9:12])
+            k.pt = Point(c521, b2i(du[src][:66]), b2i(du[src][66:]+src))
+            if (src == cm or dst == cm) and k.verify(dt[t][12:], t + dt[t][:12]):
+                if src == cm: bal -= prc
+                if dst == cm: bal += prc 
     return bal
 
 def cleantr():
@@ -1136,7 +1137,7 @@ def index(d, env, cm64):
     cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
         da, (rpt, bal) = btob64(cm), report(cm, env['SERVER_PORT'])
-        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte: <b class="green">%s</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Solde: <b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
+        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte: <b class="green"><b class="mono">%s</b></b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Solde: <b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
         bnk = get_bank(env['SERVER_PORT'])
         o += '<p class="note">Crédit initial de compte par virement SEPA vers CUP-FONDATION<br/>BIC: CMCIFR2A IBAN: FR76 1027 8022 3300 0202 8350 157 + votre ID en message<br/>'
         o += 'Inversement, tout réglement vers l\'<i>ibank</i> <a href="?%s">%s</a> est converti dans la journée<br/> en virement SEPA vers un compte dont vous fournissez l\'IBAN.</p>' % (bnk, bnk)
@@ -1181,14 +1182,13 @@ def valid_pub(d, arg):
         return True
     return False
 
-def valid_trx(d, port, arg):
+def valid_trx(d, arg):
     "_"
-    di = '/%s/%s_%s/' % (__app__, __app__, port)
     r, k = b64tob(bytes(arg, 'ascii')), ecdsa()
     u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
-        if balance(di, src) + debt(di, src) > b2i(prc): 
+        if nbalance(d, src) + ndebt(d, src) > b2i(prc): 
             d['trx'][u] = m + sig 
             return True
     return False
@@ -1223,7 +1223,7 @@ def application(environ, start_response):
             if valid_pub(d, arg): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
         elif re.match('\S{210,212}$', arg): 
-            if valid_trx(d, port, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
+            if valid_trx(d, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid transaction !' 
         else: o += 'not valid args %s' % len(arg)
     else:
@@ -1282,14 +1282,6 @@ votre clé privée est dans le fichier 'private'...à protéger absolument des i
 Pour tout problème, nous contacter à 'contact@cupfoundation.net'
 """
     return install.__doc__
-
-def gen_root():
-    if not (os.path.isfile('private') or os.path.isfile('private.db')):
-        root = register()
-        bank = register('banker')
-        user = register('user')
-        certif('banker', 1000)
-        buy('banker', 200)
 
 ##### MAIN #####
 
