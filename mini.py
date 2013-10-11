@@ -215,7 +215,6 @@ def inverse_mod(a, m):
     while c != 0:
         q, c, d = divmod(d, c) + (c,)
         uc, vc, ud, vd = ud - q*uc, vd - q*vc, uc, vc
-    #assert d == 1
     if ud > 0: return ud
     else: return ud + m
 
@@ -824,7 +823,7 @@ class QRCode:
                     inc = -inc
                     break
 
-###### API #####
+##### API #####
 
 def register(name='root'):
     "_"
@@ -989,7 +988,7 @@ def report(cm, port):
     du.close(), dt.close(), dc.close()
     return o + '</table>\n', bal
 
-def balance_full(base, cm):
+def balance(base, cm):
     "_"
     du, dt, dc, bal, k = dbm.open(base+'pub'), dbm.open(base+'trx'), dbm.open(base+'crt'), 0, ecdsa()
     z, root, dar = b'%'+cm, dc[b'_'], None
@@ -1003,18 +1002,6 @@ def balance_full(base, cm):
                 if src == cm: bal -= prc
                 if dst == cm: bal += prc 
     du.close(), dt.close(), dc.close()
-    return bal
-
-def balance(base, cm):
-    "_"
-    du, dt, bal, k = dbm.open(base+'pub'), dbm.open(base+'trx'), 0, ecdsa()
-    for t in dt.keys():
-        src, dst, prc = t[4:], dt[t][:9], b2i(dt[t][9:12])
-        k.pt = Point(c521, b2i(du[src][:66]), b2i(du[src][66:]+src))
-        if (src == cm or dst == cm) and k.verify(dt[t][12:], t + dt[t][:12]):
-            if src == cm: bal -= prc
-            if dst == cm: bal += prc 
-    du.close(), dt.close()
     return bal
 
 def cleantr():
@@ -1156,7 +1143,6 @@ def index(d, env, cm64):
         o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
     else:
         o += o1
-        #o += '<p>%s</p>'% cm64
     o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
     return o + footer('%s [%s:%s]' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx'])) ) + '</body></html>\n'
 
@@ -1207,28 +1193,6 @@ def valid_trx(d, port, arg):
             return True
     return False
 
-def valid_trx2(d, port, arg):
-    "_"
-    di = '/%s/%s_%s/' % (__app__, __app__, port)
-    r, k = b64tob(bytes(arg, 'ascii')), ecdsa()
-    u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
-    k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
-    if src in d['pub'] and dst in d['pub'] and src != dst:
-        if u not in d['trx']:
-            if k.verify(sig, msg):
-                b, de, p = balance(di, src), debt(di, src), b2i(prc)
-                if b+de > p: 
-                    d['trx'][u] = m + sig
-                    return None
-                else:
-                    return 'negative balance %s %s %s' % (b, d, p)
-            else:
-                return 'wrong signature'
-        else:
-            return 'transaction already recorded'
-    else:
-        return 'recipient unknown or yourself'
-        
 def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname, port = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
@@ -1259,11 +1223,8 @@ def application(environ, start_response):
             if valid_pub(d, arg): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
         elif re.match('\S{210,212}$', arg): 
-            #if valid_trx(d, port, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
-            #else: o += 'not valid transaction !' 
-            err = valid_trx2(d, port, arg) 
-            if err == None: o = 'New transaction recorded [%s]' % len(d['trx'])
-            else: o += 'not valid transaction: %s !' % err 
+            if valid_trx(d, port, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
+            else: o += 'not valid transaction !' 
         else: o += 'not valid args %s' % len(arg)
     else:
         if base == 'peers': # propagation
@@ -1350,4 +1311,3 @@ if __name__ == '__main__':
     sys.exit()    
 
 # End ⊔net!
-
