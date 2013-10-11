@@ -1205,11 +1205,12 @@ def valid_trx2(d, port, arg):
     if src in d['pub'] and dst in d['pub'] and src != dst:
         if u not in d['trx']:
             if k.verify(sig, msg):
-                if balance(di, src) + debt(di, src) > b2i(prc): 
+                b, d, p = balance(di, src), debt(di, src), b2i(prc)
+                if b+d > p: 
                     d['trx'][u] = m + k.sign(u + m) 
                     return None
                 else:
-                    return 'negative balance'
+                    return 'negative balance %s %s %s' % (b, d, p)
             else:
                 return 'wrong signature'
         else:
