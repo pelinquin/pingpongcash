@@ -989,7 +989,7 @@ def report(cm, port):
     du.close(), dt.close(), dc.close()
     return o + '</table>\n', bal
 
-def balance(base, cm):
+def balance_full(base, cm):
     "_"
     du, dt, dc, bal, k = dbm.open(base+'pub'), dbm.open(base+'trx'), dbm.open(base+'crt'), 0, ecdsa()
     z, root, dar = b'%'+cm, dc[b'_'], None
@@ -1003,6 +1003,18 @@ def balance(base, cm):
                 if src == cm: bal -= prc
                 if dst == cm: bal += prc 
     du.close(), dt.close(), dc.close()
+    return bal
+
+def balance(base, cm):
+    "_"
+    du, dt, bal, k = dbm.open(base+'pub'), dbm.open(base+'trx'), 0, ecdsa()
+    for t in dt.keys():
+        src, dst, prc = t[4:], dt[t][:9], b2i(dt[t][9:12])
+        k.pt = Point(c521, b2i(du[src][:66]), b2i(du[src][66:]+src))
+        if (src == cm or dst == cm) and k.verify(dt[t][12:], t + dt[t][:12]):
+            if src == cm: bal -= prc
+            if dst == cm: bal += prc 
+    du.close(), dt.close()
     return bal
 
 def cleantr():
