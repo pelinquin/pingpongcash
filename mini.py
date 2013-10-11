@@ -1149,7 +1149,6 @@ def index(d, env, cm64):
     cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
         da, (rpt, bal) = btob64(cm), report(cm, env['SERVER_PORT'])
-        #da, rpt, bal = btob64(cm), '', 0
         o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte: <b class="green">%s</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Solde: <b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
         bnk = get_bank(env['SERVER_PORT'])
         o += '<p class="note">Crédit initial de compte par virement SEPA vers CUP-FONDATION<br/>BIC: CMCIFR2A IBAN: FR76 1027 8022 3300 0202 8350 157 + votre ID en message<br/>'
@@ -1204,7 +1203,7 @@ def valid_trx(d, port, arg):
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
         if balance(di, src) + debt(di, src) > b2i(prc): 
-            d['trx'][u] = m + k.sign(u + m) 
+            d['trx'][u] = m + sig 
             return True
     return False
 
@@ -1217,9 +1216,9 @@ def valid_trx2(d, port, arg):
     if src in d['pub'] and dst in d['pub'] and src != dst:
         if u not in d['trx']:
             if k.verify(sig, msg):
-                b, d, p = balance(di, src), debt(di, src), b2i(prc)
-                if b+d > p: 
-                    d['trx'][u] = m + k.sign(u + m) 
+                b, de, p = balance(di, src), debt(di, src), b2i(prc)
+                if b+de > p: 
+                    d['trx'][u] = m + sig
                     return None
                 else:
                     return 'negative balance %s %s %s' % (b, d, p)
