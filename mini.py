@@ -1129,7 +1129,9 @@ def capture_id(d, arg):
     return None
 
 def index(d, env, cm64):
-    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + '<body><div class="bg"></div>' + header(), 'text/html; charset=utf-8'
+    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
     o1 = '<ul><li><a title="moins de 1200 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i></li>'
     o1 += '<li>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i></li>' 
     o1 += '<li><form method="post">Consultez votre compte : <input class="txt" name="cm" placeholder="...votre ID"/></form></li></ul>\n'
@@ -1146,13 +1148,6 @@ def index(d, env, cm64):
         o += o1
     o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
     return o + footer('%s [%s:%s]' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx'])) ) + '</body></html>\n'
-
-def welcome(cm):
-    "_"
-    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n' + favicon() + style_html() + header(), 'text/html; charset=utf-8' 
-    o += '<h1>Bienvenu \'%s\' !</h1>' % cm
-    o += '<h2><a href="?">Voir votre relevé de compte</a></h2>' 
-    return o + footer() + '</html>\n'
 
 def diff_dbs(d, port):
     "_"
@@ -1216,7 +1211,8 @@ def application(environ, start_response):
             r = capture_id(d, arg[3:])
             if r: 
                 ncok.append(('set-cookie', 'cm=%s' % r))
-                o, mime = welcome(r), 'text/html; charset=utf-8' 
+                environ['HTTP_COOKIE'] = 'cm=%s' % r
+                o, mime = index(d, environ, ''), 'text/html; charset=utf-8'
             else:
                 o += 'Id not found!' 
         elif re.match('\S{174,176}$', arg): 
