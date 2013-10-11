@@ -74,17 +74,12 @@ def b64toi(c):
     return int.from_bytes(base64.urlsafe_b64decode(c + b'='*((4-(len(c)%4))%4)), 'big')
 
 def btob64(c):
-    "byte tp base64"
+    "bytes to base64"
     return base64.urlsafe_b64encode(c).decode('ascii').strip('=')
 
-def b64tob(c): # pb with Python 3.2 !
-    "base64 to byte"
-    if c == '': return b'\x00'
-    return base64.urlsafe_b64decode(c + '='*((4-(len(c)%4))%4))
-
-def b64tob(c): # not optimized!
-    "base64 to byte"
-    return i2b(b64toi(bytes(c, 'ascii')))
+def b64tob(c):
+    "base64 to bytes"
+    return base64.urlsafe_b64decode(c + b'='*((4-(len(c)%4))%4))
 
 def H(*tab):
     "hash"
@@ -1139,7 +1134,7 @@ def index(d, env, cm64):
     o1 += '<li>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i></li>' 
     o1 += '<li><form method="post">Consultez votre compte : <input class="txt" name="cm" placeholder="...votre ID"/></form></li></ul>\n'
     if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
-    cm = b64tob(cm64)
+    cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
         da, (rpt, bal) = btob64(cm), report(cm, env['SERVER_PORT'])
         #da, rpt, bal = btob64(cm), '', 0
@@ -1182,7 +1177,7 @@ def push_dbs(d, port):
 
 def valid_pub(d, arg):
     "_"
-    pub = b64tob(arg)
+    pub = b64tob(bytes(arg, 'ascii'))
     cm, key = pub[-9:], pub[:-9]
     if cm not in d['pub']:
         d['pub'][cm] = key
@@ -1192,7 +1187,7 @@ def valid_pub(d, arg):
 def valid_trx(d, port, arg):
     "_"
     di = '/%s/%s_%s/' % (__app__, __app__, port)
-    r, k = b64tob(arg), ecdsa()
+    r, k = b64tob(bytes(arg, 'ascii')), ecdsa()
     u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
@@ -1204,7 +1199,7 @@ def valid_trx(d, port, arg):
 def valid_trx2(d, port, arg):
     "_"
     di = '/%s/%s_%s/' % (__app__, __app__, port)
-    r, k = b64tob(arg), ecdsa()
+    r, k = b64tob(bytes(arg, 'ascii')), ecdsa()
     u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if src in d['pub'] and dst in d['pub'] and src != dst:

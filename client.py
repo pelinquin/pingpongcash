@@ -63,7 +63,7 @@ def b64toi(c):
     return int.from_bytes(base64.urlsafe_b64decode(c + b'='*((4-(len(c)%4))%4)), 'big')
 
 def btob64(c):
-    "_"
+    "bytes to base64"
     return base64.urlsafe_b64encode(c).decode('ascii').strip('=')
 
 def H(*tab):
