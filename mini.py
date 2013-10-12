@@ -91,7 +91,7 @@ def datencode(n=0):
 
 def datdecode(tt):
     "4 chars"
-    return time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(float(b2i(tt))))
+    return time.strftime('%d/%m/%y %H:%M:%S', time.localtime(float(b2i(tt))))
 
 def is_after(d1, d2): 
     "_"
@@ -964,7 +964,7 @@ def report(cm, port):
                 else: 
                     one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f&nbsp;€</td>' % (prc/100), bal+prc
                 typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>'
-                tmp.append((t[:4], '<td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), t1, t2)))
+                tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), t1, t2)))
     for i, (d, x) in enumerate(sorted(tmp)): o += '<tr><td class="num">%03d</td>' % (i+1) + x
     o += '<tr><th colspan="2">%s</th><th colspan="2"><b>Nouveau solde</b></th>' % datdecode(datencode())
     if bal<0:
@@ -1148,7 +1148,7 @@ def index(d, env, cm64):
         o += o1
     o += '<p class="msg" title="une offre par personne!"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
     atrt = btob64(d['crt'][b'_']) if b'_' in d['crt'] else 'None'
-    return o + footer('%s [%s:%s] Autority:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
+    return o + footer('%s [%s:%s] Auth:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
 
 def diff_dbs(d, port):
     "_"
