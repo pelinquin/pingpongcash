@@ -91,7 +91,7 @@ def datencode(n=0):
 
 def datdecode(tt):
     "4 chars"
-    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(b2i(tt))))
+    return time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(float(b2i(tt))))
 
 def is_after(d1, d2): 
     "_"
@@ -925,7 +925,7 @@ def is_active(cm):
 
 def style_html():
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{position:absolute;bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.7}table{margin:20;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}svg{background-color:white;}</style>'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{position:absolute;bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.7}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}svg{background-color:white;}</style>'
     return o
 
 def favicon():
@@ -1139,14 +1139,14 @@ def index(d, env, cm64):
     cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
         da, (rpt, bal) = btob64(cm), report(cm, env['SERVER_PORT'])
-        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte: <b class="green"><b class="mono">%s</b></b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Solde: <b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
+        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte:&nbsp;<b class="green"><b class="mono">%s</b></b>&nbsp;&nbsp;&nbsp;Solde:&nbsp;<b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
         bnk = get_bank(env['SERVER_PORT'])
         o += '<p class="note">Crédit initial de compte par virement SEPA vers CUP-FONDATION<br/>BIC: CMCIFR2A IBAN: FR76 1027 8022 3300 0202 8350 157 + votre ID en message<br/>'
         o += 'Inversement, tout réglement vers l\'<i>ibank</i> <a href="?%s">%s</a> est converti dans la journée<br/> en virement SEPA vers un compte dont vous fournissez l\'IBAN.</p>' % (bnk, bnk)
         o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
     else:
         o += o1
-    o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
+    o += '<p class="msg" title="une offre par personne!"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
     atrt = btob64(d['crt'][b'_']) if b'_' in d['crt'] else 'None'
     return o + footer('%s [%s:%s] Autority:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
 
