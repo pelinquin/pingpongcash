@@ -1147,7 +1147,8 @@ def index(d, env, cm64):
     else:
         o += o1
     o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
-    return o + footer('%s [%s:%s] Autority:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), btob64(d['crt'][b'_'])) ) + '</body></html>\n'
+    atrt = btob64(d['crt'][b'_']) if b'_' in d['crt'] else 'None'
+    return o + footer('%s [%s:%s] Autority:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
 
 def diff_dbs(d, port):
     "_"
