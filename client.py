@@ -431,7 +431,7 @@ if __name__ == '__main__':
     if len(sys.argv)==2 and os.path.isfile(sys.argv[1]):
         readdb(sys.argv[1])
     elif len(sys.argv)==1: 
-        r = getpub() if os.path.isfile('keys') else register()
+        r = getpub() if (os.path.isfile('keys') or os.path.isfile('keys.db')) else register()
         print(send(node, r)) # need Net connexion
     elif len(sys.argv)==3:
         s = buy(i2b(b64toi(bytes(sys.argv[2], 'ascii'))), int(float(sys.argv[1])*100))

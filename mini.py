@@ -954,23 +954,23 @@ def report(cm, port):
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
-        o += '<tr><td></td><td>%s</td><td colspan="2">Ancien solde</td><td></td><td class="num">%s €</td></tr>' % (datdecode(dar), (bal/100))
+        o += '<tr><th></th><th>%s</th><th colspan="2">Ancien solde</th><th></th><th class="num">%s&nbsp;€</th></tr>' % (datdecode(dar), (bal/100))
     for t in dt.keys():
         if dar==None or is_after(t[:4], dar):
             src, dst, prc = t[4:], dt[t][:9], b2i(dt[t][9:12])
             if cm in (dst, src):
                 if src == cm: 
-                    one, t1, t2, bal = dst, '<td class="num">%7.2f €</td>' % (prc/100), '<td></td>', bal-prc 
+                    one, t1, t2, bal = dst, '<td class="num">%7.2f&nbsp;€</td>' % (prc/100), '<td></td>', bal-prc 
                 else: 
-                    one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f €</td>' % (prc/100), bal+prc
+                    one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f&nbsp;€</td>' % (prc/100), bal+prc
                 typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>'
                 tmp.append((t[:4], '<td>%s</td>%s<td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), t1, t2)))
     for i, (d, x) in enumerate(sorted(tmp)): o += '<tr><td class="num">%03d</td>' % (i+1) + x
     o += '<tr><th colspan="2">%s</th><th colspan="2"><b>Nouveau solde</b></th>' % datdecode(datencode())
     if bal<0:
-        o += '<th></th><th class="num"><b>%7.2f €</b></th></tr>' % (-bal/100)
+        o += '<th></th><th class="num"><b>%7.2f&nbsp;€</b></th></tr>' % (-bal/100)
     else:
-        o += '<th class="num"><b>%7.2f €</b></th><th></th></tr>' % (bal/100)
+        o += '<th class="num"><b>%7.2f&nbsp;€</b></th><th></th></tr>' % (bal/100)
     du.close(), dt.close(), dc.close()
     return o + '</table>\n', bal
 
@@ -1147,7 +1147,7 @@ def index(d, env, cm64):
     else:
         o += o1
     o += '<p class="msg" title="une offre par personne"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
-    return o + footer('%s [%s:%s]' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx'])) ) + '</body></html>\n'
+    return o + footer('%s [%s:%s] Autority:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), btob64(d['crt'][b'_'])) ) + '</body></html>\n'
 
 def diff_dbs(d, port):
     "_"
