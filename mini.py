@@ -945,7 +945,7 @@ def get_image(img):
 
 def footer(dg=''):
     "_"
-    dg = ' Digest:%s' % dg if dg else ''
+    dg = ' %s' % dg if dg else ''
     return '<footer>Contact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</footer>' % (__email__, __email__, dg)
 
 def report(cm, port):
@@ -1131,6 +1131,24 @@ def capture_id(d, arg):
     if len(res) == 1: return res[0]
     return None
 
+def bank(d, env):
+    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
+    o += '<p class="msg" title="une offre par personne!"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
+    bnk = get_bank(env['SERVER_PORT'])
+    o += '<h1>La première <b class="red">iBanque</b> offrant ce nouveau moyen de paiement</h1>'
+    o += '<h1>Notre ID:&nbsp;<b class="green"><b class="mono">%s</b></b></h1>' % bnk
+    o += '<p>Créez un compte <a class="ppc">PingPong</a> sur votre téléphone portable (iPhone ou Android-Phone).</p><p>Le solde est initialement nul. Pour le créditer:<ul><li>Faites régler vos débiteurs sur votre compte <a class="ppc">PingPong</a>.'
+    o += '<li>Ou faites un virement SEPA vers notre <i>iBanque</i>: <br/>Nom: CUP-FOUNDATION<br/>BIC: CMCIFR2A <br/>IBAN: FR76 1027 8022 3300 0202 8350 157<li>Ajoutez votre ID en message de virement oubien envoyez-nous un <a href="mailto:%s">email</a> contenant votre ID associé à votre référence de virement.<li>Nous créditerons votre compte <a class="ppc">PingPong</a> dans la journée (7j/7) de reception du virement.<li>Aucune commission n\'est retenue et le compte <a class="ppc">PingPong</a> n\'est pas rémunéré.</ul>' % __email__
+    o += '<p>Inversement, à tout moment, vous pouvez récuperer toute somme de votre compte <a class="ppc">PingPong</a>.</p><ul><li>Faites un paiement vers notre <i>iBanque</i> de la somme à retirer (ID %s ou scannez le QRcode).<li><a href="mailto:%s">Envoyez nous</a> votre IBAN+BIC ainsi que l\'ID de votre compte.<li>Dans la journée (7j/7), la somme est tranférée par virement SEPA au crédit de votre compte bancaire.<li>Ou réglez vos créancier avec le compte <a class="ppc">PingPong</a><li>Aucune commission n\'est retenue.</ul>' % (bnk, __email__)
+    o += '<p>Aucune personne à part vous avec votre téléphone ne peut payer depuis votre compte et nous ne pouvons pas retrouver votre passphrase.<p>'
+    o += '<p>A la création de votre compte, pensez à générer un <b>i-chèque</b> vers notre <i>iBanque</i> (%s) du montant que vous estimez assurer et garder le fichier dans un endroit sécurisé.<p>Si vous perdez ou vous faites voler votre téléphone ou si vous oubiez votre passphrase, <a href="mailto:%s">Envoyez nous</a> l\'ID d\'un nouveau compte crée. Nous vous indiquerons comment postez à l\'encaissement ce chèque. Nous créditerons ce nouveau compte dans la journée. L\'ancien compte ainsi vidé ne peut plus être débité. Pensez à avertir vos débiteurs du changement de compte. Les sommes qui depasseraient le montant de l\'<b>i-chèque</b> de réserve serait non récupérables.</p>' % (bnk, __email__)
+
+    o += '<div class="qr" title="%s">%s</div>\n' % (bnk, QRCode(bnk, 2).svg(0, 0, 4))
+    atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
+    return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
+
 def index(d, env, cm64='', prc=0):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
@@ -1142,16 +1160,15 @@ def index(d, env, cm64='', prc=0):
     cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
         rpt, bal = report(cm, env['SERVER_PORT'])
-        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte:&nbsp;<b class="green"><b class="mono">%s</b></b><br/>Solde:&nbsp;&nbsp;&nbsp;<b class="green">%7.2f €</b></h1>' % (btob64(cm), bal/100) + rpt
-        bnk = get_bank(env['SERVER_PORT'])
-        o += '<p class="note">Crédit initial de compte par virement SEPA vers CUP-FONDATION<br/>BIC: CMCIFR2A IBAN: FR76 1027 8022 3300 0202 8350 157 + votre ID en message<br/>'
-        o += 'Inversement, tout réglement vers l\'<i>ibank</i> <a href="?%s">%s</a> est converti dans la journée<br/> en virement SEPA vers un compte dont vous fournissez l\'IBAN.</p>' % (bnk, bnk)
-        da = btob64(cm) + ':%d' % prc if prc else ''
+        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte:&nbsp;<b class="green"><b class="mono">%s</b></b></h1>' % btob64(cm)
         o += '<form method="post"><input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €"/></form>'
+        o += '<h1>Solde:&nbsp;&nbsp;&nbsp;<b class="green">%7.2f €</b></h1>' % (bal/100) + rpt
+        bnk = get_bank(env['SERVER_PORT'])
+        da = btob64(cm) + ':%d' % prc if prc else ''
         o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
+        o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>' 
     else:
         o += o1
-    o += '<p class="msg" title="une offre par personne!"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s [%s:%s] Auth:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
 
@@ -1214,6 +1231,7 @@ def application(environ, start_response):
             wdigest(d, port)
             o = '%s' % la
         elif arg == 'DIGEST': o = rdigest(port)
+        elif arg == 'IBANK': o = get_bank(environ['SERVER_PORT'])
         elif re.match('cm=\S{1,12}$', arg):
             r = capture_id(d, arg[3:])
             if r: 
@@ -1225,6 +1243,10 @@ def application(environ, start_response):
         elif reg(re.match('prc=([\d\.\,]{1,7})\s*€?$', arg)):
             prc = int(float(re.sub(',', '.', reg.v.group(1)))*100)
             o, mime = index(d, environ, '', prc), 'text/html; charset=utf-8'
+        elif re.match('\S{1,12}$', arg):
+            r = capture_id(d, arg)
+            if r: o = r
+            else: o += 'Id not found!' 
         elif re.match('\S{174,176}$', arg): 
             if valid_pub(d, arg): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
@@ -1238,13 +1260,13 @@ def application(environ, start_response):
             for p in d['prs'].keys(): li.update(peers_req(p.decode('utf8')))
             o = update_peers(environ, d['prs'], li)
             #diff_dbs(d, port)
-        elif base == '_update':
-            o, mime = app_update(environ['SERVER_NAME']), 'text/html'
+        elif base == '_update': o, mime = app_update(environ['SERVER_NAME']), 'text/html'
         elif base == '':
             if raw == 'install': o = install()
             elif raw == 'ios': o = 'Toujours en phase de test!\nBientôt disponible sur appStore\n\nNous contacter pour toute question.'
             elif raw == 'src': o = open(__file__, 'r', encoding='utf-8').read() 
             elif raw == 'download': o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
+            elif raw == 'bank': o, mime = bank(d, environ), 'text/html; charset=utf-8'
             else:
                 o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
                 #diff_dbs(d, port)

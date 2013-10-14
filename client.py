@@ -428,8 +428,17 @@ Connect to %s to see balance report\nContact %s for any question"""
 if __name__ == '__main__':
     localnode = 'cup:36368' # for debugging
     node = '%s.fr' % __ppc__
-    if len(sys.argv)==2 and os.path.isfile(sys.argv[1]):
-        readdb(sys.argv[1])
+    #node = localnode
+    if len(sys.argv)==2:
+        if os.path.isfile(sys.argv[1]):
+            readdb(sys.argv[1])
+        elif re.match(r'\d{1,5}', sys.argv[1]):
+            bnk = send(node, 'IBANK')
+            aa = buy(i2b(b64toi(bytes(bnk, 'ascii'))), int(sys.argv[1]))
+            open('icheck.txt', 'w').write(aa)
+            print ('Transaction generated in \'icheck.txt\' file')
+        else:
+            print (send(node, sys.argv[1]))
     elif len(sys.argv)==1: 
         r = getpub() if (os.path.isfile('keys') or os.path.isfile('keys.db')) else register()
         print(send(node, r)) # need Net connexion
