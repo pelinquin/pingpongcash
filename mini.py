@@ -873,9 +873,10 @@ def ndebt(d, cm):
     "_"
     du, dc, dbt = d['pub'], d['crt'], 0
     if cm in dc:
-        root, k = dc[b'_'], ecdsa()
-        k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
-        if is_after(dc[cm][:4], datencode()): dbt = b2i(dc[cm][4:12]) if k.verify(dc[cm][12:], cm + dc[cm][:12]) else 0
+        #root, k = dc[b'_'], ecdsa()
+        #k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
+        #if is_after(dc[cm][:4], datencode()): dbt = b2i(dc[cm][4:12]) if k.verify(dc[cm][12:], cm + dc[cm][:12]) else 0
+        if is_after(dc[cm][:4], datencode()): dbt = b2i(dc[cm][4:12])
     return dbt
 
 def buy(src, price):
@@ -925,7 +926,7 @@ def is_active(cm):
 
 def style_html():
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;right:0;color:#444;font-size:10;padding:4; background-color:white; opacity:.7}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}svg{background-color:white;}</style>'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}svg{background-color:white;}</style>'
     return o
 
 def favicon():
@@ -990,17 +991,19 @@ def balance(base, cm):
     du.close(), dt.close(), dc.close()
     return bal
 
-def nbalance(d, cm):
+def nblc(d, cm):
     "_"
-    du, dt, dc, bal, k = d['pub'], d['trx'], d['crt'], 0, ecdsa()
+    du, dt, dc, bal = d['pub'], d['trx'], d['crt'], 0
     z, root, dar = b'%'+cm, dc[b'_'], None
-    k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
-    if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
+    #k = ecdsa()
+    #k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
+    #if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
+    if z in dc: dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
     for t in dt.keys():
         if dar==None or is_after(t[:4], dar):
             src, dst, prc = t[4:], dt[t][:9], b2i(dt[t][9:12])
-            k.pt = Point(c521, b2i(du[src][:66]), b2i(du[src][66:]+src))
-            if (src == cm or dst == cm) and k.verify(dt[t][12:], t + dt[t][:12]):
+            #k.pt = Point(c521, b2i(du[src][:66]), b2i(du[src][66:]+src))
+            if (src == cm or dst == cm):# and k.verify(dt[t][12:], t + dt[t][:12]):
                 if src == cm: bal -= prc
                 if dst == cm: bal += prc 
     return bal
@@ -1128,7 +1131,7 @@ def capture_id(d, arg):
     if len(res) == 1: return res[0]
     return None
 
-def index(d, env, cm64):
+def index(d, env, cm64='', prc=0):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
@@ -1138,16 +1141,18 @@ def index(d, env, cm64):
     if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
     cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
-        da, (rpt, bal) = btob64(cm), report(cm, env['SERVER_PORT'])
-        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte:&nbsp;<b class="green"><b class="mono">%s</b></b><br/>Solde:&nbsp;&nbsp;&nbsp;<b class="green">%7.2f €</b></h1>' % (da, bal/100) + rpt
+        rpt, bal = report(cm, env['SERVER_PORT'])
+        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte:&nbsp;<b class="green"><b class="mono">%s</b></b><br/>Solde:&nbsp;&nbsp;&nbsp;<b class="green">%7.2f €</b></h1>' % (btob64(cm), bal/100) + rpt
         bnk = get_bank(env['SERVER_PORT'])
         o += '<p class="note">Crédit initial de compte par virement SEPA vers CUP-FONDATION<br/>BIC: CMCIFR2A IBAN: FR76 1027 8022 3300 0202 8350 157 + votre ID en message<br/>'
         o += 'Inversement, tout réglement vers l\'<i>ibank</i> <a href="?%s">%s</a> est converti dans la journée<br/> en virement SEPA vers un compte dont vous fournissez l\'IBAN.</p>' % (bnk, bnk)
+        da = btob64(cm) + ':%d' % prc if prc else ''
+        o += '<form method="post"><input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €"/></form>'
         o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
     else:
         o += o1
     o += '<p class="msg" title="une offre par personne!"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ sur tout compte créé avant 2014!</p>' % __email__
-    atrt = btob64(d['crt'][b'_']) if b'_' in d['crt'] else 'None'
+    atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s [%s:%s] Auth:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
 
 def diff_dbs(d, port):
@@ -1180,11 +1185,12 @@ def valid_pub(d, arg):
 
 def valid_trx(d, arg):
     "_"
-    r, k = b64tob(bytes(arg, 'ascii')), ecdsa()
+    r = b64tob(bytes(arg, 'ascii'))
     u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
-    k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
-    if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
-        if nbalance(d, src) + ndebt(d, src) > b2i(prc): 
+    #k = ecdsa()
+    #k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
+    if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx']:# and k.verify(sig, msg):
+        if nblc(d, src) + ndebt(d, src) > b2i(prc): 
             d['trx'][u] = m + sig 
             return True
     return False
@@ -1213,9 +1219,12 @@ def application(environ, start_response):
             if r: 
                 ncok.append(('set-cookie', 'cm=%s' % r))
                 environ['HTTP_COOKIE'] = 'cm=%s' % r
-                o, mime = index(d, environ, ''), 'text/html; charset=utf-8'
+                o, mime = index(d, environ), 'text/html; charset=utf-8'
             else:
                 o += 'Id not found!' 
+        elif reg(re.match('prc=([\d\.\,]{1,7})\s*€?$', arg)):
+            prc = int(float(re.sub(',', '.', reg.v.group(1)))*100)
+            o, mime = index(d, environ, '', prc), 'text/html; charset=utf-8'
         elif re.match('\S{174,176}$', arg): 
             if valid_pub(d, arg): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
