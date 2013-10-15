@@ -66,6 +66,10 @@ def btob64(c):
     "bytes to base64"
     return base64.urlsafe_b64encode(c).decode('ascii').strip('=')
 
+def b64tob(c):
+    "base64 to bytes"
+    return base64.urlsafe_b64decode(c + b'='*((4-(len(c)%4))%4))
+
 def H(*tab):
     "hash"
     return int(hashlib.sha1(b''.join(tab)).hexdigest(), 16)
@@ -434,16 +438,16 @@ if __name__ == '__main__':
             readdb(sys.argv[1])
         elif re.match(r'\d{1,5}', sys.argv[1]):
             bnk = send(node, 'IBANK')
-            aa = buy(i2b(b64toi(bytes(bnk, 'ascii'))), int(sys.argv[1]))
+            aa = buy(b64tob(bytes(bnk, 'ascii')), int(sys.argv[1]))
             open('icheck.txt', 'w').write(aa)
-            print ('Transaction generated in \'icheck.txt\' file')
+            print ('Transaction generated to %s ibank in \'icheck.txt\' file' % bnk)
         else:
             print (send(node, sys.argv[1]))
     elif len(sys.argv)==1: 
         r = getpub() if (os.path.isfile('keys') or os.path.isfile('keys.db')) else register()
         print(send(node, r)) # need Net connexion
     elif len(sys.argv)==3:
-        s = buy(i2b(b64toi(bytes(sys.argv[2], 'ascii'))), int(float(sys.argv[1])*100))
+        s = buy(b64tob(bytes(bnk, 'ascii')), int(float(sys.argv[1])*100))
         print (send(node, s)) # need Net connexion
     else:
         print (usage())

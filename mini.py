@@ -876,7 +876,8 @@ def ndebt(d, cm):
         #root, k = dc[b'_'], ecdsa()
         #k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
         #if is_after(dc[cm][:4], datencode()): dbt = b2i(dc[cm][4:12]) if k.verify(dc[cm][12:], cm + dc[cm][:12]) else 0
-        if is_after(dc[cm][:4], datencode()): dbt = b2i(dc[cm][4:12])
+        #if is_after(dc[cm][:4], datencode()): 
+        dbt = b2i(dc[cm][4:12])
     return dbt
 
 def buy(src, price):
@@ -1139,11 +1140,13 @@ def bank(d, env):
     bnk = get_bank(env['SERVER_PORT'])
     o += '<h1>La première <b class="red">iBanque</b> offrant ce nouveau moyen de paiement</h1>'
     o += '<h1>Notre ID:&nbsp;<b class="green"><b class="mono">%s</b></b></h1>' % bnk
-    o += '<p>Créez un compte <a class="ppc">PingPong</a> sur votre téléphone portable (iPhone ou Android-Phone).</p><p>Le solde est initialement nul. Pour le créditer:<ul><li>Faites régler vos débiteurs sur votre compte <a class="ppc">PingPong</a>.'
-    o += '<li>Ou faites un virement SEPA vers notre <i>iBanque</i>: <br/>Nom: CUP-FOUNDATION<br/>BIC: CMCIFR2A <br/>IBAN: FR76 1027 8022 3300 0202 8350 157<li>Ajoutez votre ID en message de virement oubien envoyez-nous un <a href="mailto:%s">email</a> contenant votre ID associé à votre référence de virement.<li>Nous créditerons votre compte <a class="ppc">PingPong</a> dans la journée (7j/7) de reception du virement.<li>Aucune commission n\'est retenue et le compte <a class="ppc">PingPong</a> n\'est pas rémunéré.</ul>' % __email__
-    o += '<p>Inversement, à tout moment, vous pouvez récuperer toute somme de votre compte <a class="ppc">PingPong</a>.</p><ul><li>Faites un paiement vers notre <i>iBanque</i> de la somme à retirer (ID %s ou scannez le QRcode).<li><a href="mailto:%s">Envoyez nous</a> votre IBAN+BIC ainsi que l\'ID de votre compte.<li>Dans la journée (7j/7), la somme est tranférée par virement SEPA au crédit de votre compte bancaire.<li>Ou réglez vos créancier avec le compte <a class="ppc">PingPong</a><li>Aucune commission n\'est retenue.</ul>' % (bnk, __email__)
-    o += '<p>Aucune personne à part vous avec votre téléphone ne peut payer depuis votre compte et nous ne pouvons pas retrouver votre passphrase.<p>'
-    o += '<p>A la création de votre compte, pensez à générer un <b>i-chèque</b> vers notre <i>iBanque</i> (%s) du montant que vous estimez assurer et garder le fichier dans un endroit sécurisé.<p>Si vous perdez ou vous faites voler votre téléphone ou si vous oubiez votre passphrase, <a href="mailto:%s">Envoyez nous</a> l\'ID d\'un nouveau compte crée. Nous vous indiquerons comment postez à l\'encaissement ce chèque. Nous créditerons ce nouveau compte dans la journée. L\'ancien compte ainsi vidé ne peut plus être débité. Pensez à avertir vos débiteurs du changement de compte. Les sommes qui depasseraient le montant de l\'<b>i-chèque</b> de réserve serait non récupérables.</p>' % (bnk, __email__)
+    o += '<p>Créez un compte <a class="ppc">PingPong</a> sur votre téléphone portable (iPhone ou Android-Phone).</p><p>Le solde est initialement nul. Pour le créditer:<ul><li>Demandez à vos débiteurs de vous rembourser sur votre compte <a class="ppc">PingPong</a>.'
+    o += '<li>Faites un virement SEPA vers notre <i>iBanque</i>: <br/>Nom: CUP-FOUNDATION<br/>BIC: CMCIFR2A <br/>IBAN: FR76 1027 8022 3300 0202 8350 157<li>Ajoutez votre ID en message de virement oubien envoyez-nous un <a href="mailto:%s">email</a> contenant votre ID associé à la référence de virement.<li>Nous créditerons votre compte <a class="ppc">PingPong</a> dans la journée (7j/7) de reception du virement.<li>Aucune commission n\'est retenue et le compte <a class="ppc">PingPong</a> n\'est pas rémunéré.</ul>' % __email__
+    o += '<p>Inversement, à tout moment, vous pouvez récuperer toute somme de votre compte <a class="ppc">PingPong</a>.</p><ul><li>Faites un paiement vers notre <i>iBanque</i> du montant à retirer (ID %s ou scannez le QRcode).<li><a href="mailto:%s">Envoyez nous</a> votre IBAN+BIC ainsi que l\'ID de votre compte.<li>Dans la journée (7j/7), la somme est tranférée par virement SEPA au crédit de votre compte bancaire.<li>Vous pouvez aussi réglez vos créancier avec le compte <a class="ppc">PingPong</a>.<li>Aucune commission n\'est retenue.</ul>' % (bnk, __email__)
+
+    o += '<p class="note">Aucune personne autre que vous, muni du téléphone sur lequel vous avez créé un compte, ne peut payer depuis votre compte <a class="ppc">PingPong</a>.<br/>Strictement personne ne peut retrouver votre passphrase si vous la perdez.<br/>A la création de votre compte, pensez à générer un <b>i-chèque</b> vers notre <i>iBanque</i> (%s) du montant que vous estimez vous assurer et gardez le fichier dans un endroit sécurisé, autre que le téléphone.<br/>Si vous perdez ou vous faites voler votre téléphone ou si vous oubiez votre passphrase, <a href="mailto:%s">Envoyez nous</a> l\'ID d\'un nouveau compte crée.<br>Nous créditerons ce nouveau compte dès que vous aurez posté l\'<b>i-chèque</b> de réserve à l\'encaissement.<br/>L\'ancien compte ainsi vidé ne peut plus être débité. Pensez à avertir vos débiteurs du changement de compte car les sommes qui depasseraient le montant de l\'<b>i-chèque</b> de réserve sur le compte perdu ou qui surviendraient après l\'encaissement seraient non récupérables.</p>' % (bnk, __email__)
+
+    o += '<p class="note">Pour maintenir la confidentialité de vos comptes, nous <i>iBanque</i> ne pouvons pas associer votre identité à l\'un ou à l\'ensemble de vos comptes. L\'utilisation de plusieurs comptes vous assure un anonymat de vos transactions. Cependant vos débiteurs peuvent vous demander cette association afin qu\'ils puissent prouver devant un tier du remboursement de leur dette à la bonne personne et que vous ne puissiez pas contester ne pas avoir été payé.</p>' 
 
     o += '<div class="qr" title="%s">%s</div>\n' % (bnk, QRCode(bnk, 2).svg(0, 0, 4))
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
@@ -1160,8 +1163,10 @@ def index(d, env, cm64='', prc=0):
     cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
         rpt, bal = report(cm, env['SERVER_PORT'])
-        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte:&nbsp;<b class="green"><b class="mono">%s</b></b></h1>' % btob64(cm)
-        o += '<form method="post"><input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €"/></form>'
+        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte:&nbsp;<b class="green"><b class="mono">%s</b></b></h1>' % cm64
+        v = ' value="%7.2f€"' % (prc/100) if prc else '' 
+        o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
+        o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €"%s/></form>' % v
         o += '<h1>Solde:&nbsp;&nbsp;&nbsp;<b class="green">%7.2f €</b></h1>' % (bal/100) + rpt
         bnk = get_bank(env['SERVER_PORT'])
         da = btob64(cm) + ':%d' % prc if prc else ''
@@ -1169,6 +1174,35 @@ def index(d, env, cm64='', prc=0):
         o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>' 
     else:
         o += o1
+    atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
+    return o + footer('%s [%s:%s] Auth:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
+
+def dashboard(d, env):
+    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
+    o += '<table><tr><th>Compte</th><th>Solde</th><th>dette</th></tr>'
+    for u in d['pub'].keys():
+        o += '<tr><td class="mono">%s</td><td class="num">%7.2f&nbsp;€</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (btob64(u), nblc(d, u)/100, ndebt(d, u)/100 ) 
+    o += '</table>'
+    o += '<table><tr><th>Certificat</th><th>Date</th><th>Dette maxi</th></tr>'
+    for c in d['crt'].keys():
+        if len(c) == 9:
+            dat, dbt = datdecode(d['crt'][c][:4]), b2i(d['crt'][c][4:12])
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (btob64(c), dat, dbt)
+        else:
+            o += '<tr><td class="mono">%s</td><td colspan="2">Autorité</td></tr> ' % btob64(d['crt'][c])
+    o += '</table>'
+    o += '<table><tr><th>Transactions</th><th>Date</th><th>Destinataire</th><th>Montant</th></tr>'
+    for t in d['trx'].keys():
+        if len(t) == 13:
+            dat, src = datdecode(t[:4]), btob64(t[4:12])
+            dst = btob64(d['trx'][t][:9])
+            val = b2i(d['trx'][t][9:12])/100
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (src, dat, dst, val)
+        else:
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (btob64(t),0, 0, 0)
+    o += '</table>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s [%s:%s] Auth:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
 
@@ -1232,6 +1266,10 @@ def application(environ, start_response):
             o = '%s' % la
         elif arg == 'DIGEST': o = rdigest(port)
         elif arg == 'IBANK': o = get_bank(environ['SERVER_PORT'])
+        elif reg(re.match('(cm=(\S{1,12})&)prc=([\d\.\,]{1,7})\s*€?$', arg)):
+            prc = int(float(re.sub(',', '.', reg.v.group(3)))*100)
+            r = capture_id(d, reg.v.group(2))
+            o, mime = index(d, environ, r, prc), 'text/html; charset=utf-8'
         elif re.match('cm=\S{1,12}$', arg):
             r = capture_id(d, arg[3:])
             if r: 
@@ -1239,28 +1277,25 @@ def application(environ, start_response):
                 environ['HTTP_COOKIE'] = 'cm=%s' % r
                 o, mime = index(d, environ), 'text/html; charset=utf-8'
             else:
-                o += 'Id not found!' 
-        elif reg(re.match('prc=([\d\.\,]{1,7})\s*€?$', arg)):
-            prc = int(float(re.sub(',', '.', reg.v.group(1)))*100)
-            o, mime = index(d, environ, '', prc), 'text/html; charset=utf-8'
+                o += 'Id not found! |%s|' % arg 
         elif re.match('\S{1,12}$', arg):
             r = capture_id(d, arg)
-            if r: o = r
-            else: o += 'Id not found!' 
+            o = r if r else 'Id not found!' 
         elif re.match('\S{174,176}$', arg): 
             if valid_pub(d, arg): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
         elif re.match('\S{210,212}$', arg): 
             if valid_trx(d, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid transaction !' 
-        else: o += 'not valid args %s' % len(arg)
+        else: o += 'not valid args |%s|' % arg
     else:
         if base == 'peers': # propagation
             fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
             for p in d['prs'].keys(): li.update(peers_req(p.decode('utf8')))
             o = update_peers(environ, d['prs'], li)
             #diff_dbs(d, port)
-        elif base == '_update': o, mime = app_update(environ['SERVER_NAME']), 'text/html'
+        elif base == '_update': o, mime = app_update(environ['SERVER_NAME']), 'text/html; charset=utf-8'
+        elif base == '_dashboard': o, mime = dashboard(d, environ), 'text/html; charset=utf-8'
         elif base == '':
             if raw == 'install': o = install()
             elif raw == 'ios': o = 'Toujours en phase de test!\nBientôt disponible sur appStore\n\nNous contacter pour toute question.'
@@ -1314,6 +1349,10 @@ Pour tout problème, nous contacter à 'contact@cupfoundation.net'
 ##### MAIN #####
 
 if __name__ == '__main__':
+    all_balances()
+    sys.exit()    
+    
+
     if len(sys.argv)==1:
         if not (os.path.isfile('private') or os.path.isfile('private.db')):
             root = register()
