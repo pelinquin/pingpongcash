@@ -155,13 +155,16 @@ INFINITY = Point(None, None, None)
 class ecdsa:
     def __init__(self):
         self.gen = Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R))
+        self.pkgenerator, self.pkorder = self.gen, self.gen.order
+
+    def generate(self):
         secexp = randrange(self.gen.order)
         pp = self.gen*secexp
-        self.pkgenerator, self.pt, n = self.gen, pp, self.gen.order
+        self.pt, n = pp, self.gen.order
         if not n: raise 'Generator point must have order!'
         if not n * pp == INFINITY: raise 'Bad Generator point order!'
         if pp.x < 0 or n <= pp.x or pp.y < 0 or n <= pp.y: raise 'Out of range!'
-        self.pkorder, self.privkey = n, secexp
+        self.privkey = secexp
 
     def verify(self, sig, data):
         r, s, G, n = b2i(sig[:66]), b2i(sig[66:]), self.pkgenerator, self.pkorder
@@ -836,9 +839,11 @@ def register(name='root'):
         pp2 = getpass.getpass('The passphrase again? ')
     print ('...wait')
     k = ecdsa()
+    k.generate()
     cm = i2b(k.pt.y, 66)[-9:]
     while cm in du:
         k = ecdsa()
+        k.generate()
         cm = i2b(k.pt.y, 66)[-9:]
     du[cm], dv[name], dv[cm] = i2b(k.pt.x, 66) + i2b(k.pt.y, 66)[:-9], cm, AES().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
     dv.close(), du.close()
@@ -875,8 +880,8 @@ def ndebt(d, cm):
     if cm in dc:
         #root, k = dc[b'_'], ecdsa()
         #k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
-        #if is_after(dc[cm][:4], datencode()): dbt = b2i(dc[cm][4:12]) if k.verify(dc[cm][12:], cm + dc[cm][:12]) else 0
         #if is_after(dc[cm][:4], datencode()): 
+        #if k.verify(dc[cm][12:], cm + dc[cm][:12]):
         dbt = b2i(dc[cm][4:12])
     return dbt
 
@@ -949,10 +954,9 @@ def footer(dg=''):
     dg = ' %s' % dg if dg else ''
     return '<footer>Contact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</footer>' % (__email__, __email__, dg)
 
-def report(cm, port):
+def report(d, cm):
     "_"
-    base = '/%s/%s_%s/' % (__app__, __app__, port)
-    du, dt, dc, bal, o = dbm.open(base+'pub'), dbm.open(base+'trx'), dbm.open(base+'crt'), 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -973,7 +977,6 @@ def report(cm, port):
         o += '<th></th><th class="num"><b>%7.2f&nbsp;€</b></th></tr>' % (-bal/100)
     else:
         o += '<th class="num"><b>%7.2f&nbsp;€</b></th><th></th></tr>' % (bal/100)
-    du.close(), dt.close(), dc.close()
     return o + '</table>\n', bal
 
 def balance(base, cm):
@@ -1020,20 +1023,6 @@ def cleantr():
             if dar and is_after(dar, t[:4]): del dt[t]
     du.close(), dt.close(), dc.close()
 
-def all_balances():
-    "_"
-    du = dbm.open(__base__+'pub')
-    for u in du.keys(): 
-        print ('%s bal:%d debt:%d' % (btob64(u), balance(__base__, u), debt(__base__, u)))
-    du.close()    
-
-def check():
-    "_"
-    if os.path.isfile(__base__+'trx') or os.path.isfile(__base__+'trx'):
-        du, bal = dbm.open(__base__+'pub'), 0
-        bal = sum([balance(__base__, u) for u in du.keys()]) 
-        assert bal == 0
-        du.close()
 
 def get_bank(port):
     dc, bnk = dbm.open('/%s/%s_%s/crt' % (__app__, __app__, port), 'c'), None
@@ -1162,7 +1151,7 @@ def index(d, env, cm64='', prc=0):
     if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
     cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
-        rpt, bal = report(cm, env['SERVER_PORT'])
+        rpt, bal = report(d, cm)
         o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte:&nbsp;<b class="green"><b class="mono">%s</b></b></h1>' % cm64
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
@@ -1202,6 +1191,10 @@ def dashboard(d, env):
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (src, dat, dst, val)
         else:
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (btob64(t),0, 0, 0)
+    o += '</table>'
+    o += '<table><tr><th>Errors</th></tr>'
+    su =  sum([nblc(d, u) for u in d['pub'].keys()])     
+    o += '<tr><td class="mono">%s</td></tr> ' % su
     o += '</table>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s [%s:%s] Auth:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
@@ -1365,8 +1358,6 @@ if __name__ == '__main__':
             allcut()
         else:
             buy('user', int(float(sys.argv[1])*100))
-    #check()
-    all_balances()
     sys.exit()    
 
 # End ⊔net!

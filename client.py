@@ -132,13 +132,16 @@ INFINITY = Point(None, None, None)
 class ecdsa:
     def __init__(self):
         self.gen = Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R))
+        self.pkgenerator, self.pkorder = self.gen, self.gen.order
+
+    def generate(self):
         secexp = randrange(self.gen.order)
         pp = self.gen*secexp
-        self.pkgenerator, self.pt, n = self.gen, pp, self.gen.order
+        self.pt, n = pp, self.gen.order
         if not n: raise 'Generator point must have order!'
         if not n * pp == INFINITY: raise 'Bad Generator point order!'
         if pp.x < 0 or n <= pp.x or pp.y < 0 or n <= pp.y: raise 'Out of range!'
-        self.pkorder, self.privkey = n, secexp
+        self.privkey = secexp
 
     def sign(self, data):
         rk, G, n = randrange(self.pkorder), self.pkgenerator, self.pkorder
@@ -379,9 +382,11 @@ def register():
         pp2 = getpass.getpass('The passphrase again? ')
     print ('...wait')
     k = ecdsa()
+    k.generate()
     cm = i2b(k.pt.y)[-9:]
     while cm in db:
         k = ecdsa()
+        k.generate()
         cm = i2b(k.pt.y)[-9:]
     pub, priv = i2b(k.pt.x, 66) + i2b(k.pt.y, 66), AES().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
     db[cm] = pub+priv
@@ -409,8 +414,7 @@ def buy(dst, prc):
 
 def send(host='localhost', data=''):
     "_"
-    app = ''
-    co, serv = http.client.HTTPConnection(host), '/' + app
+    co, serv = http.client.HTTPConnection(host), '/' 
     co.request('POST', serv, urllib.parse.quote(data))
     return co.getresponse().read().decode('utf8')    
 
@@ -447,7 +451,7 @@ if __name__ == '__main__':
         r = getpub() if (os.path.isfile('keys') or os.path.isfile('keys.db')) else register()
         print(send(node, r)) # need Net connexion
     elif len(sys.argv)==3:
-        s = buy(b64tob(bytes(bnk, 'ascii')), int(float(sys.argv[1])*100))
+        s = buy(b64tob(bytes(sys.argv[2], 'ascii')), int(float(sys.argv[1])*100))
         print (send(node, s)) # need Net connexion
     else:
         print (usage())
