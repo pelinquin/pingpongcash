@@ -956,11 +956,11 @@ def footer(dg=''):
 
 def report(d, cm):
     "_"
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>Référence</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
-        o += '<tr><th></th><th>%s</th><th colspan="2">Ancien solde</th><th></th><th class="num">%s&nbsp;€</th></tr>' % (datdecode(dar), (bal/100))
+        o += '<tr><th></th><th>%s</th><th colspan="3">Ancien solde</th><th></th><th class="num">%s&nbsp;€</th></tr>' % (datdecode(dar), (bal/100))
     for t in dt.keys():
         if dar==None or is_after(t[:4], dar):
             src, dst, prc = t[4:], dt[t][:9], b2i(dt[t][9:12])
@@ -970,9 +970,10 @@ def report(d, cm):
                 else: 
                     one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f&nbsp;€</td>' % (prc/100), bal+prc
                 typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>'
-                tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), t1, t2)))
+                desc = dt[t][12:-132].decode('utf8')
+                tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), desc, t1, t2)))
     for i, (d, x) in enumerate(sorted(tmp)): o += '<tr><td class="num">%03d</td>' % (i+1) + x
-    o += '<tr><th colspan="2">%s</th><th colspan="2"><b>Nouveau solde</b></th>' % datdecode(datencode())
+    o += '<tr><th colspan="2">%s</th><th colspan="3"><b>Nouveau solde</b></th>' % datdecode(datencode())
     if bal<0:
         o += '<th></th><th class="num"><b>%7.2f&nbsp;€</b></th></tr>' % (-bal/100)
     else:
@@ -1178,23 +1179,36 @@ def dashboard(d, env):
     for c in d['crt'].keys():
         if len(c) == 9:
             dat, dbt = datdecode(d['crt'][c][:4]), b2i(d['crt'][c][4:12])
-            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (btob64(c), dat, dbt)
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%7.2f&nbsp;€</td></tr>' % (btob64(c), dat, dbt)
         else:
-            o += '<tr><td class="mono">%s</td><td colspan="2">Autorité</td></tr> ' % btob64(d['crt'][c])
+            o += '<tr><td class="mono">%s</td><td colspan="2">Autorité</td></tr>' % btob64(d['crt'][c])
     o += '</table>'
-    o += '<table><tr><th>Transactions</th><th>Date</th><th>Destinataire</th><th>Montant</th></tr>'
+    o += '<table><tr><th>Transactions</th><th>Date</th><th>Destinataire</th><th>Message</th><th>Montant</th></tr>'
     for t in d['trx'].keys():
         if len(t) == 13:
             dat, src = datdecode(t[:4]), btob64(t[4:12])
             dst = btob64(d['trx'][t][:9])
             val = b2i(d['trx'][t][9:12])/100
-            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (src, dat, dst, val)
+            desc = d['trx'][t][12:-132].decode('utf8')
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td>%s</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (src, dat, dst, desc, val)
         else:
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (btob64(t),0, 0, 0)
     o += '</table>'
     o += '<table><tr><th>Errors</th></tr>'
     su =  sum([nblc(d, u) for u in d['pub'].keys()])     
-    o += '<tr><td class="mono">%s</td></tr> ' % su
+    if su != 0: o += '<tr><td class="mono">%s</td></tr> ' % su
+    k = ecdsa()
+    for t in d['trx'].keys():
+        src, dst, msg, sig = t[4:], d['trx'][t][:9], t + d['trx'][t][:-132], d['trx'][t][-132:]
+        k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
+        if src in d['pub'] and dst in d['pub'] and src != dst:
+            if not k.verify(sig, msg): o += '<tr><td class="mono">%s %s</td></tr>' % (datdecode(t[:4]), btob64(t[4:]))
+        else:
+            '<tr><td class="mono">Pb!</td></tr>'
+    root = d['crt'][b'_']
+    k.pt = Point(c521, b2i(d['pub'][root][:66]), b2i(d['pub'][root][66:]+root))
+    for c in d['crt'].keys():
+        if len(c) == 9 and not k.verify(d['crt'][c][12:], c + d['crt'][c][:12]): o += '<tr><td class="mono">certificat</td></tr>'
     o += '</table>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s [%s:%s] Auth:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
@@ -1230,12 +1244,11 @@ def valid_pub(d, arg):
 def valid_trx(d, arg):
     "_"
     r = b64tob(bytes(arg, 'ascii'))
-    u, dat, src, m, dst, prc, msg, sig = r[:13], r[:4], r[4:13], r[13:25], r[13:22], r[22:25], r[:25], r[25:]
-    #k = ecdsa()
-    #k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
-    if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx']:# and k.verify(sig, msg):
+    u, dat, src, v, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:22], r[22:25], r[:-132], r[-132:], ecdsa()
+    k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
+    if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
         if nblc(d, src) + ndebt(d, src) > b2i(prc): 
-            d['trx'][u] = m + sig 
+            d['trx'][u] = v + sig 
             return True
     return False
 
@@ -1277,7 +1290,7 @@ def application(environ, start_response):
         elif re.match('\S{174,176}$', arg): 
             if valid_pub(d, arg): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
-        elif re.match('\S{210,212}$', arg): 
+        elif re.match('\S{210,236}$', arg): 
             if valid_trx(d, arg) : o = 'New transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid transaction !' 
         else: o += 'not valid args |%s|' % arg
@@ -1288,7 +1301,7 @@ def application(environ, start_response):
             o = update_peers(environ, d['prs'], li)
             #diff_dbs(d, port)
         elif base == '_update': o, mime = app_update(environ['SERVER_NAME']), 'text/html; charset=utf-8'
-        elif base == '_dashboard': o, mime = dashboard(d, environ), 'text/html; charset=utf-8'
+        elif base == 'dashboard': o, mime = dashboard(d, environ), 'text/html; charset=utf-8'
         elif base == '':
             if raw == 'install': o = install()
             elif raw == 'ios': o = 'Toujours en phase de test!\nBientôt disponible sur appStore\n\nNous contacter pour toute question.'

@@ -407,8 +407,9 @@ def buy(dst, prc):
     assert(len(dst) == 9)
     for u in db.keys():  src, val, pub = u, db[u][132:], db[u][:132]
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    m = input('Message (20 chars maxi)? ')
     print ('...please wait')
-    k.privkey, msg = int(AES().decrypt(val, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3)
+    k.privkey, msg = int(AES().decrypt(val, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
     db.close()
     return btob64(msg + k.sign(msg))
 
