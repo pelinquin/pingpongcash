@@ -401,13 +401,13 @@ def getpub():
     for u in db.keys():  pub = db[u][:132]    
     return btob64(pub)
 
-def buy(dst, prc):
+def buy(dst, prc, m=''):
     "_"
     db, src, k, dat = dbm.open('keys'), None, ecdsa(), datencode()
     assert(len(dst) == 9)
     for u in db.keys():  src, val, pub = u, db[u][132:], db[u][:132]
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
-    m = input('Message (20 chars maxi)? ')
+    if m == '': m = input('Message (20 chars maxi)? ')
     print ('...please wait')
     k.privkey, msg = int(AES().decrypt(val, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
     db.close()
@@ -428,9 +428,12 @@ def readdb(arg):
 
 def usage():
     """If 'keys.db' or 'keys' file does not exist\n'./client.py' creates a new private key in this file and sent public key to a public node
+If the keys file exits, './client.py' send again the public key.
 './client.pt <dbfile>' displays any gnu_berkeley-database content in base64 format
+'./client.pt <price>' generates an backup icheck to an ibank in the icheck.txt file. Save this file in a secure place in case you loose your passphrase or if someone steel your smartphone with the private keys file.
+'./client.pt <begin-id>' returns the full id if the <begin-id> string is unique
 './client.pt <price> <recipient>' generates and sent a transaction of a float <price> for a string valid <recipient> id
-Bad transactions may result from:\n- recipient is unknown or yourself\n- price is higher than your balance\n- signature verification returns false
+Bad transactions may result from:\n- recipient is unknown or is yourself\n- price is higher than your balance\n- signature verification returns false
 Connect to %s to see balance report\nContact %s for any question"""
     return usage.__doc__ % (__url__, __email__)
 
@@ -443,7 +446,7 @@ if __name__ == '__main__':
             readdb(sys.argv[1])
         elif re.match(r'\d{1,5}', sys.argv[1]):
             bnk = send(node, 'IBANK')
-            aa = buy(b64tob(bytes(bnk, 'ascii')), int(sys.argv[1]))
+            aa = buy(b64tob(bytes(bnk, 'ascii')), int(sys.argv[1]), 'backup')
             open('icheck.txt', 'w').write(aa)
             print ('Transaction generated to %s ibank in \'icheck.txt\' file' % bnk)
         else:
