@@ -1078,6 +1078,12 @@ def update_peers(env, d, li):
         if p != env['HTTP_HOST'] and bytes(p, 'utf8') not in d: d[p] = now[:19]
     return 'Peers: %s\nDigest: %s' % ({x.decode('utf8'):d[x].decode('utf8') for x in d.keys()}, rdigest(env['SERVER_PORT']))
 
+def update_db(db, d, li):
+    "_"
+    if li and db == 'crt' and b'_' in d[db] and d[db][b'_'] != li[b'_']: return # manage root first
+    for x in li:
+        if x not in d[db]: d[db][x] = li[x]
+
 def hmerge(d, port, tab):
     "_"
     trx, crt, pub, k = {}, {}, {}, ecdsa()
@@ -1202,7 +1208,9 @@ def dashboard(d, env):
         src, dst, msg, sig = t[4:], d['trx'][t][:9], t + d['trx'][t][:-132], d['trx'][t][-132:]
         k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
         if src in d['pub'] and dst in d['pub'] and src != dst:
-            if not k.verify(sig, msg): o += '<tr><td class="mono">%s %s</td></tr>' % (datdecode(t[:4]), btob64(t[4:]))
+            if not k.verify(sig, msg): 
+                o += '<tr><td class="mono">%s %s</td></tr>' % (datdecode(t[:4]), btob64(t[4:]))
+                del d['trx'][t]
         else:
             '<tr><td class="mono">Pb!</td></tr>'
     root = d['crt'][b'_']
@@ -1211,7 +1219,7 @@ def dashboard(d, env):
         if len(c) == 9 and not k.verify(d['crt'][c][12:], c + d['crt'][c][:12]): o += '<tr><td class="mono">certificat</td></tr>'
     o += '</table>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
-    return o + footer('%s [%s:%s] Auth:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['trx']), atrt) ) + '</body></html>\n'
+    return o + footer('%s [%d:%d:%d] Auth:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['crt']), len(d['trx']), atrt) ) + '</body></html>\n'
 
 def diff_dbs(d, port):
     "_"
@@ -1264,10 +1272,10 @@ def application(environ, start_response):
         if arg == 'PEERS': o = '%s' % {x.decode('utf8'): d['prs'][x].decode('utf8') for x in d['prs'].keys()}
         elif reg(re.match(r'(TRX|CRT|PUB)', arg)):
             li, la, db = eval(urllib.parse.unquote(arg[3:])), {}, reg.v.group(1).lower()
-            for x in d[db].keys():
-                if x not in li: la[x] = d[db][x]
-            for x in li:
-                if x not in d[db]: d[db][x] = li[x]
+            # not used for for pushing! 
+            #for x in d[db].keys():
+            #    if x not in li: la[x] = d[db][x]
+            if li: update_db(db, d, li)
             wdigest(d, port)
             o = '%s' % la
         elif arg == 'DIGEST': o = rdigest(port)
