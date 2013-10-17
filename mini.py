@@ -1216,7 +1216,9 @@ def dashboard(d, env):
     root = d['crt'][b'_']
     k.pt = Point(c521, b2i(d['pub'][root][:66]), b2i(d['pub'][root][66:]+root))
     for c in d['crt'].keys():
-        if len(c) == 9 and not k.verify(d['crt'][c][12:], c + d['crt'][c][:12]): o += '<tr><td class="mono">certificat</td></tr>'
+        if len(c) == 9 and not k.verify(d['crt'][c][12:], c + d['crt'][c][:12]): 
+            o += '<tr><td class="mono">certificat</td></tr>'
+            del d['crt'][c]
     o += '</table>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s [%d:%d:%d] Auth:%s' % (rdigest(env['SERVER_PORT']), len(d['pub']), len(d['crt']), len(d['trx']), atrt) ) + '</body></html>\n'
