@@ -78,6 +78,15 @@ def datencode(n=0):
     "4 chars"
     return i2b(int(time.mktime(time.gmtime()) + 3600*24*n), 4)
 
+def hcode(m, s=10):
+    "_"
+    return (hashlib.sha1(m.encode('utf8')).digest())[:s]
+
+def valencode(xi, p1, pf):
+    "xi:7p1:15pf:26"
+    assert (p1 <= pf or xi==0) and xi<=100 and p1<(1<<15) and pf<(1<<26)
+    return i2b((xi<<41) + (p1<<26) + pf, 6)
+
 ##### ECDSA NIST CURVE P-521 #####
 
 _B = b'UZU-uWGOHJofkpohoLaFQO6i2nJbmbMV87i0iZGO8QnhVhk5Uex-k3sWUsC9O7G_BzVz34g9LDTx70Uf1GtQPwA'
@@ -392,7 +401,7 @@ def register():
     db[cm] = pub+priv
     db.close()
     print ('Your personnal keys generated in keys.db file. Id: %s' % (btob64(cm)))
-    return btob64(pub)
+    return 'P:' + btob64(pub)
 
 def getpub():
     "_"
@@ -405,13 +414,45 @@ def buy(dst, prc, m=''):
     "_"
     db, src, k, dat = dbm.open('keys'), None, ecdsa(), datencode()
     assert(len(dst) == 9)
-    for u in db.keys():  src, val, pub = u, db[u][132:], db[u][:132]
+    for u in db.keys():  src, prv, pub = u, db[u][132:], db[u][:132]
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
     if m == '': m = input('Message (20 chars maxi)? ')
     print ('...please wait')
-    k.privkey, msg = int(AES().decrypt(val, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
+    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
     db.close()
-    return btob64(msg + k.sign(msg))
+    return 'A:' + btob64(msg + k.sign(msg))
+
+def reg(value):
+    " function attribute is a way to access matching group in one line test "
+    reg.v = value
+    return value
+
+def buyig (ig, node):
+    "_"
+    res = send(node, 'IG:%s' % ig)
+    if reg(re.match(r'([^:]+):(\d+)$', res)):
+        rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
+    else:
+        return 'error'
+    db, src, k = dbm.open('keys'), None, ecdsa()
+    for u in db.keys():  src, prv, pub = u, db[u][132:], db[u][:132]
+    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    print ('...please wait')
+    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), nb + rig + src + datencode()
+    db.close()
+    return 'B:' + btob64(msg + k.sign(msg))
+
+def postig(xi, p1, pf):
+    "_"
+    db, src, k = dbm.open('keys'), None, ecdsa()
+    for u in db.keys():  src, prv, pub = u, db[u][132:], db[u][:132]
+    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    url = input('url? ')
+    msg = hcode(url) + src + datencode() + valencode(xi, p1, pf)
+    print ('...please wait')
+    k.privkey = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest()))
+    db.close()
+    return 'I:' + btob64(msg + k.sign(msg))
 
 def send(host='localhost', data=''):
     "_"
@@ -438,24 +479,32 @@ Connect to %s to see balance report\nContact %s for any question"""
     return usage.__doc__ % (__url__, __email__)
 
 if __name__ == '__main__':
-    localnode = 'cup:36368' # for debugging
+    localnode = 'cup:80' # for debugging
     node = '%s.fr' % __ppc__
     #node = localnode
     if len(sys.argv)==2:
-        if os.path.isfile(sys.argv[1]):
+        if os.path.isfile(sys.argv[1]): # read db
             readdb(sys.argv[1])
-        elif re.match(r'\d{1,5}', sys.argv[1]):
+        elif re.match(r'\d{1,5}', sys.argv[1]): # icheck
             bnk = send(node, 'IBANK')
             aa = buy(b64tob(bytes(bnk, 'ascii')), int(sys.argv[1]), 'backup')
             open('icheck.txt', 'w').write(aa)
             print ('Transaction generated to %s ibank in \'icheck.txt\' file' % bnk)
         else:
-            print (send(node, sys.argv[1]))
+            print (send(node, sys.argv[1])) # find userID
     elif len(sys.argv)==1: 
         r = getpub() if (os.path.isfile('keys') or os.path.isfile('keys.db')) else register()
         print(send(node, r)) # need Net connexion
     elif len(sys.argv)==3:
-        s = buy(b64tob(bytes(sys.argv[2], 'ascii')), int(float(sys.argv[1])*100))
+        if re.match('[\d\.\,]+', sys.argv[2]): 
+            s = buy(b64tob(bytes(sys.argv[1], 'ascii')), int(float(sys.argv[2])*100)) # €
+        elif sys.argv[1] == 'ig': # find n
+            s = 'IG:' + sys.argv[2]
+        else:
+            s = buyig(sys.argv[2], node) # ⊔
+        print (send(node, s)) # need Net connexion
+    elif len(sys.argv)==4: # IG registration
+        s = postig(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
         print (send(node, s)) # need Net connexion
     else:
         print (usage())
