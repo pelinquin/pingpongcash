@@ -214,16 +214,6 @@ class ecdsa:
         o1, o2 = p1.y&1, p2.y&1
         return bytes('%02X' % ((o1<<7) + (o2<<6) + offset), 'ascii') + i2b(p1.x, 66) + i2b(p2.x, 66)
 
-    def decrypt(self, enctxt):
-        oo, x1, x2 =  int(enctxt[:2], 16), b2i(enctxt[2:68]), b2i(enctxt[68:])
-        o1, o2, offset, p, a, b = (oo & 0x80)>>7,(oo & 0x40)>>6, oo & 0x3F, b64toi(b'Af' + b'_'*86), -3, b64toi(_B)
-        z1, z2 = pow(x1, 3, p) + a * x1 + b % p, pow(x2, 3, p) + a * x2 + b % p
-        t1, t2 = pow(z1, (p+1)//4, p), pow(z2, (p+1)//4, p)
-        y1, y2 = t1 if int(o1) == t1&1 else (-t1)%p, t2 if int(o2) == t2&1 else (-t2)%p
-        p1, p2 = Point(c521, x1, - y1), Point(c521, x2, y2)
-        u = p2 + self.privkey * p1
-        return i2b(u.x-offset)
-
 def inverse_mod(a, m):
     "_"
     if a < 0 or m <= a: a = a % m
@@ -944,10 +934,12 @@ def is_active(cm):
     du.close(), dt.close()
     return False
 
-def style_html():
+def style_html(bg=True):
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}svg{background-color:white;}</style>'
-    return o
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}svg{background-color:white;}img{border:2px outset}'
+    if bg:
+        o += 'body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}' 
+    return o + '</style>'
 
 def favicon():
     "_"
@@ -1299,6 +1291,39 @@ def dashboard(d, env):
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s %s Auth:%s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
 
+def publish(d, env, url):
+    "_"
+    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    o += favicon() + style_html(False) 
+    ign = re.sub('publish/', '', url)
+    di = '/%s/%s_%s' % (__app__, __app__, env['SERVER_PORT'])
+    fpdf, fpng, lpng = re.sub('publish', di, url) + '.pdf', re.sub('publish', di, url) + '.png', re.sub('publish', di, url) + '_.png'
+    if os.path.isfile(fpdf):
+        p = subprocess.Popen(('pdfinfo', fpdf), stdout=subprocess.PIPE).communicate()
+        nump = int(reg.v.group(1)) if reg(re.search('Pages:\s+(\d+)', p[0].decode('ascii'))) else 0
+        if not os.path.isfile (bytes(fpng, 'utf8')): subprocess.call(('convert', 'x300', (fpdf + '[0]').encode('utf8') , fpng.encode('utf8')))
+        if not os.path.isfile (bytes(lpng, 'utf8')): subprocess.call(('convert', 'x300', (fpdf + '[%s]' % (nump-1)).encode('utf8') , lpng.encode('utf8')))
+        data = base64.b64encode(open(fpng.encode('utf8'), 'rb').read()).decode('ascii')
+        datb = base64.b64encode(open(lpng.encode('utf8'), 'rb').read()).decode('ascii')
+        o += '<h1>%s (%d pages)</h1>' % (ign, nump)
+        o += '<a href="/%s.png" title="page de couverture"><image width="150" src="data:image/png;base64,%s"/></a>\n' % (ign, data)
+        o += '<a href="/%s_.png" title="quatrième de couverture"><image width="150" src="data:image/png;base64,%s"/></a>\n' % (ign, datb)
+        hig = hcode('cup/publish/%s' % ign)
+        if hig in d['igs']:
+            src = d['igs'][hig][:9]
+            o += '<p>Code IG: %s</p>' % btob64(hig)
+            o += '<p>ID autheur: %s</p>' % btob64(src)
+            o += '<p>Date de publication: %s</p>' % ('31/10/13')
+            o += '<p>Prix Initial: %d&nbsp;⊔</p>' % (10)
+            o += '<p>Revenu cumulé maximum escompté: %d&nbsp;⊔</p>' % (10000)
+            o += '<p>Paramètre de vitesse: %d%%</p>' % 35
+            o += "<p>Nombre d'acheteurs: %06d</p>" % 1
+    else:
+        o += 'IG not found' 
+    atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
+    return o + '</body></html>\n'
+
 def diff_dbs(d, port):
     "_"
     tab = []
@@ -1386,8 +1411,6 @@ def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname, port = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
     d = init_dbs(('prs', 'trx', 'pub', 'crt', 'igs'), port)
-    #dg = dbm.open('/mini/mini_36368/igs', 'c')
-    #dg.close()
     wdigest(d, port)
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base, ncok = environ['PATH_INFO'][1:], []
@@ -1434,6 +1457,21 @@ def application(environ, start_response):
         elif re.match('A:\S{210,236}$', arg): 
             if valid_trx(d, b64tob(bytes(arg[2:], 'ascii'))) : o = 'New transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid transaction !' 
+        elif re.match('[^:]{20}:\S+$', arg):
+            t, ig = b64tob(bytes(arg[:20], 'ascii')), arg[21:]
+            k, nb, hig = ecdsa(), b2i(t[:4]), t[4:14]
+            if t in d['trx'] and hig in d['igs']:
+                dst = d['igs'][hig][151+(nb-1)*9:151+nb*9]
+                k.pt = Point(c521, b2i(d['pub'][dst][:66]), b2i(d['pub'][dst][66:]+dst))
+                dr = dbm.open('/%s/%s_%s/url' % (__app__, __app__, port), 'c')                
+                if t in dr:
+                    eurl = dr[t]
+                else:
+                    rurl = random_b64()
+                    eurl = k.encrypt(rurl)
+                    dr[rurl], dr[t] = ig, eurl
+                dr.close()
+                o = btob64(eurl)
         else: o += 'not valid args |%s|' % arg
     else:
         if base == 'peers': # propagation
@@ -1443,6 +1481,17 @@ def application(environ, start_response):
             #diff_dbs(d, port)
         elif base == '_update': o, mime = app_update(environ['SERVER_NAME']), 'text/html; charset=utf-8'
         elif base == 'dashboard': o, mime = dashboard(d, environ), 'text/html; charset=utf-8'
+        elif reg(re.match('(\S+)\.png$', base)): 
+            mime, o = 'image/png', open('/%s/%s_%s/%s.png' % (__app__, __app__, port, reg.v.group(1)), 'rb').read()
+        elif re.match('publish', base): o, mime = publish(d, environ, base), 'text/html; charset=utf-8'
+        elif re.match('\S{20}$', base): 
+            dr = dbm.open('/%s/%s_%s/url' % (__app__, __app__, port))
+            url = bytes(base, 'utf8')
+            if url in dr: 
+                o, mime = open('/%s/%s_%s/%s.pdf' % (__app__, __app__, port, dr[url].decode('utf8')), 'rb').read(), 'application/pdf'
+            else:
+                o += 'bad url!'
+            dr.close()
         elif base == '':
             if raw == 'install': o = install()
             elif raw == 'ios': o = 'Toujours en phase de test!\nBientôt disponible sur appStore\n\nNous contacter pour toute question.'
@@ -1462,7 +1511,7 @@ def application(environ, start_response):
             o += 'request not valid!'
     for db in d: d[db].close()
     start_response('200 OK', [('Content-type', mime)] + ncok)
-    return [o if mime == 'application/pdf' else o.encode('utf8')] 
+    return [o if mime in ('application/pdf', 'image/png') else o.encode('utf8')] 
 
 def wdigest(d, port):
     "computes digest for all databases"

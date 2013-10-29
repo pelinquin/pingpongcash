@@ -161,6 +161,16 @@ class ecdsa:
         assert s != 0 and r != 0
         return i2b(r, 66) + i2b(s, 66)
 
+    def decrypt(self, enctxt):
+        oo, x1, x2 =  int(enctxt[:2], 16), b2i(enctxt[2:68]), b2i(enctxt[68:])
+        o1, o2, offset, p, a, b = (oo & 0x80)>>7,(oo & 0x40)>>6, oo & 0x3F, b64toi(b'Af' + b'_'*86), -3, b64toi(_B)
+        z1, z2 = pow(x1, 3, p) + a * x1 + b % p, pow(x2, 3, p) + a * x2 + b % p
+        t1, t2 = pow(z1, (p+1)//4, p), pow(z2, (p+1)//4, p)
+        y1, y2 = t1 if int(o1) == t1&1 else (-t1)%p, t2 if int(o2) == t2&1 else (-t2)%p
+        p1, p2 = Point(c521, x1, - y1), Point(c521, x2, y2)
+        u = p2 + self.privkey * p1
+        return i2b(u.x-offset)
+
 def inverse_mod(a, m):
     "_"
     if a < 0 or m <= a: a = a % m
@@ -422,6 +432,15 @@ def buy(dst, prc, m=''):
     db.close()
     return 'A:' + btob64(msg + k.sign(msg))
 
+def decrypt(eurl):
+    "_"
+    db, src, k = dbm.open('keys'), None, ecdsa()
+    for u in db.keys():  src, prv = u, db[u][132:]
+    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    k.privkey = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest()))
+    db.close()
+    return k.decrypt(eurl)
+
 def reg(value):
     " function attribute is a way to access matching group in one line test "
     reg.v = value
@@ -481,7 +500,7 @@ Connect to %s to see balance report\nContact %s for any question"""
 if __name__ == '__main__':
     localnode = 'cup:80' # for debugging
     node = '%s.fr' % __ppc__
-    #node = localnode
+    node = localnode
     if len(sys.argv)==2:
         if os.path.isfile(sys.argv[1]): # read db
             readdb(sys.argv[1])
@@ -508,5 +527,13 @@ if __name__ == '__main__':
         print (send(node, s)) # need Net connexion
     else:
         print (usage())
+
+    eurl = send(node, 'AAAABUjkk8gA-4smj1oA:ig1')
+    url = decrypt(b64tob(bytes(eurl, 'ascii')))
+    print ('http://cup/%s' % url.decode('ascii'))
+    sys.exit()
+
+
+
 # End ⊔net!
 
