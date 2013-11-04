@@ -448,18 +448,21 @@ def reg(value):
 
 def buyig (ig, node):
     "_"
-    res = send(node, 'IG:%s' % ig)
-    if reg(re.match(r'([^:]+):(\d+)$', res)):
-        rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
-    else:
-        return 'error'
+    hig = btob64(hcode(node+'/publish/'+ig))
+    print (hig)
+    res = send(node, 'IG:%s' % hig)
+    if reg(re.match(r'([^:]+):(\d+)$', res)): rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
+    else: return 'error'
     db, src, k = dbm.open('keys'), None, ecdsa()
     for u in db.keys():  src, prv, pub = u, db[u][132:], db[u][:132]
-    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    pp = getpass.getpass('Passphrase 111 for \'%s\'? ' % btob64(src))
     print ('...please wait')
     k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), nb + rig + src + datencode()
+    print (send(node, 'B:' + btob64(msg + k.sign(msg))))
+    res = send(node, ig + ':%s' % b2i(nb))
+    if res != 'Error:': print ('http://%s/%s' % (node, k.decrypt(b64tob(bytes(res, 'ascii'))).decode('ascii')))
+    else: print (res)
     db.close()
-    return 'B:' + btob64(msg + k.sign(msg))
 
 def postig(xi, p1, pf):
     "_"
@@ -498,7 +501,7 @@ Connect to %s to see balance report\nContact %s for any question"""
     return usage.__doc__ % (__url__, __email__)
 
 if __name__ == '__main__':
-    localnode = 'cup:80' # for debugging
+    localnode = 'cup' # for debugging
     node = '%s.fr' % __ppc__
     node = localnode
     if len(sys.argv)==2:
@@ -517,23 +520,21 @@ if __name__ == '__main__':
     elif len(sys.argv)==3:
         if re.match('[\d\.\,]+', sys.argv[2]): 
             s = buy(b64tob(bytes(sys.argv[1], 'ascii')), int(float(sys.argv[2])*100)) # €
+            print (send(node, s))
+        elif re.match('\d+$', sys.argv[1]): 
+            res = send(node, sys.argv[2] + ':' + sys.argv[1])
+            if res != 'Error:': 
+                print ('http://%s/%s' % (node, decrypt(b64tob(bytes(res, 'ascii'))).decode('ascii')))
         elif sys.argv[1] == 'ig': # find n
-            s = 'IG:' + sys.argv[2]
-        else:
-            s = buyig(sys.argv[2], node) # ⊔
-        print (send(node, s)) # need Net connexion
+            print (send(node, 'IG:' + sys.argv[2]))
+        elif sys.argv[1] == 'buy':
+            buyig(sys.argv[2], node) # ⊔
     elif len(sys.argv)==4: # IG registration
         s = postig(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
         print (send(node, s)) # need Net connexion
     else:
         print (usage())
 
-    eurl = send(node, 'AAAABUjkk8gA-4smj1oA:ig1')
-    url = decrypt(b64tob(bytes(eurl, 'ascii')))
-    print ('http://cup/%s' % url.decode('ascii'))
     sys.exit()
-
-
-
 # End ⊔net!
 

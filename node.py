@@ -832,41 +832,101 @@ class QRCode:
 
 ##### API #####
 
-def register(name='root'):
+def send(host='localhost', data=''):
     "_"
-    pp1, pp2, cm = '', '', ''
-    dv, du = dbm.open('private', 'c'), dbm.open(__base__ + 'pub', 'c')
-    while bytes(name, 'utf8') in dv: name = input('Find a public name:')
-    print ('Hi! \'%s\'' % name)
-    while pp1 != pp2 or len(pp1) < 4:
-        pp1 = getpass.getpass('Select a passphrase? ')
-        pp2 = getpass.getpass('The passphrase again? ')
-    print ('...wait')
-    k = ecdsa()
-    k.generate()
-    cm = i2b(k.pt.y, 66)[-9:]
-    while cm in du:
-        k = ecdsa()
-        k.generate()
-        cm = i2b(k.pt.y, 66)[-9:]
-    du[cm], dv[name], dv[cm] = i2b(k.pt.x, 66) + i2b(k.pt.y, 66)[:-9], cm, AES().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
-    dv.close(), du.close()
-    print ('Your personnal keys have been generated. Id: %s' % (btob64(cm)))
-    return name    
+    co, serv = http.client.HTTPConnection(host), '/' 
+    co.request('POST', serv, urllib.parse.quote(data))
+    return co.getresponse().read().decode('utf8')    
 
-def certif(name, value=10000):
+def add_local_id():
     "_"
-    pp = getpass.getpass('Root passphrase to generate certificat for \'%s\'? ' % name)
-    dv, dc = dbm.open('private', 'c'), dbm.open(__base__+'crt', 'c')
-    dat, k, cm, root = datencode(365), ecdsa(), dv[name], dv['root']
-    k.privkey = int(AES().decrypt(dv[root], hashlib.sha256(pp.encode('utf8')).digest())) 
-    msg = dat + i2b(value, 8)
-    if b'_' in dc:
-        assert dc[b'_'] == root
-    else:
-        dc[b'_'] = root
-    dc[cm] = msg + k.sign(cm + msg)
-    dv.close(), dc.close()
+    pp1, pp2, cm, k, db, ok, notdone = '', '', b'', ecdsa(), dbm.open('keys', 'c'), True, True
+    while pp1 != pp2 or len(pp1) < 4: pp1, pp2 = getpass.getpass('Select a passphrase? '), getpass.getpass('The passphrase again? ')
+    if os.path.isfile('found_id.txt'):
+        for l in open('found_id.txt').readlines():
+            cm, tab = b64tob(bytes(l[:12], 'ascii')), l[16:].split('/')
+            if cm not in db:
+                print ('Static Id: %s' % l[:12])
+                if input('Select this id or another ? [y/n]: ') == 'y':
+                    prv = AES().encrypt('%s' % b64toi(bytes(tab[2].strip(), 'ascii')), hashlib.sha256(pp1.encode('utf8')).digest())
+                    db[cm], notdone = b''.join([b64tob(bytes(x, 'ascii')) for x in tab[:2]]) + prv, False
+                    print ('%s added' % l[:12])
+                    break
+    if notdone:
+        while (cm in db) or ok:
+            k.generate()
+            cm = i2b(k.pt.y)[-9:]
+            print ('Id: %s' % btob64(cm))
+            ok = not (input('Select this id or another ? [y/n]: ') == 'y')
+        db[cm] = i2b(k.pt.x, 66) + i2b(k.pt.y, 66) + AES().encrypt('%s' % k.privkey, hashlib.sha256(pp1.encode('utf8')).digest())
+        print ('%s added' % btob64(cm))
+    if b'user' not in db: db[b'user'] = cm
+    if b'host' not in db: db[b'host'] = b'cup'    
+    db.close()
+
+def list_local_ids():
+    "_"
+    db = dbm.open('keys', 'c')
+    print ('Host: \'%s\', You have %d IDs:' % (db['host'].decode('ascii'), len(db.keys())-2))
+    for x in db.keys(): 
+        if len(x) == 9: 
+            print (btob64(x) if db['user'] != x else btob64(x)+' *')
+    db.close()
+
+def get_unique(dk, rid):
+    out = []
+    for u in dk.keys():
+        if re.match(rid, btob64(u)): out.append(u)
+    return out[0] if len(out) == 1 else None
+
+def set(k, h):
+    "_"
+    d = dbm.open('keys', 'c') 
+    if k == 'user':
+        src = get_unique(d, h)
+        if src: d[k] = src
+    elif k == 'host':
+        d[k] = h
+    print ('%s->%s' % (k, h))
+    d.close()
+
+def readdb(arg):
+    "_"
+    d = dbm.open(arg)
+    for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x),'->', btob64(d[x]))
+
+def buy(node, rid, prc, m=''):
+    "_"
+    db, k, dat = dbm.open('keys'), ecdsa(), datencode()
+    src, dst = db['user'], get_unique(db, rid)
+    prv, pub = db[src][132:], db[src][:132]
+    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    if m == '': m = input('Message (20 chars maxi)? ')
+    print ('...please wait')
+    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
+    print (send(node, 'A:' + btob64(msg + k.sign(msg))))
+    db.close()
+
+def postig(node, xi, p1, pf):
+    "_"
+    db, k = dbm.open('keys'), ecdsa()
+    src = db['user']
+    prv, pub = db[src][132:], db[src][:132]
+    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    url = input('url? ')
+    msg = hcode(url) + src + datencode() + valencode(xi, p1, pf)
+    print ('...please wait')
+    k.privkey = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest()))
+    print (send(node, 'I:' + btob64(msg + k.sign(msg))))
+    db.close()
+
+def register(node):
+    "_"
+    db = dbm.open('keys')
+    for x in db.keys():
+        if len(x) == 9:
+            print (send(node, 'P:' + btob64(db[x][:132])))
+    db.close()
 
 def debt(base, cm):
     "_"
@@ -888,39 +948,6 @@ def ndebt(d, cm):
         #if k.verify(dc[cm][12:], cm + dc[cm][:12]):
         dbt = b2i(dc[cm][4:12])
     return dbt
-
-def buy(src, price):
-    "_"
-    dv, du, dt, u, tab = dbm.open('private'), dbm.open(__base__+'pub'), dbm.open(__base__+'trx', 'c'), bytes(src, 'utf8'), []
-    if u in dv:
-        if balance(__base__, dv[u]) + debt(__base__, dv[u]) < price: return
-    pp = getpass.getpass('Passphrase for \'%s\'? ' % src)
-    for p in du.keys():
-        if p != dv[u]: 
-            tab.append(p)
-            print ('(%d) %s' % (len(tab), btob64(p)))
-    c = input('Select a recipient: ')
-    dst = tab[int(c)-1]
-    if u in dv and dst in du:
-        cm, dat, k = dv[u], datencode(), ecdsa()
-        k.privkey = int(AES().decrypt(dv[cm], hashlib.sha256(pp.encode('utf8')).digest())) 
-        msg, u = dst + i2b(price, 3), dat + cm
-        if u not in dt:
-            dt[u] = msg + k.sign(u + msg)
-            print ('transaction recorded')
-    dv.close(), du.close(), dt.close()
-
-def allcut():
-    "_"
-    du, dv, dc, k = dbm.open(__base__+'pub'), dbm.open('private'), dbm.open(__base__ +'crt', 'c'), ecdsa()
-    pp = getpass.getpass('Passphrase for root? ')
-    k.privkey = int(AES().decrypt(dv[dv['root']], hashlib.sha256(pp.encode('utf8')).digest()))
-    for u in du.keys():
-        if is_active(u):
-            print ('...for user %s' % btob64(u))
-            msg = datencode() + s2b(balance(__base__, u), 4)
-            dc[b'%'+u] = msg + k.sign(u + msg)
-    du.close(), dv.close(), dc.close()
 
 def is_active(cm):
     "_"
@@ -1281,12 +1308,13 @@ def dashboard(d, env):
             else:
                 '<tr><td class="mono">Pb!</td></tr>'
         #elif len(t) == 15: del d['trx'][t]
-    root = d['crt'][b'_']
-    k.pt = Point(c521, b2i(d['pub'][root][:66]), b2i(d['pub'][root][66:]+root))
-    for c in d['crt'].keys():
-        if len(c) == 9 and not k.verify(d['crt'][c][12:], c + d['crt'][c][:12]): 
-            o += '<tr><td class="mono">certificat</td></tr>'
-            #del d['crt'][c]
+    if b'_' in d['crt']:
+        root = d['crt'][b'_'] 
+        k.pt = Point(c521, b2i(d['pub'][root][:66]), b2i(d['pub'][root][66:]+root))
+        for c in d['crt'].keys():
+            if len(c) == 9 and not k.verify(d['crt'][c][12:], c + d['crt'][c][:12]): 
+                o += '<tr><td class="mono">certificat</td></tr>'
+                #del d['crt'][c]
     o += '</table>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s %s Auth:%s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
@@ -1532,7 +1560,7 @@ sudo /etc/init.d/apache restart
 "http://mon_serveur/"
 une copie des bases 'peers', 'transactions', 'publickeys' et 'certificats' est installée dans le répertoire /mini
 - enfin lancez 'mini.py' en ligne de commande pour générer vos clés
-votre clé privée est dans le fichier 'private'...à protéger absolument des intrus et à ne pas perdre.\n
+votre clé privée est dans le fichier 'keys'...à protéger absolument des intrus et à ne pas perdre.\n
 Pour tout problème, nous contacter à 'contact@cupfoundation.net'
 """
     return install.__doc__
@@ -1540,18 +1568,20 @@ Pour tout problème, nous contacter à 'contact@cupfoundation.net'
 ##### MAIN #####
 
 if __name__ == '__main__':
-    if len(sys.argv)==1:
-        if not (os.path.isfile('private') or os.path.isfile('private.db')):
-            root = register()
-            bank = register('banker')
-            certif('banker', 100000)
-        else:
-            buy('banker', 10000)
-    else:
-        if sys.argv[1] == 'cut':
-            allcut()
-        else:
-            buy('user', int(float(sys.argv[1])*100))
+    node = 'cup'
+    if len(sys.argv) == 1:
+        list_local_ids()
+    elif len(sys.argv) == 2:
+        if sys.argv[1] == 'add': add_local_id()
+        elif sys.argv[1] == 'reg': register(node)
+        elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1])
+    elif len(sys.argv) == 3:
+        if sys.argv[1] in ('host', 'user'): set(sys.argv[1], sys.argv[2])
+        elif re.match('[\d\.\,]+', sys.argv[2]): 
+            buy(node, sys.argv[1], int(float(sys.argv[2])*100)) # €
+    elif len(sys.argv) == 4: # IG registration
+        s = postig(node, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+
     sys.exit()    
 
 # End ⊔net!
