@@ -214,6 +214,16 @@ class ecdsa:
         o1, o2 = p1.y&1, p2.y&1
         return bytes('%02X' % ((o1<<7) + (o2<<6) + offset), 'ascii') + i2b(p1.x, 66) + i2b(p2.x, 66)
 
+    def decrypt(self, enctxt):
+        oo, x1, x2 =  int(enctxt[:2], 16), b2i(enctxt[2:68]), b2i(enctxt[68:])
+        o1, o2, offset, p, a, b = (oo & 0x80)>>7,(oo & 0x40)>>6, oo & 0x3F, b64toi(b'Af' + b'_'*86), -3, b64toi(_B)
+        z1, z2 = pow(x1, 3, p) + a * x1 + b % p, pow(x2, 3, p) + a * x2 + b % p
+        t1, t2 = pow(z1, (p+1)//4, p), pow(z2, (p+1)//4, p)
+        y1, y2 = t1 if int(o1) == t1&1 else (-t1)%p, t2 if int(o2) == t2&1 else (-t2)%p
+        p1, p2 = Point(c521, x1, - y1), Point(c521, x2, y2)
+        u = p2 + self.privkey * p1
+        return i2b(u.x-offset)
+
 def inverse_mod(a, m):
     "_"
     if a < 0 or m <= a: a = a % m
@@ -838,6 +848,12 @@ def send(host='localhost', data=''):
     co.request('POST', serv, urllib.parse.quote(data))
     return co.getresponse().read().decode('utf8')    
 
+def send_get(host='localhost', data=''):
+    "_"
+    co = http.client.HTTPConnection(host)
+    co.request('GET', '/' + urllib.parse.quote(data))
+    return co.getresponse().read()    
+
 def add_local_id():
     "_"
     pp1, pp2, cm, k, db, ok, notdone = '', '', b'', ecdsa(), dbm.open('keys', 'c'), True, True
@@ -866,12 +882,15 @@ def add_local_id():
 
 def list_local_ids():
     "_"
-    db = dbm.open('keys', 'c')
-    print ('Host: \'%s\', You have %d IDs:' % (db['host'].decode('ascii'), len(db.keys())-2))
-    for x in db.keys(): 
-        if len(x) == 9: 
-            print (btob64(x) if db['user'] != x else btob64(x)+' *')
-    db.close()
+    if os.path.isfile('keys'):
+        db = dbm.open('keys', 'c')
+        print ('Host: \'%s\', You have %d IDs:' % (db['host'].decode('ascii'), len(db.keys())-2))
+        for x in db.keys(): 
+            if len(x) == 9: 
+                print (btob64(x) if db['user'] != x else btob64(x)+' *')
+        db.close()
+    else:
+        print ('Use \'./%s add\' for adding an ID' % __app__) 
 
 def get_unique(dk, rid):
     out = []
@@ -895,6 +914,14 @@ def readdb(arg):
     d = dbm.open(arg)
     for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x),'->', btob64(d[x]))
 
+def get_host():
+    "_"
+    db = dbm.open('keys')
+    host = db['host']
+    db.close()
+    return host.decode('utf8')
+
+
 def buy(node, rid, prc, m=''):
     "_"
     db, k, dat = dbm.open('keys'), ecdsa(), datencode()
@@ -905,6 +932,28 @@ def buy(node, rid, prc, m=''):
     print ('...please wait')
     k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
     print (send(node, 'A:' + btob64(msg + k.sign(msg))))
+    db.close()
+
+def buyig (node, ig):
+    "_"
+    hig, db, k = btob64(hcode(node+'/publish/'+ig)), dbm.open('keys'), ecdsa()
+    print (hig)
+    res = send(node, 'IG:%s' % hig)
+    if reg(re.match(r'([^:]+):(\d+)$', res)): rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
+    else: return 'error'
+    src = db['user']
+    prv, pub = db[src][132:], db[src][:132]
+    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    print ('...please wait')
+    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), nb + rig + src + datencode()
+    print (send(node, 'B:' + btob64(msg + k.sign(msg))))
+    res = send(node, ig + ':%s' % b2i(nb))
+    if res != 'Error:': 
+        url = k.decrypt(b64tob(bytes(res, 'ascii'))).decode('ascii')
+        print ('http://%s/%s' % (node, url))
+        toto = send_get(node, url)
+        open('toto.pdf', 'wb').write(toto)
+    else: print (res)
     db.close()
 
 def postig(node, xi, p1, pf):
@@ -1197,6 +1246,7 @@ def capture_ig(d, arg):
     return None
 
 def bank(d, env):
+    "_"
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
@@ -1562,34 +1612,35 @@ def rdigest(port):
 
 def install():
     """Quelques instructions d'installation sous Linux\n
-- Sauvegarder le fichier source avec le nom 'node.py'
-- Créez un répertoire /node à la racine avec les droits d'écriture pour www-data
+- Sauvegarder le fichier source avec le nom '%s.py'
+- Créez un répertoire /%s à la racine avec les droits d'écriture pour www-data
 - Installer un serveur Web; le plus simple est Apache2 le mod 'wsgi' pour Python3 
 sudo apt-get install apache2 libapache2-mod-wsgi-py3
 - Configurer Apache en ajoutant un fichier ppc.conf sous /etc/apache/conf.d avec la ligne:
-WSGIScriptAlias / /home/mon_repertoire_install/node.py
+WSGIScriptAlias / /home/mon_repertoire_installation/%s.py
 - Relancer le serveur Apache
 sudo /etc/init.d/apache restart
-- Ouvrez la page installée 
+- Ouvrez la page installée:
 "http://mon_serveur/"
 une copie des bases 'prs'(peers), 'trs' (transactions), 'pub'(public keys), 'igs' (Intangibles GoodS) et 'crt' (certificats) 
-est installée dans le répertoire /node
-- enfin lancez 'node.py add' en ligne de commande pour générer vos clés
+est installée dans le répertoire /%s
+- enfin lancez '%s.py add' en ligne de commande pour générer vos clés
 votre clé privée est dans le fichier 'keys'...à protéger absolument des intrus et à ne pas perdre.\n
-Pour tout problème, nous contacter à 'contact@cupfoundation.net'
+Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 """
-    return install.__doc__
+    return install.__doc__ % (__app__, __app__, __app__, __app__, __app__)
 
 ##### MAIN #####
 
 if __name__ == '__main__':
-    node = 'cup'
+    node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         list_local_ids()
     elif len(sys.argv) == 2:
         if sys.argv[1] == 'add': add_local_id()
         elif sys.argv[1] == 'reg': register(node)
         elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1])
+        else: buyig(node, sys.argv[1]) 
     elif len(sys.argv) == 3:
         if sys.argv[1] in ('host', 'user'): set(sys.argv[1], sys.argv[2])
         elif re.match('[\d\.\,]+', sys.argv[2]): 
