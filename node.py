@@ -1222,7 +1222,7 @@ def index(d, env, cm64='', prc=0):
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
     o1 = '<ul><li><a title="moins de 1200 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i></li>'
     o1 += '<li>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i></li>' 
-    o1 += '<li><form method="post">Consultez votre compte :<br/><input class="txt" name="cm" placeholder="...votre ID"/></form></li></ul>\n'
+    o1 += '<li><form method="post">Consultez un de vos comptes :<br/><input class="txt" name="cm" placeholder="...ID"/></form></li></ul>\n'
     if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
     cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
@@ -1318,6 +1318,15 @@ def dashboard(d, env):
     o += '</table>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s %s Auth:%s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
+
+def upload(env):
+    "_"
+    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    o += favicon() + style_html(False) + header()
+    o += '<form enctype="multipart/form-data" method="post"><input type="file"/><input type="submit" value="Go"/></form>'
+    o += '<p>%s</p>' % env
+    return o + footer('') + '</body></html>\n'
 
 def enurl(d, dr, ign, pos):
     hig, k = hcode('cup/publish/%s' % ign), ecdsa()
@@ -1495,7 +1504,11 @@ def application(environ, start_response):
             else: o += 'not valid ig transaction !'
         elif re.match('A:\S{210,236}$', arg): 
             if valid_trx(d, b64tob(bytes(arg[2:], 'ascii'))) : o = 'New transaction recorded [%s]' % len(d['trx'])
-            else: o += 'not valid transaction !' 
+            else: o += 'not valid transaction !'
+        elif arg[:10] == '-'*10:
+            l2 = environ['wsgi.input'].read()
+            l2 = environ.get('wsgi.post_form').read()
+            o = 'OK upload %s %s %s' % (arg, len(arg), l2)
         else: o += 'not valid args |%s|' % arg
     else:
         if base == 'peers': # propagation
@@ -1505,6 +1518,7 @@ def application(environ, start_response):
             #diff_dbs(d, port)
         elif base == '_update': o, mime = app_update(environ['SERVER_NAME']), 'text/html; charset=utf-8'
         elif base == 'dashboard': o, mime = dashboard(d, environ), 'text/html; charset=utf-8'
+        elif base == 'upload': o, mime = upload(environ), 'text/html; charset=utf-8'
         elif reg(re.match('(\S+)\.png$', base)): 
             mime, o = 'image/png', open('/%s/%s_%s/%s.png' % (__app__, __app__, port, reg.v.group(1)), 'rb').read()
         elif reg(re.match('publish/([^:]+)(|:(\d+))$', base)): o, mime = publish(d, dr, environ, reg.v.group(1), reg.v.group(3)), 'text/html; charset=utf-8'
@@ -1548,18 +1562,19 @@ def rdigest(port):
 
 def install():
     """Quelques instructions d'installation sous Linux\n
-- Sauvegarder le fichier source avec le nom 'mini.py'
-- Créez un répertoire /mini à la racine avec les droits d'écriture pour www-data
+- Sauvegarder le fichier source avec le nom 'node.py'
+- Créez un répertoire /node à la racine avec les droits d'écriture pour www-data
 - Installer un serveur Web; le plus simple est Apache2 le mod 'wsgi' pour Python3 
 sudo apt-get install apache2 libapache2-mod-wsgi-py3
 - Configurer Apache en ajoutant un fichier ppc.conf sous /etc/apache/conf.d avec la ligne:
-WSGIScriptAlias / /home/mon_repertoire_install/mini.py
+WSGIScriptAlias / /home/mon_repertoire_install/node.py
 - Relancer le serveur Apache
 sudo /etc/init.d/apache restart
 - Ouvrez la page installée 
 "http://mon_serveur/"
-une copie des bases 'peers', 'transactions', 'publickeys' et 'certificats' est installée dans le répertoire /mini
-- enfin lancez 'mini.py' en ligne de commande pour générer vos clés
+une copie des bases 'prs'(peers), 'trs' (transactions), 'pub'(public keys), 'igs' (Intangibles GoodS) et 'crt' (certificats) 
+est installée dans le répertoire /node
+- enfin lancez 'node.py add' en ligne de commande pour générer vos clés
 votre clé privée est dans le fichier 'keys'...à protéger absolument des intrus et à ne pas perdre.\n
 Pour tout problème, nous contacter à 'contact@cupfoundation.net'
 """
