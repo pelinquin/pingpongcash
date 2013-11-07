@@ -1409,7 +1409,7 @@ def publish(d, dr, env, ign, pos):
         o += '<h1>%s (%d pages)</h1>' % (ign, nump)
         o += '<a href="/%s.png" title="page de couverture"><img class="book" width="150" src="data:image/png;base64,%s"/></a>\n' % (ign, data)
         o += '<a href="/%s_.png" title="quatrième de couverture"><img class="book" width="150" src="data:image/png;base64,%s"/></a>\n' % (ign, datb)
-        hig = hcode('cup/publish/%s' % ign)
+        hig = hcode('%s/publish/%s' % (env['SERVER_NAME'], ign))
         if hig in d['igs']:
             src, dat, nb = d['igs'][hig][:9], datdecode(d['igs'][hig][9:13]), (len(d['igs'][hig])-151)//9
             xi, p1, pf = valdecode(d['igs'][hig][13:19])
