@@ -1380,7 +1380,7 @@ def upload(env):
     return o + footer('') + '</body></html>\n'
 
 def enurl(d, dr, ign, pos):
-    hig, k = hcode('cup/publish/%s' % ign), ecdsa()
+    hig, k = hcode(ign), ecdsa()
     dst = d['igs'][hig][151+(pos-1)*9:151+pos*9]
     k.pt = Point(c521, b2i(d['pub'][dst][:66]), b2i(d['pub'][dst][66:]+dst))
     t = i2b(pos, 4) + hig + i2b(0, 1)
