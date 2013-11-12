@@ -1424,7 +1424,8 @@ def publish(d, dr, env, ign, pos):
             o += '<p>Paramètre de vitesse: %d%%</p>' % xi
             o += "<p>Nombre d'acheteurs: %06d</p>" % nb
             if pos != None and int(pos)<nb:
-                eurl = enurl(d, dr, ign, int(pos))
+                ign2 = '%s/publish/%s' % (env['SERVER_NAME'], ign)
+                eurl = enurl(d, dr, ign2, int(pos))
                 if eurl:
                     o += '<div class="qr" title="%s">%s</div>\n' % (btob64(eurl), QRCode(btob64(eurl), 2).svg(0, 0, 4))
     else:
@@ -1539,7 +1540,8 @@ def application(environ, start_response):
             else:
                 o += 'Id not found! |%s|' % arg 
         elif reg(re.match('([^:]+):(\d+)$', arg)):
-            eurl = enurl(d, dr, reg.v.group(1), int(reg.v.group(2)))
+            ign2 = '%s/%s' % (env['SERVER_NAME'], reg.v.group(1))
+            eurl = enurl(d, dr, ign2, int(reg.v.group(2)))
             if eurl: o = btob64(eurl)
         elif re.match('IG:\S{1,25}$', arg):
             r = capture_ig(d, arg[3:])
