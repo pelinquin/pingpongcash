@@ -948,6 +948,7 @@ def buyig (node, ig):
     k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), nb + rig + src + datencode()
     print (send(node, 'B:' + btob64(msg + k.sign(msg))))
     res = send(node, ig + ':%s' % b2i(nb))
+    print (res) # ici
     if res != 'Error:': 
         url = k.decrypt(b64tob(bytes(res, 'ascii'))).decode('ascii')
         print ('http://%s/%s' % (node, url))
@@ -1449,6 +1450,7 @@ def push_dbs(d, port):
         req(p.decode('utf8'), 'TRX%s' % {x: d['trx'][x] for x in d['trx'].keys()})
         req(p.decode('utf8'), 'CRT%s' % {x: d['crt'][x] for x in d['crt'].keys()})
         req(p.decode('utf8'), 'PUB%s' % {x: d['pub'][x] for x in d['pub'].keys()})
+        req(p.decode('utf8'), 'IGS%s' % {x: d['igs'][x] for x in d['igs'].keys()})
 
 def valid_pub(d, pub):
     "_"
