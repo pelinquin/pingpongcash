@@ -1012,7 +1012,7 @@ def is_active(cm):
 
 def style_html(bg=True):
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{color:#AAA;font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}'
     if bg:
         o += 'body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}' 
     return o + '</style>'
@@ -1406,7 +1406,8 @@ def publish(d, dr, env, ign, pos):
         if not os.path.isfile (bytes(lpng, 'utf8')): subprocess.call(('convert', 'x300', (fpdf + '[%s]' % (nump-1)).encode('utf8') , lpng.encode('utf8')))
         data = base64.b64encode(open(fpng.encode('utf8'), 'rb').read()).decode('ascii')
         datb = base64.b64encode(open(lpng.encode('utf8'), 'rb').read()).decode('ascii')
-        o += '<h1>%s (%d pages)</h1>' % (ign, nump)
+        o += '<h1>%s</h1>' % ign
+        o += '<h2>%d pages</h2>' % nump
         o += '<a href="/%s.png" title="page de couverture"><img class="book" width="150" src="data:image/png;base64,%s"/></a>\n' % (ign, data)
         o += '<a href="/%s_.png" title="quatrième de couverture"><img class="book" width="150" src="data:image/png;base64,%s"/></a>\n' % (ign, datb)
         hig = hcode('%s/publish/%s' % (env['SERVER_NAME'], ign))
@@ -1418,6 +1419,7 @@ def publish(d, dr, env, ign, pos):
             o += '<p>Date de publication: %s</p>' % dat
             o += '<p>Prix Initial: %d&nbsp;⊔</p>' % p1
             o += '<p>Revenu cumulé maximum escompté: %d&nbsp;⊔</p>' % pf
+            o += "<p>%d acheteurs avant passage dans le domaine public</p>" % pf
             o += '<p>Paramètre de vitesse: %d%%</p>' % xi
             o += "<p>Nombre d'acheteurs: %06d</p>" % nb
             if pos != None and int(pos)<nb:
