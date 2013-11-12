@@ -1540,7 +1540,7 @@ def application(environ, start_response):
             else:
                 o += 'Id not found! |%s|' % arg 
         elif reg(re.match('([^:]+):(\d+)$', arg)):
-            ign2 = '%s/%s' % (env['SERVER_NAME'], reg.v.group(1))
+            ign2 = '%s/%s' % (environ['SERVER_NAME'], reg.v.group(1))
             eurl = enurl(d, dr, ign2, int(reg.v.group(2)))
             if eurl: o = btob64(eurl)
         elif re.match('IG:\S{1,25}$', arg):
