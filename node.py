@@ -864,8 +864,16 @@ def add_local_id():
             if cm not in db:
                 print ('Static Id: %s' % l[:12])
                 if input('Select this id or another ? [y/n]: ') == 'y':
-                    prv = AES().encrypt('%s' % b64toi(bytes(tab[2].strip(), 'ascii')), hashlib.sha256(pp1.encode('utf8')).digest())
-                    db[cm], notdone = b''.join([b64tob(bytes(x, 'ascii')) for x in tab[:2]]) + prv, False
+                    #pp = getpass.getpass('Select root passphrase? ')
+                    #intpriv = int(AES().decrypt(b64tob(bytes(tab[2].strip(), 'ascii')), hashlib.sha256(pp.encode('utf8')).digest()))
+                    intpriv = b64toi(bytes(tab[2].strip(), 'ascii'))
+                    #intpriv = int(tab[2].strip())
+                    prv = AES().encrypt('%s' % intpriv, hashlib.sha256(pp1.encode('utf8')).digest())
+                    ptx, pty = b64toi(bytes(tab[0].strip(), 'ascii')), b64toi(bytes(tab[1].strip(), 'ascii'))
+                    #ptx, pty = int(tab[0].strip()), int(tab[1].strip())
+                    db[cm] = i2b(ptx, 66) + i2b(pty, 66) + prv
+                    #db[cm] = b''.join([b64tob(bytes(x, 'ascii')) for x in tab[:2]]) + prv
+                    notdone = False
                     print ('%s added' % l[:12])
                     break
     if notdone:
@@ -903,16 +911,21 @@ def set(k, h):
     d = dbm.open('keys', 'c') 
     if k == 'user':
         src = get_unique(d, h)
-        if src: d[k] = src
+        if src: 
+            d[k] = src
+            print ('%s->%s' % (k, btob64(src)))
     elif k == 'host':
         d[k] = h
-    print ('%s->%s' % (k, h))
+        print ('%s->%s' % (k, h))
     d.close()
 
-def readdb(arg):
+def readdb(arg, ascii=False):
     "_"
     d = dbm.open(arg)
-    for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x),'->', btob64(d[x]))
+    if ascii:
+        for x in d.keys(): print (x.decode('ascii'),'->', d[x].decode('ascii'))
+    else:
+        for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x),'->', btob64(d[x]))
 
 def get_host():
     "_"
@@ -938,7 +951,7 @@ def buyig (node, ig):
     "_"
     hig, db, k = btob64(hcode(node+'/publish/'+ig)), dbm.open('keys'), ecdsa()
     print (hig)
-    res = send(node, 'IG:%s' % hig)
+    res = send(node, 'G:%s' % hig)
     if reg(re.match(r'([^:]+):(\d+)$', res)): rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
     else: return 'error'
     src = db['user']
@@ -1246,6 +1259,18 @@ def capture_ig(d, arg):
         return '%s:%s' % (btob64(res[0]), (len(d['igs'][res[0]])-151)//9)
     return None
 
+def simu(d, env):
+    "_"
+    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    o += favicon() + style_html() + '<body><div class="bg"></div>' + header() 
+    o += '<p><input placeholder="Initial Price">&nbsp;⊔<br/>'
+    o += '<input placeholder="Expected Cumulative Income">&nbsp;⊔<br/>'
+    o += '<input placeholder="Speed parameter (0-100%)">%<br/>'
+    o += '<input placeholder="Precision (0-10)"></p>'
+    atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
+    return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
+
 def bank(d, env):
     "_"
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
@@ -1506,6 +1531,22 @@ def valid_trx(d, r):
             return True
     return False
 
+"""
+PROTOCOL:
+
+1/REGISTER PUBLIC KEY
+  P:<pubkey[132]>
+2/REGISTER IG
+  I:<hurl[10]><src[9]><date[4]><val(xi,pi,pf)[6]><signature[132]>
+3/BUY €
+  A:<date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
+4/BUY IG
+  B:<nb[4]><refig[10]><src[9]><date[4]><signature[132]>
+5/GET IG POSITION
+  G:<hurl[0,10]>
+  return hurl[10]:nb
+"""
+
 def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname, port = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
@@ -1543,8 +1584,8 @@ def application(environ, start_response):
             ign2 = '%s/%s' % (environ['SERVER_NAME'], reg.v.group(1))
             eurl = enurl(d, dr, ign2, int(reg.v.group(2)))
             if eurl: o = btob64(eurl)
-        elif re.match('IG:\S{1,25}$', arg):
-            r = capture_ig(d, arg[3:])
+        elif re.match('G:\S{1,25}$', arg):
+            r = capture_ig(d, arg[2:])
             o = r if r != None else 'IG not found!' 
         elif re.match('\S{1,12}$', arg):
             r = capture_id(d, arg)
@@ -1590,6 +1631,7 @@ def application(environ, start_response):
             elif raw == 'src': o = open(__file__, 'r', encoding='utf-8').read() 
             elif raw == 'download': o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
             elif raw == 'bank': o, mime = bank(d, environ), 'text/html; charset=utf-8'
+            elif raw == 'simu': o, mime = simu(d, environ), 'text/html; charset=utf-8'
             else:
                 o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
                 #diff_dbs(d, port)
@@ -1638,10 +1680,84 @@ Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 
 ##### MAIN #####
 
+def price(p1, pf, xi, i):
+    "_"
+    k = ((pf-p1)/(pf-2*p1))**(xi/100)
+    income = round((1-k)*(p1-pf)/k**(i)) if i>0 else p1
+    refund = round((pf + (1+(i+1)*(k-1))/k**i*(p1-pf))/i/(i+1)) if i>0 else 0
+    price = income + i*(refund)
+    #
+    totinc = round(pf+(p1-pf)*k**(1-i))
+    prc = int((pf+(p1-pf)/k**i)/(i+1))
+    return prc, price, refund, income, totinc
+
+Total = 0
+First = 0
+def price(p1, pf, xi, i, p10):
+    "_"
+    global Total, First
+    p = 10**p10
+    k = ((pf-p1)/(pf-2*p1))**(xi/100)
+    income = int(p*((1-k)*(p1-pf)/k**(i))) if i>0 else p*p1
+    refund = int(p*(pf + (1+(i+1)*(k-1))/k**i*(p1-pf))/i/(i+1)) if i>0 else 0
+    price = income + i*(refund)
+    Total += income
+    if First == 0: First = p1*p
+    First -= refund
+    return price/p, First/p, refund/p, income/p, Total/p
+
+def simulate():
+    f1, f2, f3 = True, True, True
+    p1, pi, xi, pp = 10, 1000, 35, 2
+    print ('%d⊔ %s  %s%% ~%s' % (p1, pi, xi, pp))
+    for i in range(10000):
+        pr, dp, rf, ic, tt = price(p1, pi, xi, i, pp)
+        if i == pi :
+            print ('i=pi: price:%s⊔ p1:%s⊔ refund:%s⊔ income:%s⊔ total_income:%s⊔' % (pr, dp, rf, ic, tt))            
+        if f2 and i>0 and rf == 0:
+            print ('no refund at %d price:%s⊔ diff:%s⊔ total_income:%s⊔' % (i, pr, dp, tt))
+            f2 = False
+        elif f3 and pr == 0:
+            print ('Public Domain at %d: total_income:%s⊔' %  (i, tt))
+            f3 = False
+    sys.exit()    
+
+__curset__ = {'USD':870, 'EUR':334, 'JPY':230, 'GBP':118, 'AUD':86, 
+              'CHF':52,  'CAD':46,  'MXN':25,  'CNY':22,  'NZD':20,
+              'SEK':18,  'RUB':16,  'HKD':14,  'SGD':14,  'TRY':13}
+
+def forex():
+    now, ytd, db, y, h = '%s' % datetime.datetime.now(), '%s' % (datetime.datetime.now() - datetime.timedelta(days=1)), '/%s/rates' %__app__, {}, {}
+    dr, s1, s2 = dbm.open(db, 'c'), __curset__['USD'], __curset__['USD']
+    if bytes(now[:10], 'ascii') in dr:
+        h = eval(dr[now[:10]])
+    else:
+        co = http.client.HTTPConnection('currencies.apps.grandtrunk.net')
+        for c in __curset__:
+            if c != 'USD':
+                print ('grandtrunk request for %s' % c)
+                co.request('GET', '/getlatest/%s/USD' %c)
+                h[c] = float(co.getresponse().read())
+    if bytes(ytd[:10], 'ascii') in dr:
+        y = eval(dr[ytd[:10]])
+        for c in __curset__:
+            if c != 'USD':
+                s1 += h[c]/y[c]*__curset__[c]
+                s2 += h[c]*h[c]/y[c]/y[c]*__curset__[c]
+    else:
+        y['KUP'] = .1
+        h['KUP'] = y['KUP']*s1/s2
+    print (h)
+    dr[now[:10]] = '%s' % h
+    dr.close()
+
 if __name__ == '__main__':
+    #simulate()
+
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         list_local_ids()
+        forex()
     elif len(sys.argv) == 2:
         if sys.argv[1] == 'add': add_local_id()
         elif sys.argv[1] == 'reg': register(node)
@@ -1651,6 +1767,7 @@ if __name__ == '__main__':
         if sys.argv[1] in ('host', 'user'): set(sys.argv[1], sys.argv[2])
         elif re.match('[\d\.\,]+', sys.argv[2]): 
             buy(node, sys.argv[1], int(float(sys.argv[2])*100)) # €
+        elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1], True)
     elif len(sys.argv) == 4: # IG registration
         s = postig(node, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
 
