@@ -1726,7 +1726,8 @@ __curset__ = {'USD':870, 'EUR':334, 'JPY':230, 'GBP':118, 'AUD':86,
               'CHF':52,  'CAD':46,  'MXN':25,  'CNY':22,  'NZD':20,
               'SEK':18,  'RUB':16,  'HKD':14,  'SGD':14,  'TRY':13}
 
-def forex():
+def forex_old():
+    " "
     now, ytd, db, y, h = '%s' % datetime.datetime.now(), '%s' % (datetime.datetime.now() - datetime.timedelta(days=1)), '/%s/rates' %__app__, {}, {}
     dr, s1, s2 = dbm.open(db, 'c'), __curset__['USD'], __curset__['USD']
     if bytes(now[:10], 'ascii') in dr:
@@ -1738,6 +1739,7 @@ def forex():
                 print ('grandtrunk request for %s' % c)
                 co.request('GET', '/getlatest/%s/USD' %c)
                 h[c] = float(co.getresponse().read())
+    #
     if bytes(ytd[:10], 'ascii') in dr:
         y = eval(dr[ytd[:10]])
         for c in __curset__:
@@ -1749,6 +1751,49 @@ def forex():
         h['KUP'] = y['KUP']*s1/s2
     print (h)
     dr[now[:10]] = '%s' % h
+
+    #
+    c = datetime.datetime(2014,1,1)
+    while c < datetime.datetime.now():
+        cc = '%s' % c
+        if bytes(cc[:10], 'ascii') in dr:
+            print ('YES %s' % c)
+        else:
+            print ('NO %s' % c)
+        c += datetime.timedelta(days=1)            
+    dr.close()
+
+def forex():
+    " "
+    now, ytd, db, y, h = '%s' % datetime.datetime.now(), '%s' % (datetime.datetime.now() - datetime.timedelta(days=1)), '/%s/rates' %__app__, {}, {}
+    dr, s1, s2 = dbm.open(db, 'c'), __curset__['USD'], __curset__['USD']
+    cu, co = datetime.datetime(2014,1,1), http.client.HTTPConnection('currencies.apps.grandtrunk.net')
+    while cu < datetime.datetime.now():
+        cc = '%s' % cu
+        if bytes(cc[:10], 'ascii') not in dr:
+            for c in __curset__:
+                if c != 'USD':
+                    print ('grandtrunk request for %s %s' % (c, cc[:10]))
+                    co.request('GET', '/getrate/%s/%s/USD' % (cc[:10],c))
+                    h[c] = float(co.getresponse().read())
+            dr[cc[:10]] = '%s' % h
+        cu += datetime.timedelta(days=1)
+    cu, first = datetime.datetime(2014,1,1), True
+    while cu < datetime.datetime.now():
+        cc, s1, s2 = '%s' % cu, 0, 0
+        h = eval(dr[cc[:10]])
+        if first: 
+            h['KUP'], first = .1, False
+        else:
+            for c in __curset__:
+                if c != 'USD':
+                    s1 += h[c]/y[c]*__curset__[c]
+                    s2 += h[c]*h[c]/y[c]/y[c]*__curset__[c]            
+            h['KUP'] = y['KUP']*s1/s2
+        print (cc, h['KUP'])
+        y = h
+        cu += datetime.timedelta(days=1)
+    #
     dr.close()
 
 if __name__ == '__main__':
