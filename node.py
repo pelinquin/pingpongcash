@@ -1048,7 +1048,7 @@ def get_image(img):
 def footer(dg=''):
     "_"
     dg = ' %s' % dg if dg else ''
-    return '<footer>Contact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</footer>' % (__email__, __email__, dg)
+    return '<footer><a href="https://raw.github.com/pelinquin/pingpongcash/master/rpi.jpg">Host</a> - Contact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</footer>' % (__email__, __email__, dg)
 
 def report(d, cm):
     "_"
@@ -1296,7 +1296,7 @@ def index(d, env, cm64='', prc=0):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
-    o1 = '<ul><li><a title="moins de 1200 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i></li>'
+    o1 = '<ul><li><a title="moins de 2000 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i></li>'
     o1 += '<li>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i></li>' 
     o1 += '<li><form method="post">Consultez un de vos comptes :<br/><input class="txt" name="cm" placeholder="...ID"/></form></li></ul>\n'
     if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
@@ -1790,10 +1790,11 @@ def forex():
                     s1 += h[c]/y[c]*__curset__[c]
                     s2 += h[c]*h[c]/y[c]/y[c]*__curset__[c]            
             h['KUP'] = y['KUP']*s1/s2
-        print (cc, h['KUP'])
+        print (cc, round(h['KUP'], 10))
         y = h
         cu += datetime.timedelta(days=1)
     #
+    print (__curset__)
     dr.close()
 
 if __name__ == '__main__':
