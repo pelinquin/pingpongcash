@@ -42,6 +42,7 @@ __email__  = 'info@%s.fr' % __ppc__
 __url__    = 'http://%s.fr' % __ppc__
 
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
+_b58char   = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
 
 ##### ENCODING #####
 PAD = lambda s:(len(s)%2)*'0'+s[2:]
@@ -1264,10 +1265,12 @@ def simu(d, env):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header() 
-    o += '<p><input placeholder="Initial Price">&nbsp;⊔<br/>'
-    o += '<input placeholder="Expected Cumulative Income">&nbsp;⊔<br/>'
-    o += '<input placeholder="Speed parameter (0-100%)">%<br/>'
-    o += '<input placeholder="Precision (0-10)"></p>'
+    o += '<p><form><input placeholder="Prix initial">&nbsp;⊔<br/>'
+    o += '<input placeholder="Revenu attendu">&nbsp;⊔<br/>'
+    o += '<input placeholder="Vitesse (0-100%)">%<br/>'
+    o += '<input placeholder="Précision (0-10)"><br/>'
+    o += '<input placeholder="Position d\'achat"><br/>'
+    o += '<input type="submit" value="Calculer"></form></p>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
 
@@ -1537,7 +1540,7 @@ PROTOCOL:
 1/REGISTER PUBLIC KEY
   P:<pubkey[132]>
 2/REGISTER IG
-  I:<hurl[10]><src[9]><date[4]><val(xi,pi,pf)[6]><signature[132]>
+  I:<hurl[10]><src[9]><date[4]><val(xi,pi,pf,rs)[6]><signature[132]>
 3/BUY €
   A:<date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
 4/BUY IG
@@ -1779,10 +1782,12 @@ def forex():
             dr[cc[:10]] = '%s' % h
         cu += datetime.timedelta(days=1)
     cu, first = datetime.datetime(2014,1,1), True
+    R = 1
     while cu < datetime.datetime.now():
-        cc, s1, s2 = '%s' % cu, 0, 0
+        cc, s1, s2 = '%s' % cu, 1, 1
         h = eval(dr[cc[:10]])
-        if first: 
+        if first:
+            toto = h['EUR']
             h['KUP'], first = .1, False
         else:
             for c in __curset__:
@@ -1790,11 +1795,18 @@ def forex():
                     s1 += h[c]/y[c]*__curset__[c]
                     s2 += h[c]*h[c]/y[c]/y[c]*__curset__[c]            
             h['KUP'] = y['KUP']*s1/s2
+            R *= s1/s2
         print (cc, round(h['KUP'], 10))
         y = h
         cu += datetime.timedelta(days=1)
     #
-    print (__curset__)
+    fnow = ('%s' % now)[:10] 
+    t = eval(dr[fnow])
+    for c in __curset__:
+        if c == 'USD': 
+            print ('USD', round(toto/10/R, 10))
+        else:
+            print (c, round(toto/t[c]/10/R, 10))
     dr.close()
 
 if __name__ == '__main__':
