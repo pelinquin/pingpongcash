@@ -44,6 +44,9 @@ __url__    = 'http://%s.fr' % __ppc__
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 _b58char   = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
 
+_root_id   = 'IbankVBixRIm'
+_root_pkey = 'AQTMiBfFFaDdokV0d7dPEeyURA_yUmMaXVaQm86YxciRuOpz5oSXdAh2r-6jxdj3cazLExL4B75-V3_hqtbuG_yIAeqq8dmyMTAZUZFBS0fCPK52TzZ6bEyo3H3QHzbk5geIepws4bi2se19WoyZ6xiWDk0COUXLvQAE'
+
 ##### ENCODING #####
 PAD = lambda s:(len(s)%2)*'0'+s[2:]
 
@@ -849,6 +852,12 @@ def send(host='localhost', data=''):
     co.request('POST', serv, urllib.parse.quote(data))
     return co.getresponse().read().decode('utf8')    
 
+def send_put(host='localhost', data=''):
+    "_"
+    co, serv = http.client.HTTPConnection(host), '/' 
+    co.request('PUT', serv, urllib.parse.quote(data))
+    return co.getresponse().read().decode('utf8')    
+
 def send_get(host='localhost', data=''):
     "_"
     co = http.client.HTTPConnection(host)
@@ -935,7 +944,6 @@ def get_host():
     db.close()
     return host.decode('utf8')
 
-
 def buy(node, rid, prc, m=''):
     "_"
     db, k, dat = dbm.open('keys'), ecdsa(), datencode()
@@ -945,7 +953,7 @@ def buy(node, rid, prc, m=''):
     if m == '': m = input('Message (20 chars maxi)? ')
     print ('...please wait')
     k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
-    print (send(node, 'A:' + btob64(msg + k.sign(msg))))
+    print (send(node, '+' + btob64(msg + k.sign(msg))))
     db.close()
 
 def buyig (node, ig):
@@ -989,7 +997,7 @@ def register(node):
     db = dbm.open('keys')
     for x in db.keys():
         if len(x) == 9:
-            print (send(node, 'P:' + btob64(db[x][:132])))
+            print (send(node, '@' + btob64(db[x][:132])))
     db.close()
 
 def debt(base, cm):
@@ -1535,19 +1543,21 @@ def valid_trx(d, r):
     return False
 
 """
-PROTOCOL:
+PROTOCOL: POST
 
 1/REGISTER PUBLIC KEY
-  P:<pubkey[132]>
-2/REGISTER IG
-  I:<hurl[10]><src[9]><date[4]><val(xi,pi,pf,rs)[6]><signature[132]>
-3/BUY €
-  A:<date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
-4/BUY IG
-  B:<nb[4]><refig[10]><src[9]><date[4]><signature[132]>
-5/GET IG POSITION
-  G:<hurl[0,10]>
+  @<pubkey[132]>
+2/REGISTER IG (I)
+  &<hurl[10]><src[9]><date[4]><val(xi,pi,pf,rs)[6]><signature[132]>
+3/BUY € (A/+)
+  +<date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
+4/BUY IG (B)
+  *<nb[4]><refig[10]><src[9]><date[4]><signature[132]>
+5/GET POSITION (G)
+  !<hurl[0,10]>
   return hurl[10]:nb
+6/Get BALANCE
+  ?<src>
 """
 
 def application(environ, start_response):
@@ -1556,6 +1566,7 @@ def application(environ, start_response):
     d = init_dbs(('prs', 'trx', 'pub', 'crt', 'igs'), port)
     dr = dbm.open('/%s/%s_%s/url' % (__app__, __app__, port), 'c')                
     wdigest(d, port)
+    d['crt'][b'_'] = b64tob(bytes(_root_id, 'ascii'))
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base, ncok = environ['PATH_INFO'][1:], []
     if way == 'post':
@@ -1593,8 +1604,8 @@ def application(environ, start_response):
         elif re.match('\S{1,12}$', arg):
             r = capture_id(d, arg)
             o = r if r else 'Id not found!' 
-        elif re.match('P:\S{174,176}$', arg): 
-            if valid_pub(d, b64tob(bytes(arg[2:], 'ascii'))): o = 'New public key registered [%s]' % len(d['pub'])
+        elif re.match('@\S{174,176}$', arg): 
+            if valid_pub(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
         elif re.match('I:\S{215}$', arg): 
             if valid_ig(d, b64tob(bytes(arg[2:], 'ascii'))): o = 'New IG registered [%s]' % len(d['igs'])
@@ -1602,8 +1613,8 @@ def application(environ, start_response):
         elif re.match('B:\S{212}$', arg): 
             if valid_big(d, b64tob(bytes(arg[2:], 'ascii'))): o = 'New transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid ig transaction !'
-        elif re.match('A:\S{210,236}$', arg): 
-            if valid_trx(d, b64tob(bytes(arg[2:], 'ascii'))) : o = 'New transaction recorded [%s]' % len(d['trx'])
+        elif re.match('\+\S{210,236}$', arg): 
+            if valid_trx(d, b64tob(bytes(arg[1:], 'ascii'))) : o = 'New transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid transaction !'
         elif arg[:10] == '-'*10:
             l2 = environ['wsgi.input'].read()
@@ -1815,7 +1826,7 @@ if __name__ == '__main__':
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         list_local_ids()
-        forex()
+        #forex()
     elif len(sys.argv) == 2:
         if sys.argv[1] == 'add': add_local_id()
         elif sys.argv[1] == 'reg': register(node)
