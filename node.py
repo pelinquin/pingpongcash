@@ -852,12 +852,6 @@ def send(host='localhost', data=''):
     co.request('POST', serv, urllib.parse.quote(data))
     return co.getresponse().read().decode('utf8')    
 
-def send_put(host='localhost', data=''):
-    "_"
-    co, serv = http.client.HTTPConnection(host), '/' 
-    co.request('PUT', serv, urllib.parse.quote(data))
-    return co.getresponse().read().decode('utf8')    
-
 def send_get(host='localhost', data=''):
     "_"
     co = http.client.HTTPConnection(host)
@@ -945,7 +939,7 @@ def get_host():
     return host.decode('utf8')
 
 def buy(node, rid, prc, m=''):
-    "_"
+    "A->€ B->$ C->£"
     db, k, dat = dbm.open('keys'), ecdsa(), datencode()
     src, dst = db['user'], get_unique(db, rid)
     prv, pub = db[src][132:], db[src][:132]
@@ -953,7 +947,7 @@ def buy(node, rid, prc, m=''):
     if m == '': m = input('Message (20 chars maxi)? ')
     print ('...please wait')
     k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
-    print (send(node, '+' + btob64(msg + k.sign(msg))))
+    print (send(node, '+A' + btob64(msg + k.sign(msg)))) # only € supported
     db.close()
 
 def buyig (node, ig):
@@ -1057,7 +1051,7 @@ def get_image(img):
 def footer(dg=''):
     "_"
     dg = ' %s' % dg if dg else ''
-    return '<footer><a href="https://raw.github.com/pelinquin/pingpongcash/master/rpi.jpg">Host</a> - Contact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</footer>' % (__email__, __email__, dg)
+    return '<footer><a href="host.png">Host</a> - Contact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</footer>' % (__email__, __email__, dg)
 
 def report(d, cm):
     "_"
@@ -1611,10 +1605,10 @@ def application(environ, start_response):
             if valid_ig(d, b64tob(bytes(arg[2:], 'ascii'))): o = 'New IG registered [%s]' % len(d['igs'])
             else: o += 'IG already registered!'
         elif re.match('B:\S{212}$', arg): 
-            if valid_big(d, b64tob(bytes(arg[2:], 'ascii'))): o = 'New transaction recorded [%s]' % len(d['trx'])
+            if valid_big(d, b64tob(bytes(arg[2:], 'ascii'))): o = 'New ⊔ transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid ig transaction !'
-        elif re.match('\+\S{210,236}$', arg): 
-            if valid_trx(d, b64tob(bytes(arg[1:], 'ascii'))) : o = 'New transaction recorded [%s]' % len(d['trx'])
+        elif re.match('\+A\S{210,236}$', arg): 
+            if valid_trx(d, b64tob(bytes(arg[2:], 'ascii'))) : o = 'New € transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid transaction !'
         elif arg[:10] == '-'*10:
             l2 = environ['wsgi.input'].read()
@@ -1660,7 +1654,7 @@ def application(environ, start_response):
     for db in d: d[db].close()
     dr.close()
     start_response('200 OK', [('Content-type', mime)] + ncok)
-    return [o if mime in ('application/pdf', 'image/png') else o.encode('utf8')] 
+    return [o if mime in ('application/pdf', 'image/png', 'image/jpg') else o.encode('utf8')] 
 
 def wdigest(d, port):
     "computes digest for all databases"
@@ -1822,11 +1816,10 @@ def forex():
 
 if __name__ == '__main__':
     #simulate()
-
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
+        forex()
         list_local_ids()
-        #forex()
     elif len(sys.argv) == 2:
         if sys.argv[1] == 'add': add_local_id()
         elif sys.argv[1] == 'reg': register(node)
