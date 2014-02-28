@@ -109,15 +109,25 @@ def hcode(m, s=10):
     "_"
     return (hashlib.sha1(m.encode('utf8')).digest())[:s]
 
-def valencode(xi, p1, pf):
-    "xi:7p1:15pf:26"
+def valencode1(xi, p1, pf):
+    "xi:7/p1:15/pf:26"
     assert (p1 <= pf or xi==0) and xi<=100 and p1<(1<<15) and pf<(1<<26)
     return i2b((xi<<41) + (p1<<26) + pf, 6)
 
-def valdecode(code):
-    "xi:7p1:15pf:26"
+def valdecode1(code):
+    "xi:7/p1:15/pf:26"
     e = int.from_bytes(code, 'big')
     return ((e>>41) & 0x7F), ((e>>26) & 0x7FFF), (e & 0x3FFFFFF)
+
+def valencode(xi, rs, p1, pf):
+    "xi:7/rs:4/p1:18/pf:27"
+    assert (p1 <= pf or xi==0) and xi<=100 and p1<(1<<18) and pf<(1<<27)
+    return i2b((xi<<49) + (rs<<45) + (p1<<27) + pf, 7)
+
+def valdecode(code):
+    "xi:7/rs:4/p1:18/pf:27"
+    e = int.from_bytes(code, 'big')
+    return ((e>>49) & 0x7F), ((e>>45) & 0xF), ((e>>27) & 0x3FFFF), (e & 0x7FFFFFF)
 
 ##### ECDSA NIST CURVE P-521 #####
 
@@ -952,9 +962,33 @@ def buy(node, rid, prc, m=''):
 
 def buyig (node, ig):
     "_"
+    hig, db, k = btob64(hcode(ig)), dbm.open('keys'), ecdsa()
+    print (hig)
+    res = send(node, '!%s' % hig)
+    if reg(re.match(r'([^:]+):(\d+)$', res)): rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
+    else: return 'error'
+    #print ('nb:', b2i(nb), btob64(rig))
+    src = db['user']
+    prv, pub = db[src][132:], db[src][:132]
+    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    print ('...please wait')
+    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), rig + src + datencode()
+    print (send(node, '*' + btob64(msg + k.sign(msg))))
+    #res = send(node, ig + ':%s' % b2i(nb))
+    #print (res) # ici
+    #if res != 'Error:': 
+    #    url = k.decrypt(b64tob(bytes(res, 'ascii'))).decode('ascii')
+    #    print ('http://%s/%s' % (node, url))
+    #    toto = send_get(node, url)
+    #    open('toto.pdf', 'wb').write(toto)
+    #else: print (res)
+    db.close()
+
+def buyig_old (node, ig):
+    "_"
     hig, db, k = btob64(hcode(node+'/publish/'+ig)), dbm.open('keys'), ecdsa()
     print (hig)
-    res = send(node, 'G:%s' % hig)
+    res = send(node, '!%s' % hig)
     if reg(re.match(r'([^:]+):(\d+)$', res)): rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
     else: return 'error'
     src = db['user']
@@ -962,7 +996,7 @@ def buyig (node, ig):
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
     print ('...please wait')
     k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), nb + rig + src + datencode()
-    print (send(node, 'B:' + btob64(msg + k.sign(msg))))
+    print (send(node, '*' + btob64(msg + k.sign(msg))))
     res = send(node, ig + ':%s' % b2i(nb))
     print (res) # ici
     if res != 'Error:': 
@@ -980,10 +1014,11 @@ def postig(node, xi, p1, pf):
     prv, pub = db[src][132:], db[src][:132]
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
     url = input('url? ')
-    msg = hcode(url) + src + datencode() + valencode(xi, p1, pf)
+    rs = 4 # tmp!
+    msg = hcode(url) + src + datencode() + valencode(xi, rs, p1, pf)
     print ('...please wait')
     k.privkey = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest()))
-    print (send(node, 'I:' + btob64(msg + k.sign(msg))))
+    print (send(node, '&' + btob64(msg + k.sign(msg))))
     db.close()
 
 def register(node):
@@ -1029,7 +1064,7 @@ def is_active(cm):
 
 def style_html(bg=True):
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{color:#AAA;font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:220;}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{color:#AAA;font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}'
     if bg:
         o += 'body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}' 
     return o + '</style>'
@@ -1081,15 +1116,15 @@ def report(d, cm):
 
 def report_cup(d, cm):
     "_"
-    du, dt, dc, di,bal, o = d['pub'], d['trx'], d['crt'], d['igs'], 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>IG</th><th>Référence</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, di, bal, o = d['pub'], d['trx'], d['crt'], d['igs'], 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>IG</th><th>Référence</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, n , tmp, listig = b'%'+cm, dc[b'_'], 0, [], []
     for t in dt.keys():
-        if len(t) == 15: 
+        if len(t) == 14: 
             if cm == dt[t][:9]:
-                listig.append(t[4:14])
+                listig.append(t[4:])
     for t in dt.keys():        
-        if len(t) == 15:
-            nb, ig = b2i(t[:4]), t[4:14]
+        if len(t) == 14:
+            nb, ig = b2i(t[:4]), t[4:]
             src, dst, prc = dt[t][:9], dt[t][:9], get_price(di, ig, nb)
             if cm == src:
                 one, t1, t2, bal = dst, '<td class="num">%7d&nbsp;⊔</td>' % prc, '<td></td>', bal-prc 
@@ -1262,17 +1297,100 @@ def capture_ig(d, arg):
         return '%s:%s' % (btob64(res[0]), (len(d['igs'][res[0]])-151)//9)
     return None
 
-def simu(d, env):
+def simu(d, env, p1, pi, xi):
     "_"
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
-    o += favicon() + style_html() + '<body><div class="bg"></div>' + header() 
-    o += '<p><form><input placeholder="Prix initial">&nbsp;⊔<br/>'
-    o += '<input placeholder="Revenu attendu">&nbsp;⊔<br/>'
-    o += '<input placeholder="Vitesse (0-100%)">%<br/>'
-    o += '<input placeholder="Précision (0-10)"><br/>'
-    o += '<input placeholder="Position d\'achat"><br/>'
+    o += favicon() + style_html(False) + header() 
+    o += """<script>
+window.onload=main;
+var POS = 0;
+function main() {
+ document.getElementById('svg1').addEventListener('mousedown', mousefunc, false);
+ document.documentElement.addEventListener('keydown', keyfunc, false);
+ draw(0);
+}
+function mousefunc(evt) {
+  var p = evt.clientX-10;
+  POS = p;
+  if (p>0 && p<700) { draw(p); }
+}
+function keyfunc(e) {
+  if (e.type == 'keydown') {
+    if (e.keyCode == 39) { POS+=1; draw(POS);}
+    if (e.keyCode == 37) { POS-=1; draw(POS);}
+  }
+}
+function draw(p) {
+  document.getElementById("path1").setAttribute('d', "m" + (p) + ",10l0,300");
+  var t1 = document.getElementById('t1');
+  var t2 = document.getElementById('t2');
+  var t3 = document.getElementById('t3');
+  var tp = p + 2;
+  t1.textContent = 'N°acheteur: '+ (p*4+1);
+  t1.setAttribute('x', tp);
+  t2.textContent = 'Prix: '+ price(10, 1000, 35, p*4);
+  t2.setAttribute('x', tp);
+  t3.textContent = 'Revenu: '+ revenu(10, 1000, 35, p*4);
+  t3.setAttribute('x', tp);
+}
+function revenu(p1, pf, xi, i) {
+   var k = Math.pow((pf-p1)/(pf-2*p1), xi/100);
+   var ta = pf+(p1-pf)/Math.pow(k,i);
+   var t = Math.ceil(ta);
+   var p = Math.ceil(ta/(i+1));
+   var r = 10;
+   if (r == 0) { dr = '';} else { dr = ' + ' + r + '⊔';} 
+   return (t + '⊔' + dr)
+}
+function price(p1, pf, xi, i) {
+    var k = Math.pow((pf-p1)/(pf-2*p1), xi/100);
+    var ta = pf+(p1-pf)/Math.pow(k,i);
+    var t = Math.ceil(ta);
+    var p = Math.ceil(ta/(i+1));
+    var x = (i+1)*(p+1)-t;
+    var j = i;
+    var r = 0;
+    //while True:
+    //    j+=1;
+    //    ta1 = (pf+(p1-pf)/k**j);
+    //    pr1, t1 = int(ta1/(j+1)), round(ta1)
+    //    y = (j+1)*(pr1+1)-t1;
+    //    if p != pr1: break
+    //    if j+x >= r+y+i: r = j-y-i+x
+    //    else: break
+    //    if x<r: 
+    //        r = x;
+    //        break
+    //    if j+1-y == pf: break
+    return ((i+1-x) + '*' + (p+1) + '⊔ + ' + x + '*' + p + '⊔')
+}
+
+</script>"""
+    o += '<p><form>'
+    if p1>0 or pi>0 or xi>0:
+        o += '<input class="simu" pattern="[0-9]+" name="p1" value="%s" title="(⊔)">' % (p1)
+        o += '<input class="simu" pattern="[0-9]+" name="pi" value="%s" title="(⊔)">' % (pi)
+        o += '<input class="simu" pattern="[0-9]{1,3}" name="xi" value="%s" title="(0%-100%)">' % (xi)
+    else:
+        o += '<input class="simu" pattern="[0-9]+" name="p1" placeholder="Prix initial" title="(⊔)">'
+        o += '<input class="simu" pattern="[0-9]+" name="pi" placeholder="Revenu attendu" title="(⊔)">'
+        o += '<input class="simu" pattern="[0-9]{1,3}" name="xi" placeholder="Vitesse" title="(0%-100%)">'
     o += '<input type="submit" value="Calculer"></form></p>'
+    o += '<svg %s id="svg1" width="840" height="320">\n' % (_SVGNS)
+    o += '<rect x="10" y="10" width="700" height="300" style="stroke:gray;fill:none"/>\n' 
+    o += '<path id="path1" d="m10,10l0,300" style="stroke:gray;stroke-width:1"/>\n' 
+    o += '<text id="t1" x="10" y="40"></text>\n' 
+    o += '<text id="t2" x="10" y="60"></text>\n' 
+    o += '<text id="t3" x="10" y="80"></text>\n'
+    l1, l2 = '', ''
+    for i in range(2800):
+        pr, tau, x, dl = price(p1, pi, xi, i)
+        l1 += 'L%s,%s' % (10+ i/4, 310 - tau*300/pi)
+        l2 += 'L%s,%s' % (10+ i/4, 310 - pr*300/pi)
+    o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/>\n' % l1[1:]  
+    o += '<path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % l2[1:]  
+    o += '</svg>\n'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
 
@@ -1328,7 +1446,7 @@ def stat(d):
 
 def get_price(digs, ig, i):
     "_"
-    xi, p1, pf = valdecode(digs[ig][12:21])
+    xi, rs, p1, pf = valdecode(digs[ig][13:20])
     k = ((pf-p1)/(pf-2*p1))**(xi/100)
     return int((pf+(p1-pf)/k**i)/(i+1))
 
@@ -1353,7 +1471,7 @@ def dashboard(d, env):
     for i in d['igs'].keys():
         if len(i) == 10:
             src, dat = btob64(d['igs'][i][:9]), datdecode(d['igs'][i][9:13])
-            xi, p1, pf = valdecode(d['igs'][i][13:19])
+            xi, rs, p1, pf = valdecode(d['igs'][i][13:20])
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (btob64(i), src, dat, p1, pf, xi, (len(d['igs'][i])-151)//9)
         else:
             o += '<tr><td class="mono">%s</td><td colspan="3">Erreur</td></tr>' % btob64(d['igs'][i])
@@ -1367,8 +1485,8 @@ def dashboard(d, env):
     o += '</table>'
     o += '<table><tr><th>Trans. src</th><th>Date</th><th>No</th><th>IG</th><th>Destinataire</th><th>Montant</th></tr>'
     for t in d['trx'].keys():
-        if len(t) == 15:
-            nb, ig, hig, src, dat = b2i(t[0:4]), t[4:14], btob64(t[4:14]), btob64(d['trx'][t][:9]), datdecode(d['trx'][t][9:13])
+        if len(t) == 14:
+            nb, ig, hig, src, dat = b2i(t[:4]), t[4:], btob64(t[4:14]), btob64(d['trx'][t][:9]), datdecode(d['trx'][t][9:13])
             dst = btob64(d['igs'][ig][:9])
             prc = get_price(d['igs'], ig, nb)
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%05d</td><td class="mono">%s</td><td class="mono">%s</td><td class="num">%d&nbsp;⊔</td></tr> ' % (src, dat, nb, hig, dst, prc)
@@ -1444,7 +1562,7 @@ def publish(d, dr, env, ign, pos):
         hig = hcode('%s/publish/%s' % (env['SERVER_NAME'], ign))
         if hig in d['igs']:
             src, dat, nb = d['igs'][hig][:9], datdecode(d['igs'][hig][9:13]), (len(d['igs'][hig])-151)//9
-            xi, p1, pf = valdecode(d['igs'][hig][13:19])
+            xi, rs, p1, pf = valdecode(d['igs'][hig][13:20])
             o += '<p>Code IG: %s</p>' % btob64(hig)
             o += '<p>ID autheur: %s</p>' % btob64(src)
             o += '<p>Date de publication: %s</p>' % dat
@@ -1491,19 +1609,9 @@ def valid_pub(d, pub):
         return True
     return False
 
-def valid_ig_old(d, dig):
-    "_"
-    k, src, h, i, r, msg, sig = ecdsa(), dig[:9], dig[9:19], dig[:19], dig[19:], dig[:29], dig[29:]
-    k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
-    if i not in d['igs']:
-        if k.verify(sig, msg):
-            d['igs'][i] = r
-            return True
-    return False
-
 def valid_ig(d, dig):
     "_"
-    k, h, src, r, msg, sig = ecdsa(), dig[:10], dig[10:19], dig[10:], dig[:29], dig[29:]
+    k, h, src, r, msg, sig = ecdsa(), dig[:10], dig[10:19], dig[10:], dig[:30], dig[30:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if h not in d['igs']:
         if k.verify(sig, msg):
@@ -1512,6 +1620,19 @@ def valid_ig(d, dig):
     return False
 
 def valid_big(d, r):
+    "_"
+    k, hig, kk, src, dat, msg, sig = ecdsa(), r[:10], r[:10], r[10:19], r[19:23], r[:23], r[23:]
+    if src in d['pub'] and hig in d['igs']:
+        k.pt, ssrc = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'&'+src
+        if k.verify(sig, msg):
+            nb = i2b((len(d['igs'][hig]) - 151)//9, 4)
+            d['trx'][nb + hig] = src + dat + sig
+            d['igs'][hig] += src 
+            d['trx'][ssrc] = d['trx'][ssrc] + hig if ssrc in d['trx'] else hig # shortcut
+            return True
+    return False
+
+def old_valid_big(d, r):
     "_"
     k, nb, hig, kk, src, dat, msg, sig = ecdsa(), r[:4], r[4:14], r[:14], r[14:23], r[23:27], r[:27], r[27:]
     if src in d['pub'] and hig in d['igs']:
@@ -1541,11 +1662,11 @@ PROTOCOL: POST
 
 1/REGISTER PUBLIC KEY
   @<pubkey[132]>
-2/REGISTER IG (I)
-  &<hurl[10]><src[9]><date[4]><val(xi,pi,pf,rs)[6]><signature[132]>
-3/BUY € (A/+)
-  +<date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
-4/BUY IG (B)
+2/REGISTER IG
+  &<hurl[10]><src[9]><date[4]><val(xi,pi,pf,rs)[8]><signature[132]>
+3/BUY €
+  +<currency><date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
+4/BUY IG
   *<nb[4]><refig[10]><src[9]><date[4]><signature[132]>
 5/GET POSITION (G)
   !<hurl[0,10]>
@@ -1592,8 +1713,8 @@ def application(environ, start_response):
             ign2 = '%s/%s' % (environ['SERVER_NAME'], reg.v.group(1))
             eurl = enurl(d, dr, ign2, int(reg.v.group(2)))
             if eurl: o = btob64(eurl)
-        elif re.match('G:\S{1,25}$', arg):
-            r = capture_ig(d, arg[2:])
+        elif re.match('!\S{1,25}$', arg):
+            r = capture_ig(d, arg[1:])
             o = r if r != None else 'IG not found!' 
         elif re.match('\S{1,12}$', arg):
             r = capture_id(d, arg)
@@ -1601,11 +1722,11 @@ def application(environ, start_response):
         elif re.match('@\S{174,176}$', arg): 
             if valid_pub(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
-        elif re.match('I:\S{215}$', arg): 
-            if valid_ig(d, b64tob(bytes(arg[2:], 'ascii'))): o = 'New IG registered [%s]' % len(d['igs'])
+        elif re.match('&\S{216}$', arg): 
+            if valid_ig(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New IG registered [%s]' % len(d['igs'])
             else: o += 'IG already registered!'
-        elif re.match('B:\S{212}$', arg): 
-            if valid_big(d, b64tob(bytes(arg[2:], 'ascii'))): o = 'New ⊔ transaction recorded [%s]' % len(d['trx'])
+        elif re.match('\*\S{207}$', arg): 
+            if valid_big(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New ⊔ transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid ig transaction !'
         elif re.match('\+A\S{210,236}$', arg): 
             if valid_trx(d, b64tob(bytes(arg[2:], 'ascii'))) : o = 'New € transaction recorded [%s]' % len(d['trx'])
@@ -1614,7 +1735,7 @@ def application(environ, start_response):
             l2 = environ['wsgi.input'].read()
             l2 = environ.get('wsgi.post_form').read()
             o = 'OK upload %s %s %s' % (arg, len(arg), l2)
-        else: o += 'not valid args |%s|' % arg
+        else: o += 'not valid args |%s| %s' % (arg, len(arg))
     else:
         if base == 'peers': # propagation
             fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
@@ -1639,7 +1760,8 @@ def application(environ, start_response):
             elif raw == 'src': o = open(__file__, 'r', encoding='utf-8').read() 
             elif raw == 'download': o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
             elif raw == 'bank': o, mime = bank(d, environ), 'text/html; charset=utf-8'
-            elif raw == 'simu': o, mime = simu(d, environ), 'text/html; charset=utf-8'
+            elif raw == 'simu': o, mime = simu(d, environ, 0, 0, 0), 'text/html; charset=utf-8'
+            elif reg(re.match('p1=(\d+)&pi=(\d+)&xi=(\d+)',raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)) ), 'text/html; charset=utf-8'
             else:
                 o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
                 #diff_dbs(d, port)
@@ -1688,47 +1810,60 @@ Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 
 ##### MAIN #####
 
+def simulate():
+    "_"
+    f1, f2, f3 = True, True, True
+    p1, pi, xi = 10, 1000, 35
+    print ('%d⊔ %s  %s%%' % (p1, pi, xi))
+    for i in range(6000):
+        p, t, x, r = price(p1, pi, xi, i)
+        dr = '' if r == 0 else ' + %d' %r
+        s1 = '' if i+1 == x else '%d*%d' % (i+1-x, p+1)
+        s2 = '' if x == 0 else '%d*%d' % (x, p) 
+        s = '%s + %s' %(s1, s2) if (s1 and s2) else s1 if s1 else s2    
+        print (i+1, '[%s = %d%s]' % (s, t, dr))          
+        print (i+1, fprice(p1, pi, xi, i))
+    sys.exit()
+
 def price(p1, pf, xi, i):
     "_"
     k = ((pf-p1)/(pf-2*p1))**(xi/100)
-    income = round((1-k)*(p1-pf)/k**(i)) if i>0 else p1
-    refund = round((pf + (1+(i+1)*(k-1))/k**i*(p1-pf))/i/(i+1)) if i>0 else 0
-    price = income + i*(refund)
-    #
-    totinc = round(pf+(p1-pf)*k**(1-i))
-    prc = int((pf+(p1-pf)/k**i)/(i+1))
-    return prc, price, refund, income, totinc
+    ta = (pf+(p1-pf)/k**i)
+    p, t = int(ta/(i+1)), round(ta)
+    x, j, r = (i+1)*(p+1)-t, i, 0
+    while True:
+        j+=1
+        ta1 = (pf+(p1-pf)/k**j)
+        pr1, t1 = int(ta1/(j+1)), round(ta1)
+        y = (j+1)*(pr1+1)-t1
+        if p != pr1: break
+        if j+x >= r+y+i: r = j-y-i+x
+        else: break
+        if x<r: 
+            r = x
+            break
+        if j+1-y == pf: break
+    return p, t, x-r, r
 
-Total = 0
-First = 0
-def price(p1, pf, xi, i, p10):
+def fprice(p1, pf, xi, i):
     "_"
-    global Total, First
-    p = 10**p10
     k = ((pf-p1)/(pf-2*p1))**(xi/100)
-    income = int(p*((1-k)*(p1-pf)/k**(i))) if i>0 else p*p1
-    refund = int(p*(pf + (1+(i+1)*(k-1))/k**i*(p1-pf))/i/(i+1)) if i>0 else 0
-    price = income + i*(refund)
-    Total += income
-    if First == 0: First = p1*p
-    First -= refund
-    return price/p, First/p, refund/p, income/p, Total/p
-
-def simulate():
-    f1, f2, f3 = True, True, True
-    p1, pi, xi, pp = 10, 1000, 35, 2
-    print ('%d⊔ %s  %s%% ~%s' % (p1, pi, xi, pp))
-    for i in range(10000):
-        pr, dp, rf, ic, tt = price(p1, pi, xi, i, pp)
-        if i == pi :
-            print ('i=pi: price:%s⊔ p1:%s⊔ refund:%s⊔ income:%s⊔ total_income:%s⊔' % (pr, dp, rf, ic, tt))            
-        if f2 and i>0 and rf == 0:
-            print ('no refund at %d price:%s⊔ diff:%s⊔ total_income:%s⊔' % (i, pr, dp, tt))
-            f2 = False
-        elif f3 and pr == 0:
-            print ('Public Domain at %d: total_income:%s⊔' %  (i, tt))
-            f3 = False
-    sys.exit()    
+    ta = (pf+(p1-pf)/k**i)
+    p, t = int(ta/(i+1)), round(ta)
+    x, j, r = (i+1)*(p+1)-t, i, 0
+    while True:
+        j+=1
+        ta1 = (pf+(p1-pf)/k**j)
+        pr1, t1 = int(ta1/(j+1)), round(ta1)
+        y = (j+1)*(pr1+1)-t1
+        if p != pr1: break
+        if j+x >= r+y+i: r = j-y-i+x
+        else: break
+        if x<r: 
+            r = x
+            break
+        if j+1-y == pf: break
+    return '%s*%s + %s*%s = %s + %s' % (i+1-x+r, p+1, x-r, p, t, r)
 
 __curset__ = {'USD':870, 'EUR':334, 'JPY':230, 'GBP':118, 'AUD':86, 
               'CHF':52,  'CAD':46,  'MXN':25,  'CNY':22,  'NZD':20,
@@ -1815,7 +1950,7 @@ def forex():
     dr.close()
 
 if __name__ == '__main__':
-    #simulate()
+    simulate()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
