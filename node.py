@@ -1760,7 +1760,7 @@ def application(environ, start_response):
             elif raw == 'src': o = open(__file__, 'r', encoding='utf-8').read() 
             elif raw == 'download': o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
             elif raw == 'bank': o, mime = bank(d, environ), 'text/html; charset=utf-8'
-            elif raw == 'simu': o, mime = simu(d, environ, 0, 0, 0), 'text/html; charset=utf-8'
+            elif raw == 'simu': o, mime = simu(d, environ, 10, 1000, 35), 'text/html; charset=utf-8'
             elif reg(re.match('p1=(\d+)&pi=(\d+)&xi=(\d+)',raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)) ), 'text/html; charset=utf-8'
             else:
                 o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
@@ -1813,7 +1813,7 @@ Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 def simulate():
     "_"
     f1, f2, f3 = True, True, True
-    p1, pi, xi = 10, 1000, 35
+    p1, pi, xi = 10, 5000, 35
     print ('%d⊔ %s  %s%%' % (p1, pi, xi))
     for i in range(6000):
         p, t, x, r = price(p1, pi, xi, i)
@@ -1821,7 +1821,7 @@ def simulate():
         s1 = '' if i+1 == x else '%d*%d' % (i+1-x, p+1)
         s2 = '' if x == 0 else '%d*%d' % (x, p) 
         s = '%s + %s' %(s1, s2) if (s1 and s2) else s1 if s1 else s2    
-        print (i+1, '[%s = %d%s]' % (s, t, dr))          
+        #print (i+1, '[%s = %d%s]' % (s, t, dr))          
         print (i+1, fprice(p1, pi, xi, i))
     sys.exit()
 
@@ -1853,8 +1853,8 @@ def fprice(p1, pf, xi, i):
     x, j, r = (i+1)*(p+1)-t, i, 0
     while True:
         j+=1
-        ta1 = (pf+(p1-pf)/k**j)
-        pr1, t1 = int(ta1/(j+1)), round(ta1)
+        tb = (pf+(p1-pf)/k**j)
+        pr1, t1 = int(tb/(j+1)), round(tb)
         y = (j+1)*(pr1+1)-t1
         if p != pr1: break
         if j+x >= r+y+i: r = j-y-i+x
@@ -1863,7 +1863,7 @@ def fprice(p1, pf, xi, i):
             r = x
             break
         if j+1-y == pf: break
-    return '%s*%s + %s*%s = %s + %s' % (i+1-x+r, p+1, x-r, p, t, r)
+    return '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x+r, p+1, x-r, p, t+r)
 
 __curset__ = {'USD':870, 'EUR':334, 'JPY':230, 'GBP':118, 'AUD':86, 
               'CHF':52,  'CAD':46,  'MXN':25,  'CNY':22,  'NZD':20,
