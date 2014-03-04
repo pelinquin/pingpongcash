@@ -1064,7 +1064,7 @@ def is_active(cm):
 
 def style_html(bg=True):
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:220;}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{color:#AAA;font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:220;}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{color:#AAA;font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}text{font-size:20pt;}'
     if bg:
         o += 'body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}' 
     return o + '</style>'
@@ -1304,92 +1304,99 @@ def simu(d, env, p1, pi, xi):
     o += favicon() + style_html(False) + header() 
     o += """<script>
 window.onload=main;
-var POS = 0;
+var BUYERS = 0;
 function main() {
  document.getElementById('svg1').addEventListener('mousedown', mousefunc, false);
  document.documentElement.addEventListener('keydown', keyfunc, false);
- draw(0);
+ draw(BUYERS);
 }
 function mousefunc(evt) {
-  var p = evt.clientX-10;
-  POS = p;
-  if (p>0 && p<700) { draw(p); }
+  var p = evt.clientX-40;
+  BUYERS = p*4;
+  if (p>0 && p<700) { draw(BUYERS); }
 }
 function keyfunc(e) {
   if (e.type == 'keydown') {
-    if (e.keyCode == 39) { POS+=1; draw(POS);}
-    if (e.keyCode == 37) { POS-=1; draw(POS);}
+    if (e.keyCode == 39) { BUYERS+=1; draw(BUYERS);}
+    if (e.keyCode == 37) { if (BUYERS > 0 ) BUYERS-=1; draw(BUYERS);}
   }
 }
-function draw(p) {
-  document.getElementById("path1").setAttribute('d', "m" + (p) + ",10l0,300");
-  var t1 = document.getElementById('t1');
-  var t2 = document.getElementById('t2');
-  var t3 = document.getElementById('t3');
-  var tp = p + 2;
-  t1.textContent = 'N°acheteur: '+ (p*4+1);
-  t1.setAttribute('x', tp);
-  t2.textContent = 'Prix: '+ price(10, 1000, 35, p*4);
-  t2.setAttribute('x', tp);
-  t3.textContent = 'Revenu: '+ revenu(10, 1000, 35, p*4);
-  t3.setAttribute('x', tp);
-}
-function revenu(p1, pf, xi, i) {
-   var k = Math.pow((pf-p1)/(pf-2*p1), xi/100);
-   var ta = pf+(p1-pf)/Math.pow(k,i);
-   var t = Math.ceil(ta);
-   var p = Math.ceil(ta/(i+1));
-   var r = 10;
-   if (r == 0) { dr = '';} else { dr = ' + ' + r + '⊔';} 
-   return (t + '⊔' + dr)
-}
-function price(p1, pf, xi, i) {
-    var k = Math.pow((pf-p1)/(pf-2*p1), xi/100);
-    var ta = pf+(p1-pf)/Math.pow(k,i);
-    var t = Math.ceil(ta);
-    var p = Math.ceil(ta/(i+1));
-    var x = (i+1)*(p+1)-t;
-    var j = i;
-    var r = 0;
-    //while True:
-    //    j+=1;
-    //    ta1 = (pf+(p1-pf)/k**j);
-    //    pr1, t1 = int(ta1/(j+1)), round(ta1)
-    //    y = (j+1)*(pr1+1)-t1;
-    //    if p != pr1: break
-    //    if j+x >= r+y+i: r = j-y-i+x
-    //    else: break
-    //    if x<r: 
-    //        r = x;
-    //        break
-    //    if j+1-y == pf: break
-    return ((i+1-x) + '*' + (p+1) + '⊔ + ' + x + '*' + p + '⊔')
-}
+function draw (b) {
+  var s = new String(document.location);
+  var p1 = document.getElementById("p1").value;
+  var pf = document.getElementById("pf").value;
+  var xi = document.getElementById("xi").value;
+  var aj = new ajax_get('http://cup/?p=' + p1 + '&f=' + pf + '&x=' + xi + '&i=' + b, function(res){
+    var myRegexp = /(\d+)\*(\d+)⊔ \+ (\d+)\*(\d+)⊔ = (\d+)⊔$/;
+    var m = myRegexp.exec(res);
+    document.getElementById("path1").setAttribute('d', "m" + (parseInt(b/4)+40) + ",10l0,300");
+    var xpos = parseInt(b/4)+40;
+    var t0 = document.getElementById('t0');
+    var t1 = document.getElementById('t1');
+    var t2 = document.getElementById('t2');
+    var t3 = document.getElementById('t3');
+    var t4 = document.getElementById('t4');
+    t0.setAttribute('x', xpos+2);
+    t1.setAttribute('x', xpos+2);
+    t2.setAttribute('x', xpos+2);
+    t3.setAttribute('x', xpos+2);
+    t4.setAttribute('x', xpos+2);
+    var nbas = 's';
+    var nba = parseInt(m[1])+parseInt(m[3]);
+    if (nba == 1) nbas = '';
+    t0.textContent = nba + ' acheteur' + nbas;
+    t1.textContent = 'Revenu: ' + m[5] +  '⊔';
+    var prs = 's';
+    var sus = 's';
+    if (m[1] == 1) prs = '';
+    if (m[3] == 1) sus = '';
+    if (m[1] == 0) t2.textContent = ''; else t2.textContent = 'Prix '+ m[1] +' premier' + prs + ' : ' + m[2] + '⊔';
+    if (m[3] == 0) t3.textContent = ''; else t3.textContent = 'Prix '+ m[3] +' suivant' + sus + ' : ' + m[4] + '⊔';
+    t4.textContent = res;
+    var c1 = document.getElementById('c1');
+    var c2 = document.getElementById('c2');
+    c1.setAttribute('cx', xpos);
+    c2.setAttribute('cx', xpos);
+    c1.setAttribute('cy', 310 - m[5]*300/pf);
+    c2.setAttribute('cy', 310 - m[4]*300/pf);
+  });
+  aj.doGet();
+};
 
+function ajax_get(url, cb) {
+  var req = new XMLHttpRequest();
+  req.onreadystatechange = processRequest;
+  function processRequest () {
+    if (req.readyState == 4) {
+      if (req.status == 200 || req.status == 0) { if (cb) { cb(req.responseText); }
+      } //else { alert('Error Get status:'+ req.status);}
+    }
+  }
+  this.doGet = function() { req.open('GET', url); req.send(null);}
+};
 </script>"""
     o += '<p><form>'
     if p1>0 or pi>0 or xi>0:
-        o += '<input class="simu" pattern="[0-9]+" name="p1" value="%s" title="(⊔)">' % (p1)
-        o += '<input class="simu" pattern="[0-9]+" name="pi" value="%s" title="(⊔)">' % (pi)
-        o += '<input class="simu" pattern="[0-9]{1,3}" name="xi" value="%s" title="(0%-100%)">' % (xi)
+        dp1, dpf, dxi = 'value="%s"' % p1, 'value="%s"' % pi, 'value="%s"' % xi
     else:
-        o += '<input class="simu" pattern="[0-9]+" name="p1" placeholder="Prix initial" title="(⊔)">'
-        o += '<input class="simu" pattern="[0-9]+" name="pi" placeholder="Revenu attendu" title="(⊔)">'
-        o += '<input class="simu" pattern="[0-9]{1,3}" name="xi" placeholder="Vitesse" title="(0%-100%)">'
+        dp1, dpf, dxi = 'placeholder="Prix initial"', 'placeholder="Revenu attendu"', 'placeholder="Vitesse"'
+    o += '<input id="p1" class="simu" pattern="[0-9]+" name="p" title="(⊔)" %s>' % dp1
+    o += '<input id="pf" class="simu" pattern="[0-9]+" name="f" title="(⊔)" %s>' % dpf
+    o += '<input id="xi" class="simu" pattern="[0-9]{1,3}" name="x" title="(0%%-100%%)" %s>' % dxi
     o += '<input type="submit" value="Calculer"></form></p>'
-    o += '<svg %s id="svg1" width="840" height="320">\n' % (_SVGNS)
-    o += '<rect x="10" y="10" width="700" height="300" style="stroke:gray;fill:none"/>\n' 
-    o += '<path id="path1" d="m10,10l0,300" style="stroke:gray;stroke-width:1"/>\n' 
-    o += '<text id="t1" x="10" y="40"></text>\n' 
-    o += '<text id="t2" x="10" y="60"></text>\n' 
-    o += '<text id="t3" x="10" y="80"></text>\n'
-    l1, l2 = '', ''
-    for i in range(2800):
-        pr, tau, x, dl = price(p1, pi, xi, i)
-        l1 += 'L%s,%s' % (10+ i/4, 310 - tau*300/pi)
-        l2 += 'L%s,%s' % (10+ i/4, 310 - pr*300/pi)
-    o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/>\n' % l1[1:]  
-    o += '<path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % l2[1:]  
+    o += '<p>Nb*(Prix+1) + (N°acheteur-Nb)*Prix = Revenu auteur(s) [⊔]</p>\n'
+    l1, l2, dx, dy = '', '', 40, 10
+    o += '<svg %s id="svg1" width="100%%" height="320">\n' % (_SVGNS)
+    o += '<rect x="%s" y="%s" width="700" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
+    o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
+    for i in range(5): 
+        o += '<text id="t%d" x="0" y="%d"></text>' % (i, 80 + 40*i)
+    for i in range(0, 2900, 100):
+        pr, tau = fprice(p1, pi, xi, i, True)
+        l1 += 'L%s,%s' % (dx + i/4, 300+dy - tau*300/pi)
+        l2 += 'L%s,%s' % (dx + i/4, 300+dy - pr*300/pi)
+    o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/><path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % (l1[1:], l2[1:])  
+    o += '<circle id="c1" cx="0" cy="0" r="4" style="fill:blue"/><circle id="c2" cx="0" cy="0" r="4" style="fill:red"/>\n'  
     o += '</svg>\n'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
@@ -1668,7 +1675,7 @@ PROTOCOL: POST
   +<currency><date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
 4/BUY IG
   *<nb[4]><refig[10]><src[9]><date[4]><signature[132]>
-5/GET POSITION (G)
+5/GET POSITION
   !<hurl[0,10]>
   return hurl[10]:nb
 6/Get BALANCE
@@ -1761,7 +1768,8 @@ def application(environ, start_response):
             elif raw == 'download': o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
             elif raw == 'bank': o, mime = bank(d, environ), 'text/html; charset=utf-8'
             elif raw == 'simu': o, mime = simu(d, environ, 10, 1000, 35), 'text/html; charset=utf-8'
-            elif reg(re.match('p1=(\d+)&pi=(\d+)&xi=(\d+)',raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)) ), 'text/html; charset=utf-8'
+            elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)$', raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)) ), 'text/html; charset=utf-8'
+            elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)&i=(\d+)$', raw)): o = fprice(int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), int(reg.v.group(4))) 
             else:
                 o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
                 #diff_dbs(d, port)
@@ -1813,17 +1821,50 @@ Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 def simulate():
     "_"
     f1, f2, f3 = True, True, True
-    p1, pi, xi = 10, 5000, 35
+    p1, pi, xi = 10, 1000, 100
     print ('%d⊔ %s  %s%%' % (p1, pi, xi))
-    for i in range(6000):
-        p, t, x, r = price(p1, pi, xi, i)
-        dr = '' if r == 0 else ' + %d' %r
-        s1 = '' if i+1 == x else '%d*%d' % (i+1-x, p+1)
-        s2 = '' if x == 0 else '%d*%d' % (x, p) 
-        s = '%s + %s' %(s1, s2) if (s1 and s2) else s1 if s1 else s2    
-        #print (i+1, '[%s = %d%s]' % (s, t, dr))          
+    M = 0
+    for i in range(3000):
+        #p, t, x, r = price(p1, pi, xi, i)
+        #dr = '' if r == 0 else ' + %d' %r
+        #s1 = '' if i+1 == x else '%d*%d' % (i+1-x, p+1)
+        #s2 = '' if x == 0 else '%d*%d' % (x, p) 
+        #s = '%s + %s' %(s1, s2) if (s1 and s2) else s1 if s1 else s2    
+        #print (i+1, '[%s = %d%s]' % (s, t, dr))
         print (i+1, fprice(p1, pi, xi, i))
     sys.exit()
+
+def fprice(p1, pf, xi, i, disp=False):
+    "_"
+    if xi == 0:
+        p, r, t = int(p1/(i+1)), 0, round(p1)
+        if p == 0:
+            if i < pf: t, x = i+1, 0
+            else: t, x = pf, i+1-pf
+        else:
+            x = (i+1)*(p+1)-t
+    else:
+        if xi>100: xi = 100
+        k = ((pf-p1)/(pf-2*p1))**(xi/100)
+        ta = (pf+(p1-pf)/k**i)
+        p, t = int(ta/(i+1)), round(ta)
+        x, j, r = (i+1)*(p+1)-t, i, 0
+        while False:
+            j+=1
+            tb = (pf+(p1-pf)/k**j)
+            pr1, t1 = int(tb/(j+1)), round(tb)
+            y = (j+1)*(pr1+1)-t1
+            if p != pr1: break
+            if j+x >= r+y+i: r = j-y-i+x
+            else: break
+            if x<r: 
+                r = x
+                break
+            if j+1-y == pf: break
+    if disp:
+        return p, t+r
+    else:
+        return '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x+r, p+1, x-r, p, t+r)
 
 def price(p1, pf, xi, i):
     "_"
@@ -1845,25 +1886,6 @@ def price(p1, pf, xi, i):
         if j+1-y == pf: break
     return p, t, x-r, r
 
-def fprice(p1, pf, xi, i):
-    "_"
-    k = ((pf-p1)/(pf-2*p1))**(xi/100)
-    ta = (pf+(p1-pf)/k**i)
-    p, t = int(ta/(i+1)), round(ta)
-    x, j, r = (i+1)*(p+1)-t, i, 0
-    while True:
-        j+=1
-        tb = (pf+(p1-pf)/k**j)
-        pr1, t1 = int(tb/(j+1)), round(tb)
-        y = (j+1)*(pr1+1)-t1
-        if p != pr1: break
-        if j+x >= r+y+i: r = j-y-i+x
-        else: break
-        if x<r: 
-            r = x
-            break
-        if j+1-y == pf: break
-    return '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x+r, p+1, x-r, p, t+r)
 
 __curset__ = {'USD':870, 'EUR':334, 'JPY':230, 'GBP':118, 'AUD':86, 
               'CHF':52,  'CAD':46,  'MXN':25,  'CNY':22,  'NZD':20,
@@ -1950,7 +1972,7 @@ def forex():
     dr.close()
 
 if __name__ == '__main__':
-    simulate()
+    #simulate()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
