@@ -1297,12 +1297,13 @@ def capture_ig(d, arg):
         return '%s:%s' % (btob64(res[0]), (len(d['igs'][res[0]])-151)//9)
     return None
 
-def simu(d, env, p1, pi, xi):
+def simu(d, env, p1, pi, xi, graph=False):
     "_"
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
-    o += favicon() + style_html(False) + header() 
-    o += """<script>
+    o += favicon() + style_html(False) + header()
+    if graph:
+        o += """<script>
 window.onload=main;
 var BUYERS = 0;
 function main() {
@@ -1376,7 +1377,7 @@ function ajax_get(url, cb) {
 };
 </script>"""
     o += '<p><form>'
-    if p1>0 or pi>0 or xi>0:
+    if graph:
         dp1, dpf, dxi = 'value="%s"' % p1, 'value="%s"' % pi, 'value="%s"' % xi
     else:
         dp1, dpf, dxi = 'placeholder="Prix initial"', 'placeholder="Revenu attendu"', 'placeholder="Vitesse"'
@@ -1384,20 +1385,23 @@ function ajax_get(url, cb) {
     o += '<input id="pf" class="simu" pattern="[0-9]+" name="f" title="(⊔)" %s>' % dpf
     o += '<input id="xi" class="simu" pattern="[0-9]{1,3}" name="x" title="(0%%-100%%)" %s>' % dxi
     o += '<input type="submit" value="Calculer"></form></p>'
-    o += '<p>Nb*(Prix+1) + (N°acheteur-Nb)*Prix = Revenu auteur(s) [⊔]</p>\n'
+    if graph:
+        o += '<p>Nb*(Prix+1) + (N°acheteur-Nb)*Prix = Revenu auteur(s) [⊔]</p>\n'
+        o += '<p class="note">Sélectinnez le nombre d\'acheteurs avec la souris ou avec les touches "gauche"/"droite"</p>\n'
     l1, l2, dx, dy = '', '', 40, 10
-    o += '<svg %s id="svg1" width="100%%" height="320">\n' % (_SVGNS)
-    o += '<rect x="%s" y="%s" width="700" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
-    o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
-    for i in range(5): 
-        o += '<text id="t%d" x="0" y="%d"></text>' % (i, 80 + 40*i)
-    for i in range(0, 2900, 100):
-        pr, tau = fprice(p1, pi, xi, i, True)
-        l1 += 'L%s,%s' % (dx + i/4, 300+dy - tau*300/pi)
-        l2 += 'L%s,%s' % (dx + i/4, 300+dy - pr*300/pi)
-    o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/><path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % (l1[1:], l2[1:])  
-    o += '<circle id="c1" cx="0" cy="0" r="4" style="fill:blue"/><circle id="c2" cx="0" cy="0" r="4" style="fill:red"/>\n'  
-    o += '</svg>\n'
+    if graph:
+        o += '<svg %s id="svg1" width="100%%" height="320">\n' % (_SVGNS)
+        o += '<rect x="%s" y="%s" width="700" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
+        o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
+        for i in range(5): 
+            o += '<text id="t%d" x="0" y="%d"></text>' % (i, 80 + 40*i)
+        for i in range(0, 2900, 100):
+            pr, tau = fprice(p1, pi, xi, i, True)
+            l1 += 'L%s,%s' % (dx + i/4, 300+dy - tau*300/pi)
+            l2 += 'L%s,%s' % (dx + i/4, 300+dy - pr*300/pi)
+        o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/><path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % (l1[1:], l2[1:])  
+        o += '<circle id="c1" cx="0" cy="0" r="4" style="fill:blue"/><circle id="c2" cx="0" cy="0" r="4" style="fill:red"/>\n'  
+        o += '</svg>\n'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
 
@@ -1768,7 +1772,7 @@ def application(environ, start_response):
             elif raw == 'download': o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
             elif raw == 'bank': o, mime = bank(d, environ), 'text/html; charset=utf-8'
             elif raw == 'simu': o, mime = simu(d, environ, 10, 1000, 35), 'text/html; charset=utf-8'
-            elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)$', raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)) ), 'text/html; charset=utf-8'
+            elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)$', raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), True), 'text/html; charset=utf-8'
             elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)&i=(\d+)$', raw)): o = fprice(int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), int(reg.v.group(4))) 
             else:
                 o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
