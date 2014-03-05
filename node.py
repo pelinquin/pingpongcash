@@ -1313,7 +1313,7 @@ function main() {
  draw(BUYERS);
 }
 function mousefunc(evt) {
-  var p = evt.clientX-47;
+  var p = evt.clientX-17;
   BUYERS = Math.floor(p*PINF/700);
   if (p>0 && p<700) { draw(BUYERS); }
 }
@@ -1332,7 +1332,7 @@ function draw (b) {
   var aj = new ajax_get('http://cup/?p=' + p1 + '&f=' + pf + '&x=' + xi + '&i=' + b, function(res){
     var myRegexp = /(\d+)\*(\d+)⊔ \+ (\d+)\*(\d+)⊔ = (\d+)⊔$/;
     var m = myRegexp.exec(res);
-    var xpos = parseInt(b*700/parseInt(pf))+40;
+    var xpos = parseInt(b*700/parseInt(pf))+10;
     document.getElementById("path1").setAttribute('d', "m" + xpos + ",10l0,300");
     var t0 = document.getElementById('t0');var t1 = document.getElementById('t1');var t2 = document.getElementById('t2');var t3 = document.getElementById('t3');var t4 = document.getElementById('t4');
     t0.setAttribute('x', xpos+2);t1.setAttribute('x', xpos+2);t2.setAttribute('x', xpos+2);t3.setAttribute('x', xpos+2);t4.setAttribute('x', xpos+2);
@@ -1380,9 +1380,9 @@ function ajax_get(url, cb) {
     if graph:
         o += '<p>Nb*(Prix+1) + (N°acheteur-Nb)*Prix = Revenu auteur(s) [⊔]</p>\n'
         o += '<p class="note">Sélectinnez le nombre d\'acheteurs avec la souris ou avec les touches "gauche"/"droite"</p>\n'
-    l1, l2, dx, dy = '', '', 40, 10
+    l1, l2, dx, dy = '', '', 10, 10
     if graph:
-        o += '<svg %s id="svg1" width="100%%" height="320">\n' % (_SVGNS)
+        o += '<svg %s id="svg1" width="1000" height="320">\n' % (_SVGNS)
         o += '<rect x="%s" y="%s" width="700" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
         o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
         for i in range(5): 
