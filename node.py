@@ -1306,14 +1306,15 @@ def simu(d, env, p1, pi, xi, graph=False):
         o += """<script>
 window.onload=main;
 var BUYERS = 0;
+var PINF = 1000;
 function main() {
  document.getElementById('svg1').addEventListener('mousedown', mousefunc, false);
  document.documentElement.addEventListener('keydown', keyfunc, false);
  draw(BUYERS);
 }
 function mousefunc(evt) {
-  var p = evt.clientX-40;
-  BUYERS = p*4;
+  var p = evt.clientX-47;
+  BUYERS = Math.floor(p*PINF/700);
   if (p>0 && p<700) { draw(BUYERS); }
 }
 function keyfunc(e) {
@@ -1326,29 +1327,21 @@ function draw (b) {
   var s = new String(document.location);
   var p1 = document.getElementById("p1").value;
   var pf = document.getElementById("pf").value;
+  PINF = parseInt(pf);
   var xi = document.getElementById("xi").value;
   var aj = new ajax_get('http://cup/?p=' + p1 + '&f=' + pf + '&x=' + xi + '&i=' + b, function(res){
     var myRegexp = /(\d+)\*(\d+)⊔ \+ (\d+)\*(\d+)⊔ = (\d+)⊔$/;
     var m = myRegexp.exec(res);
-    document.getElementById("path1").setAttribute('d', "m" + (parseInt(b/4)+40) + ",10l0,300");
-    var xpos = parseInt(b/4)+40;
-    var t0 = document.getElementById('t0');
-    var t1 = document.getElementById('t1');
-    var t2 = document.getElementById('t2');
-    var t3 = document.getElementById('t3');
-    var t4 = document.getElementById('t4');
-    t0.setAttribute('x', xpos+2);
-    t1.setAttribute('x', xpos+2);
-    t2.setAttribute('x', xpos+2);
-    t3.setAttribute('x', xpos+2);
-    t4.setAttribute('x', xpos+2);
+    var xpos = parseInt(b*700/parseInt(pf))+40;
+    document.getElementById("path1").setAttribute('d', "m" + xpos + ",10l0,300");
+    var t0 = document.getElementById('t0');var t1 = document.getElementById('t1');var t2 = document.getElementById('t2');var t3 = document.getElementById('t3');var t4 = document.getElementById('t4');
+    t0.setAttribute('x', xpos+2);t1.setAttribute('x', xpos+2);t2.setAttribute('x', xpos+2);t3.setAttribute('x', xpos+2);t4.setAttribute('x', xpos+2);
     var nbas = 's';
     var nba = parseInt(m[1])+parseInt(m[3]);
     if (nba == 1) nbas = '';
     t0.textContent = nba + ' acheteur' + nbas;
     t1.textContent = 'Revenu: ' + m[5] +  '⊔';
-    var prs = 's';
-    var sus = 's';
+    var prs = 's';var sus = 's';
     if (m[1] == 1) prs = '';
     if (m[3] == 1) sus = '';
     if (m[1] == 0) t2.textContent = ''; else t2.textContent = 'Prix '+ m[1] +' premier' + prs + ' : ' + m[2] + '⊔';
@@ -1363,7 +1356,6 @@ function draw (b) {
   });
   aj.doGet();
 };
-
 function ajax_get(url, cb) {
   var req = new XMLHttpRequest();
   req.onreadystatechange = processRequest;
@@ -1395,10 +1387,10 @@ function ajax_get(url, cb) {
         o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
         for i in range(5): 
             o += '<text id="t%d" x="0" y="%d"></text>' % (i, 80 + 40*i)
-        for i in range(0, 2900, 100):
+        for i in range(0, pi, pi//50):
             pr, tau = fprice(p1, pi, xi, i, True)
-            l1 += 'L%s,%s' % (dx + i/4, 300+dy - tau*300/pi)
-            l2 += 'L%s,%s' % (dx + i/4, 300+dy - pr*300/pi)
+            l1 += 'L%s,%s' % (dx + i*700/pi, 300+dy - tau*300/pi)
+            l2 += 'L%s,%s' % (dx + i*700/pi, 300+dy - pr*300/pi)
         o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/><path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % (l1[1:], l2[1:])  
         o += '<circle id="c1" cx="0" cy="0" r="4" style="fill:blue"/><circle id="c2" cx="0" cy="0" r="4" style="fill:red"/>\n'  
         o += '</svg>\n'
