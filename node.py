@@ -1339,14 +1339,14 @@ function draw (b) {
     var nbas = 's';
     var nba = parseInt(m[1])+parseInt(m[3]);
     if (nba == 1) nbas = '';
-    t0.textContent = nba + ' acheteur' + nbas;
-    t1.textContent = 'Revenu: ' + m[5] +  '⊔';
+    //t0.textContent = nba + ' acheteur' + nbas;
+    //t1.textContent = 'Revenu: ' + m[5] +  '⊔';
     var prs = 's';var sus = 's';
     if (m[1] == 1) prs = '';
     if (m[3] == 1) sus = '';
-    if (m[1] == 0) t2.textContent = ''; else t2.textContent = 'Prix '+ m[1] +' premier' + prs + ' : ' + m[2] + '⊔';
-    if (m[3] == 0) t3.textContent = ''; else t3.textContent = 'Prix '+ m[3] +' suivant' + sus + ' : ' + m[4] + '⊔';
-    t4.textContent = res;
+    //if (m[1] == 0) t2.textContent = ''; else t2.textContent = 'Prix '+ m[1] +' premier' + prs + ' : ' + m[2] + '⊔';
+    //if (m[3] == 0) t3.textContent = ''; else t3.textContent = 'Prix '+ m[3] +' suivant' + sus + ' : ' + m[4] + '⊔';
+    //t4.textContent = res;
     var c1 = document.getElementById('c1');
     var c2 = document.getElementById('c2');
     c1.setAttribute('cx', xpos);
@@ -1386,7 +1386,7 @@ function ajax_get(url, cb) {
         o += '<rect x="%s" y="%s" width="700" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
         o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
         for i in range(5): 
-            o += '<text id="t%d" x="0" y="%d"></text>' % (i, 80 + 40*i)
+            o += '<text id="t%d" x="0" y="%d">A</text>' % (i, 80 + 40*i)
         for i in range(0, pi, pi//50):
             pr, tau = fprice(p1, pi, xi, i, True)
             l1 += 'L%s,%s' % (dx + i*700/pi, 300+dy - tau*300/pi)
@@ -1968,7 +1968,7 @@ def forex():
     dr.close()
 
 if __name__ == '__main__':
-    #simulate()
+    simulate()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
