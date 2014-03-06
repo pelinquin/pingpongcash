@@ -1332,6 +1332,7 @@ function draw (b) {
   var aj = new ajax_get('http://cup/?p=' + p1 + '&f=' + pf + '&x=' + xi + '&i=' + b, function(res){
     var myRegexp = /(\d+)\*(\d+)⊔ \+ (\d+)\*(\d+)⊔ = (\d+)⊔$/;
     var m = myRegexp.exec(res);
+    alert (m);
     var xpos = parseInt(b*700/parseInt(pf))+10;
     document.getElementById("path1").setAttribute('d', "m" + xpos + ",10l0,300");
     var t0 = document.getElementById('t0');var t1 = document.getElementById('t1');var t2 = document.getElementById('t2');var t3 = document.getElementById('t3');var t4 = document.getElementById('t4');
@@ -1352,8 +1353,8 @@ function draw (b) {
     var c2 = document.getElementById('c2');
     c1.setAttribute('cx', xpos);
     c2.setAttribute('cx', xpos);
-    c1.setAttribute('cy', 310 - parseInt(m[5])*300/pf);
-    c2.setAttribute('cy', 310 - m[4]*300/pf);
+    //c1.setAttribute('cy', 310 - m[5])*300/pf);
+    //c2.setAttribute('cy', 310 - m[4]*300/pf);
   });
   aj.doGet();
 };
