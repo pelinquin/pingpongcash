@@ -1389,7 +1389,7 @@ function ajax_get(url, cb) {
         o += '<rect x="%s" y="%s" width="700" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
         o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
         for i in range(5): 
-            o += '<text id="t%d" x="0" y="%d">A</text>' % (i, 80 + 40*i)
+            o += '<text id="t%d" x="0" y="%d">%d</text>' % (i, 80 + 40*i, i)
         for i in range(0, pi, pi//50):
             pr, tau = fprice(p1, pi, xi, i, True)
             l1 += 'L%s,%s' % (dx + i*700/pi, 300+dy - tau*300/pi)
