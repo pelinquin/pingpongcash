@@ -1387,13 +1387,13 @@ function ajax_get(url, cb) {
         o += '<rect x="%s" y="%s" width="700" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
         o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
         for i in range(5): 
-            o += '<text id="t%d" x="0" y="%d">%d</text>' % (i, 80 + 40*i, i)
+            o += '<text id="t%d" x="0" y="%d"></text>' % (i, 80 + 40*i)
         for i in range(0, pi, pi//50):
             pr, tau = fprice(p1, pi, xi, i, True)
             l1 += 'L%s,%s' % (dx + i*700/pi, 300+dy - tau*300/pi)
             l2 += 'L%s,%s' % (dx + i*700/pi, 300+dy - pr*300/pi)
         o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/><path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % (l1[1:], l2[1:])  
-        o += '<circle id="c1" cx="100" cy="9" r="4" style="fill:blue"/><circle id="c2" cx="200" cy="9" r="4" style="fill:red"/>\n'  
+        o += '<circle id="c1" cx="0" cy="0" r="4" style="fill:blue"/><circle id="c2" cx="0" cy="0" r="4" style="fill:red"/>\n'  
         o += '</svg>\n'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
