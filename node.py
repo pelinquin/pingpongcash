@@ -1336,15 +1336,15 @@ function draw (b) {
     document.getElementById("path1").setAttribute('d', "m" + xpos + ",10l0,300");
     var t0 = document.getElementById('t0');var t1 = document.getElementById('t1');var t2 = document.getElementById('t2');var t3 = document.getElementById('t3');var t4 = document.getElementById('t4');
     t0.setAttribute('x', xpos+2);t1.setAttribute('x', xpos+2);t2.setAttribute('x', xpos+2);t3.setAttribute('x', xpos+2);t4.setAttribute('x', xpos+2);
-    var nbas = 's';
-    var nba = parseInt(m[1])+parseInt(m[3]);
-    alert (nba);
-    if (nba == 1) nbas = '';
+    //var nbas = 's';
+    //var nba = parseInt(m[1])+parseInt(m[3]);
+    //alert (nba);
+    //if (nba == 1) nbas = '';
     //t0.textContent = nba + ' acheteur' + nbas;
     //t1.textContent = 'Revenu: ' + m[5] +  '⊔';
-    var prs = 's';var sus = 's';
-    if (m[1] == 1) prs = '';
-    if (m[3] == 1) sus = '';
+    //var prs = 's';var sus = 's';
+    //if (m[1] == 1) prs = '';
+    //if (m[3] == 1) sus = '';
     //if (m[1] == 0) t2.textContent = ''; else t2.textContent = 'Prix '+ m[1] +' premier' + prs + ' : ' + m[2] + '⊔';
     //if (m[3] == 0) t3.textContent = ''; else t3.textContent = 'Prix '+ m[3] +' suivant' + sus + ' : ' + m[4] + '⊔';
     //t4.textContent = res;
@@ -1395,7 +1395,7 @@ function ajax_get(url, cb) {
             l1 += 'L%s,%s' % (dx + i*700/pi, 300+dy - tau*300/pi)
             l2 += 'L%s,%s' % (dx + i*700/pi, 300+dy - pr*300/pi)
         o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/><path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % (l1[1:], l2[1:])  
-        o += '<circle id="c1" cx="0" cy="0" r="4" style="fill:blue"/><circle id="c2" cx="0" cy="0" r="4" style="fill:red"/>\n'  
+        o += '<circle id="c1" cx="100" cy="9" r="4" style="fill:blue"/><circle id="c2" cx="200" cy="9" r="4" style="fill:red"/>\n'  
         o += '</svg>\n'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
