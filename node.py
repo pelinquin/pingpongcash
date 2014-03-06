@@ -1338,6 +1338,7 @@ function draw (b) {
     t0.setAttribute('x', xpos+2);t1.setAttribute('x', xpos+2);t2.setAttribute('x', xpos+2);t3.setAttribute('x', xpos+2);t4.setAttribute('x', xpos+2);
     var nbas = 's';
     var nba = parseInt(m[1])+parseInt(m[3]);
+    alert (nba);
     if (nba == 1) nbas = '';
     //t0.textContent = nba + ' acheteur' + nbas;
     //t1.textContent = 'Revenu: ' + m[5] +  '⊔';
@@ -1353,7 +1354,6 @@ function draw (b) {
     c2.setAttribute('cx', xpos);
     c1.setAttribute('cy', 120);
     c2.setAttribute('cy', 100);
-    alert (m[5]);
     //c1.setAttribute('cy', 310 - m[5]*300/pf);
     //c2.setAttribute('cy', 310 - m[4]*300/pf);
   });
