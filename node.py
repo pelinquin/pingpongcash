@@ -1332,7 +1332,7 @@ function draw (b) {
   var aj = new ajax_get('http://cup/?p=' + p1 + '&f=' + pf + '&x=' + xi + '&i=' + b, function(res){
     var myRegexp = /(\d+)\*(\d+)⊔ \+ (\d+)\*(\d+)⊔ = (\d+)⊔$/;
     var m = myRegexp.exec(res);
-    alert (m);
+    alert ('|'+res+'|');
     var xpos = parseInt(b*700/parseInt(pf))+10;
     document.getElementById("path1").setAttribute('d', "m" + xpos + ",10l0,300");
     var t0 = document.getElementById('t0');var t1 = document.getElementById('t1');var t2 = document.getElementById('t2');var t3 = document.getElementById('t3');var t4 = document.getElementById('t4');
