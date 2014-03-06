@@ -1364,7 +1364,7 @@ function ajax_get(url, cb) {
   function processRequest () {
     if (req.readyState == 4) {
       if (req.status == 200 || req.status == 0) { if (cb) { cb(req.responseText); }
-      } //else { alert('Error Get status:'+ req.status);}
+      } else { alert('Error Get status:'+ req.status);}
     }
   }
   this.doGet = function() { req.open('GET', url); req.send(null);}
