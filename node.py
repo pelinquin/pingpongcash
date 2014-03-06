@@ -1329,32 +1329,31 @@ function draw (b) {
   var pf = document.getElementById("pf").value;
   PINF = parseInt(pf);
   var xi = document.getElementById("xi").value;
-  var aj = new ajax_get('http://cup/?p=' + p1 + '&f=' + pf + '&x=' + xi + '&i=' + b, function(res){
+  var s = new String(document.location);
+  var aj = new ajax_get(s + '&i=' + b, function(res){
     var myRegexp = /(\d+)\*(\d+)⊔ \+ (\d+)\*(\d+)⊔ = (\d+)⊔$/;
     var m = myRegexp.exec(res);
-    alert ('|'+res+'|');
     var xpos = parseInt(b*700/parseInt(pf))+10;
     document.getElementById("path1").setAttribute('d', "m" + xpos + ",10l0,300");
     var t0 = document.getElementById('t0');var t1 = document.getElementById('t1');var t2 = document.getElementById('t2');var t3 = document.getElementById('t3');var t4 = document.getElementById('t4');
     t0.setAttribute('x', xpos+2);t1.setAttribute('x', xpos+2);t2.setAttribute('x', xpos+2);t3.setAttribute('x', xpos+2);t4.setAttribute('x', xpos+2);
-    //var nbas = 's';
-    //var nba = parseInt(m[1])+parseInt(m[3]);
-    //alert (nba);
-    //if (nba == 1) nbas = '';
-    //t0.textContent = nba + ' acheteur' + nbas;
-    //t1.textContent = 'Revenu: ' + m[5] +  '⊔';
-    //var prs = 's';var sus = 's';
-    //if (m[1] == 1) prs = '';
-    //if (m[3] == 1) sus = '';
-    //if (m[1] == 0) t2.textContent = ''; else t2.textContent = 'Prix '+ m[1] +' premier' + prs + ' : ' + m[2] + '⊔';
-    //if (m[3] == 0) t3.textContent = ''; else t3.textContent = 'Prix '+ m[3] +' suivant' + sus + ' : ' + m[4] + '⊔';
-    //t4.textContent = res;
+    var nbas = 's';
+    var nba = parseInt(m[1])+parseInt(m[3]);
+    if (nba == 1) nbas = '';
+    t0.textContent = nba + ' acheteur' + nbas;
+    t1.textContent = 'Revenu: ' + m[5] +  '⊔';
+    var prs = 's';var sus = 's';
+    if (m[1] == 1) prs = '';
+    if (m[3] == 1) sus = '';
+    if (m[1] == 0) t2.textContent = ''; else t2.textContent = 'Prix '+ m[1] +' premier' + prs + ' : ' + m[2] + '⊔';
+    if (m[3] == 0) t3.textContent = ''; else t3.textContent = 'Prix '+ m[3] +' suivant' + sus + ' : ' + m[4] + '⊔';
+    t4.textContent = res;
     var c1 = document.getElementById('c1');
     var c2 = document.getElementById('c2');
     c1.setAttribute('cx', xpos);
     c2.setAttribute('cx', xpos);
-    //c1.setAttribute('cy', 310 - m[5])*300/pf);
-    //c2.setAttribute('cy', 310 - m[4]*300/pf);
+    c1.setAttribute('cy', 310 - m[5]*300/pf);
+    c2.setAttribute('cy', 310 - m[4]*300/pf);
   });
   aj.doGet();
 };
@@ -1364,7 +1363,7 @@ function ajax_get(url, cb) {
   function processRequest () {
     if (req.readyState == 4) {
       if (req.status == 200 || req.status == 0) { if (cb) { cb(req.responseText); }
-      } else { alert('Error Get status:'+ req.status);}
+      } //else { alert('Error Get status:'+ req.status);}
     }
   }
   this.doGet = function() { req.open('GET', url); req.send(null);}
