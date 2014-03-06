@@ -1352,10 +1352,8 @@ function draw (b) {
     var c2 = document.getElementById('c2');
     c1.setAttribute('cx', xpos);
     c2.setAttribute('cx', xpos);
-    c1.setAttribute('cy', 120);
-    c2.setAttribute('cy', 100);
-    //c1.setAttribute('cy', 310 - m[5]*300/pf);
-    //c2.setAttribute('cy', 310 - m[4]*300/pf);
+    c1.setAttribute('cy', 310 - parseInt(m[5])*300/pf);
+    c2.setAttribute('cy', 310 - m[4]*300/pf);
   });
   aj.doGet();
 };
