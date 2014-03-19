@@ -1064,7 +1064,7 @@ def is_active(cm):
 
 def style_html(bg=True):
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:220;}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{color:#AAA;font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}text{font-size:20pt;}'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:220;}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:2;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:3pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{color:#AAA;font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}text{font-size:18pt;}'
     if bg:
         o += 'body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}' 
     return o + '</style>'
@@ -1307,7 +1307,7 @@ function main() {
  draw(BUYERS);
 }
 function mousefunc(evt) {
-  var p = evt.clientX-17;
+  var p = evt.clientX-37;
   BUYERS = Math.floor(p*PINF/700);
   if (p>0 && p<700) { draw(BUYERS); }
 }
@@ -1327,7 +1327,7 @@ function draw (b) {
   var aj = new ajax_get(s + '&i=' + b, function(res){
     var myRegexp = /(\d+)\*(\d+)⊔ \+ (\d+)\*(\d+)⊔ = (\d+)⊔$/;
     var m = myRegexp.exec(res);
-    var xpos = parseInt(b*700/parseInt(pf))+10;
+    var xpos = parseInt(b*700/parseInt(pf))+30;
     document.getElementById("path1").setAttribute('d', "m" + xpos + ",10l0,300");
     var t0 = document.getElementById('t0');var t1 = document.getElementById('t1');var t2 = document.getElementById('t2');var t3 = document.getElementById('t3');var t4 = document.getElementById('t4');
     t0.setAttribute('x', xpos+2);t1.setAttribute('x', xpos+2);t2.setAttribute('x', xpos+2);t3.setAttribute('x', xpos+2);t4.setAttribute('x', xpos+2);
@@ -1346,8 +1346,11 @@ function draw (b) {
     var c2 = document.getElementById('c2');
     c1.setAttribute('cx', xpos);
     c2.setAttribute('cx', xpos);
+    c3.setAttribute('cx', xpos);
     c1.setAttribute('cy', 310 - m[5]*300/pf);
-    c2.setAttribute('cy', 310 - m[4]*300/pf);
+    //c2.setAttribute('cy', 10 + 300*(1-m[5]/nba/p1));    
+    c2.setAttribute('cy', 10 + 300*(1-m[2]/p1));    
+    c3.setAttribute('cy', 10 + 300*(1-m[4]/p1));    
   });
   aj.doGet();
 };
@@ -1381,19 +1384,23 @@ def simu(d, env, p1, pi, xi, graph=False):
     o += '<input type="submit" value="Calculer"></form></p>'
     if graph:
         o += '<p>Nb*(Prix+1) + (N°acheteur-Nb)*Prix = Revenu auteur(s) [⊔]</p>\n'
-        o += '<p class="note">Sélectinnez le nombre d\'acheteurs avec la souris ou avec les touches "gauche"/"droite"</p>\n'
-    l1, l2, dx, dy = '', '', 10, 10
+        o += '<p class="note">Sélectionnez le nombre d\'acheteurs avec le pointeur ou avec les touches "gauche"/"droite"</p>\n'
+    l1, l2, dx, dy = '', '', 30, 10
     if graph:
         o += '<svg %s id="svg1" width="100%%" height="320">\n' % (_SVGNS)
         o += '<rect x="%s" y="%s" width="700" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
         o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
-        for i in range(5): o += '<text id="t%d" y="%d"></text>' % (i, 80 + 40*i)
-        for i in range(0, pi, pi//50):
+        for i in range(5): o += '<text id="t%d" y="%d"></text>' % (i, 50 + 30*i)
+        for i in range(0, pi, pi//100):
             pr, tau = fprice(p1, pi, xi, i, True)
             l1 += 'L%s,%s' % (dx + i*700/pi, 300+dy - tau*300/pi)
-            l2 += 'L%s,%s' % (dx + i*700/pi, 300+dy - pr*300/pi)
-        o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/><path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % (l1[1:], l2[1:])  
-        o += '<circle id="c1" r="4" style="fill:blue"/><circle id="c2" r="4" style="fill:red"/>\n'  
+            l2 += 'L%s,%s ' % (dx + int(i*700/pi), dy + int(300*(1-pr/p1)))
+        o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/>\n<path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % (l1[1:], l2[1:])  
+        o += '<text x="2" y="10" style="fill:red;font-size:10">%s⊔</text>' % p1
+        o += '<text x="2" y="310" style="fill:red;font-size:10">0⊔</text>'
+        o += '<text x="740" y="10" style="fill:blue;font-size:10">%s⊔</text>' % pi
+        o += '<text x="740" y="310" style="fill:blue;font-size:10">0⊔</text>'
+        o += '<circle id="c1" r="4" style="fill:blue"/><circle id="c2" r="4" style="fill:red"/><circle id="c3" r="4" style="fill:red"/>\n'  
         o += '</svg>\n'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
@@ -1818,7 +1825,7 @@ Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 def simulate():
     "_"
     f1, f2, f3 = True, True, True
-    p1, pi, xi = 10, 1000, 100
+    p1, pi, xi = 100, 1000, 35
     print ('%d⊔ %s  %s%%' % (p1, pi, xi))
     M = 0
     for i in range(3000):
@@ -1828,7 +1835,7 @@ def simulate():
         #s2 = '' if x == 0 else '%d*%d' % (x, p) 
         #s = '%s + %s' %(s1, s2) if (s1 and s2) else s1 if s1 else s2    
         #print (i+1, '[%s = %d%s]' % (s, t, dr))
-        print (i+1, fprice(p1, pi, xi, i))
+        print (i+1, fprice(p1, pi, xi, i, True))
     sys.exit()
 
 def fprice(p1, pf, xi, i, disp=False):
@@ -1859,7 +1866,7 @@ def fprice(p1, pf, xi, i, disp=False):
                 break
             if j+1-y == pf: break
     if disp:
-        return p, t+r
+        return (t+r)/(i+1), t+r
     else:
         return '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x+r, p+1, x-r, p, t+r)
 
