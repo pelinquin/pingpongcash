@@ -43,9 +43,8 @@ __url__    = 'http://%s.fr' % __ppc__
 
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 _b58char   = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
-
-_root_id   = 'IbankVBixRIm'
-_root_pkey = 'AQTMiBfFFaDdokV0d7dPEeyURA_yUmMaXVaQm86YxciRuOpz5oSXdAh2r-6jxdj3cazLExL4B75-V3_hqtbuG_yIAeqq8dmyMTAZUZFBS0fCPK52TzZ6bEyo3H3QHzbk5geIepws4bi2se19WoyZ6xiWDk0COUXLvQAE'
+_root_id   = 'AdminJqjFdcY'
+_root_pkey = 'AdMctT3bXbwrTBGkB5eKAG74qIqShRRy1nHa_NWCHsxmKhmZeE_aWgo_S251td8d6C5uti6TymQSSZvhmO1b19pI/AYYPFxkKL_13dnhBGXdFdmDQhQEZZbc1P7GDDrZZwU0FSGuwc53_AxHk1vVRte7bdmhzIcOUMUvO' 
 
 ##### ENCODING #####
 PAD = lambda s:(len(s)%2)*'0'+s[2:]
@@ -906,7 +905,7 @@ def list_local_ids():
     "_"
     if os.path.isfile('keys'):
         db = dbm.open('keys', 'c')
-        print ('Host: \'%s\', You have %d IDs:' % (db['host'].decode('ascii'), len(db.keys())-2))
+        print ('Autority: %s, Currency: €, Host: \'%s\', You have %d IDs:' % (_root_id, db['host'].decode('ascii'), len(db.keys())-2))
         for x in db.keys(): 
             if len(x) == 9: 
                 print (btob64(x) if db['user'] != x else btob64(x)+' *')
@@ -1460,7 +1459,7 @@ def index(d, env, cm64='', prc=0):
         o += o1
     #o += '<p>%s</p>' % (env['HTTP_COOKIE'] if 'HTTP_COOKIE' in env else 'NONE')
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
-    return o + footer('%s %s Auth:%s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
+    return o + footer('%s %s %s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
 
 def stat(d):
     "_"
@@ -1530,12 +1529,13 @@ def dashboard(d, env):
                 '<tr><td class="mono">Pb!</td></tr>'
         #elif len(t) == 15: del d['trx'][t]
     if b'_' in d['crt']:
-        root = d['crt'][b'_'] 
-        k.pt = Point(c521, b2i(d['pub'][root][:66]), b2i(d['pub'][root][66:]+root))
-        for c in d['crt'].keys():
-            if len(c) == 9 and not k.verify(d['crt'][c][12:], c + d['crt'][c][:12]): 
-                o += '<tr><td class="mono">certificat</td></tr>'
-                #del d['crt'][c]
+        root = d['crt'][b'_']
+        if root in d['pub']:
+            k.pt = Point(c521, b2i(d['pub'][root][:66]), b2i(d['pub'][root][66:]+root))
+            for c in d['crt'].keys():
+                if len(c) == 9 and not k.verify(d['crt'][c][12:], c + d['crt'][c][:12]): 
+                    o += '<tr><td class="mono">certificat</td></tr>'
+                    #del d['crt'][c]
     o += '</table>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s %s Auth:%s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
