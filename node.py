@@ -937,7 +937,8 @@ def readdb(arg, ascii=False):
     "_"
     d = dbm.open(arg)
     if ascii:
-        for x in d.keys(): print (x.decode('ascii'),'->', d[x].decode('ascii'))
+        for x in d.keys(): print (x.decode('ascii'), '->', d[x].decode('ascii'))
+        #for x in d.keys(): print (x, '->', d[x])
     else:
         for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x),'->', btob64(d[x]))
 
@@ -957,7 +958,7 @@ def buy(node, rid, prc, m=''):
     if m == '': m = input('Message (20 chars maxi)? ')
     print ('...please wait')
     k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
-    print (send(node, '+A' + btob64(msg + k.sign(msg)))) # only € supported
+    print (send(node, '+A' + btob64(msg + k.sign(msg)))) # only € currently supported !
     db.close()
 
 def buyig (node, ig):
@@ -1432,22 +1433,32 @@ def index(d, env, cm64='', prc=0):
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
     o1 = '<ul><li><a title="moins de 2000 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i></li>'
     o1 += '<li>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i></li>' 
-    o1 += '<li><form method="post">Consultez un de vos comptes :<br/><input class="txt" name="cm" placeholder="...ID"/></form></li></ul>\n'
-    if cm64 == '' and 'HTTP_COOKIE' in env: cm64 = env['HTTP_COOKIE'][3:]
+    o1 += '<li><form method="post">Consultez un compte :<br/><input class="txt" pattern="\S+" required="yes" name="cm" placeholder="...ID"/><input class="txt" pattern="\S+" required="yes" name="alias" placeholder="Alias"/><input type="submit" value="ok"/></form></li></ul>\n'
+    alias = ''
+    if 'HTTP_COOKIE' in env:
+        o1 += '<ol>'
+        for x in env['HTTP_COOKIE'].split(';'):
+            t = x.split('=')
+            if t[1] == cm64:
+                alias = t[0]
+            o1 += '<li><a href="./?%s" title="%s">%s</a></li>' % (t[1], t[1], t[0])
+        o1 += '</ol>'
+        o1 += '<p><form method="post"><input type="submit" name="rem" value="Effacer les cookies"/></form></p>\n'
     cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
         rpt, bal = report(d, cm)
         rpt1, bal1 = report_cup(d, cm)
-        o += '<h1 title="Effacer le cookie pour changer d\'ID">Compte:&nbsp;<b class="green"><b class="mono">%s</b></b></h1>' % cm64
+        o += '<h1>Compte:&nbsp;<b class="green">%s&nbsp;&nbsp;&nbsp;<b class="mono">%s</b></b></h1>' % (alias, cm64)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €"%s/></form>' % v
         o += '<h1>Solde:&nbsp;&nbsp;&nbsp;<b class="green">%7.2f&nbsp;€&nbsp;&nbsp;%7d&nbsp;⊔</b></h1>' % (bal/100, bal1) + rpt + rpt1
         da = btob64(cm) + ':%d' % prc if prc else ''
         o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
-        o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>' 
+        o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>'
     else:
         o += o1
+    #o += '<p>%s</p>' % (env['HTTP_COOKIE'] if 'HTTP_COOKIE' in env else 'NONE')
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s %s Auth:%s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
 
@@ -1468,7 +1479,7 @@ def dashboard(d, env):
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
     o += '<table><tr><th>Compte</th><th>Solde</th><th>dette</th></tr>'
     for u in d['pub'].keys():
-        o += '<tr><td class="mono">%s</td><td class="num">%7.2f&nbsp;€</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (btob64(u), nblc(d, u)/100, ndebt(d, u)/100 ) 
+        o += '<tr><td><a class="mono" href="./?%s">%s</a></td><td class="num">%7.2f&nbsp;€</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (btob64(u), btob64(u), nblc(d, u)/100, ndebt(d, u)/100 ) 
     o += '</table>'
     o += '<table><tr><th>Certificat</th><th>Date</th><th>Dette maxi</th></tr>'
     for c in d['crt'].keys():
@@ -1526,6 +1537,20 @@ def dashboard(d, env):
                 o += '<tr><td class="mono">certificat</td></tr>'
                 #del d['crt'][c]
     o += '</table>'
+    atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
+    return o + footer('%s %s Auth:%s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
+
+def alias(d, env):
+    "_"
+    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
+    o += '<form method="post"><table><tr><th>Compte</th><th>Alias</th></tr>'
+    for u in d['pub'].keys():
+        cm = btob64(u)
+        o += '<tr><td><a class="mono" href="./?%s">%s</a></td><td><input name="%s" value="%s"/></td></tr> ' % (cm, cm, cm, '') 
+    o += '</table>'
+    o += '<input type="submit" value="enregistrer dans un cookie"/><form>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s %s Auth:%s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
 
@@ -1668,24 +1693,6 @@ def valid_trx(d, r):
             return True
     return False
 
-"""
-PROTOCOL: POST
-
-1/REGISTER PUBLIC KEY
-  @<pubkey[132]>
-2/REGISTER IG
-  &<hurl[10]><src[9]><date[4]><val(xi,pi,pf,rs)[8]><signature[132]>
-3/BUY €
-  +<currency><date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
-4/BUY IG
-  *<nb[4]><refig[10]><src[9]><date[4]><signature[132]>
-5/GET POSITION
-  !<hurl[0,10]>
-  return hurl[10]:nb
-6/Get BALANCE
-  ?<src>
-"""
-
 def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname, port = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
@@ -1698,6 +1705,12 @@ def application(environ, start_response):
     if way == 'post':
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
         if arg == 'PEERS': o = '%s' % {x.decode('utf8'): d['prs'][x].decode('utf8') for x in d['prs'].keys()}
+        elif arg == 'rem=Effacer les cookies':
+            for x in environ['HTTP_COOKIE'].split(';'):
+                t = x.split('=')
+                ncok.append(('set-cookie', '%s=no;expires=Thu, 01 Jan 1970 00:00:00 GMT' % t[0]))            
+            del environ['HTTP_COOKIE']
+            o, mime = index(d, environ), 'text/html; charset=utf-8'
         elif reg(re.match(r'(TRX|CRT|PUB|IGS)', arg)):
             li, la, db = eval(urllib.parse.unquote(arg[3:])), {}, reg.v.group(1).lower()
             # not used for for pushing! 
@@ -1712,12 +1725,16 @@ def application(environ, start_response):
             prc = int(float(re.sub(',', '.', reg.v.group(3)))*100)
             r = capture_id(d, reg.v.group(2))
             o, mime = index(d, environ, r, prc), 'text/html; charset=utf-8'
-        elif re.match('cm=\S{1,12}$', arg):
-            r = capture_id(d, arg[3:])
-            if r: 
-                ncok.append(('set-cookie', 'cm=%s' % r))
-                environ['HTTP_COOKIE'] = 'cm=%s' % r
-                o, mime = index(d, environ), 'text/html; charset=utf-8'
+        elif reg(re.match('cm=(\S{1,12})&alias=(\S+)$', arg)):
+            r = capture_id(d, reg.v.group(1))
+            ok = True
+            if r:
+                if 'HTTP_COOKIE' in environ:
+                    for x in environ['HTTP_COOKIE'].split(';'):
+                        t = x.split('=')
+                        if reg.v.group(2) == t[0] or r == t[1]: ok = False
+                if ok: ncok.append(('set-cookie', '%s=%s' % (reg.v.group(2), r)))
+                o, mime = index(d, environ, r), 'text/html; charset=utf-8'
             else:
                 o += 'Id not found! |%s|' % arg 
         elif reg(re.match('([^:]+):(\d+)$', arg)):
@@ -1729,7 +1746,7 @@ def application(environ, start_response):
             o = r if r != None else 'IG not found!' 
         elif re.match('\S{1,12}$', arg):
             r = capture_id(d, arg)
-            o = r if r else 'Id not found!' 
+            o = r if r else 'Id not found! |%s|' % arg 
         elif re.match('@\S{174,176}$', arg): 
             if valid_pub(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
@@ -1747,7 +1764,7 @@ def application(environ, start_response):
             l2 = environ.get('wsgi.post_form').read()
             o = 'OK upload %s %s %s' % (arg, len(arg), l2)
         else: o += 'not valid args |%s| %s' % (arg, len(arg))
-    else:
+    else: # get
         if base == 'peers': # propagation
             fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
             for p in d['prs'].keys(): li.update(peers_req(p.decode('utf8')))
@@ -1755,6 +1772,7 @@ def application(environ, start_response):
             #diff_dbs(d, port)
         elif base == '_update': o, mime = app_update(environ['SERVER_NAME']), 'text/html; charset=utf-8'
         elif base == 'dashboard': o, mime = dashboard(d, environ), 'text/html; charset=utf-8'
+        elif base == 'alias': o, mime = alias(d, environ), 'text/html; charset=utf-8'
         elif base == 'upload': o, mime = upload(environ), 'text/html; charset=utf-8'
         elif reg(re.match('(\S+)\.png$', base)): 
             mime, o = 'image/png', open('/%s/%s_%s/%s.png' % (__app__, __app__, port, reg.v.group(1)), 'rb').read()
@@ -1975,19 +1993,53 @@ def forex():
             print (c, round(toto/t[c]/10/R, 10))
     dr.close()
 
+def usage():
+    """node.py [options]
+- no argument
+list current valid ids, * sign after the currently selected one
+- one argument
+'usage': this page
+'add': add a new id (not registered)
+'reg': register unregistered ids
+<dbfile>: read the content of the db file
+<ig_id>: buy this intangible good
+- two arguments
+'host' <host_name>: select current host
+'user' <user_id_substring>: select current id. The substring shall be unique.
+'currency' <new_currency>: select local currency (default is €)
+<seller_id> <amount>: send to the seller such amount (default is € currency 
+\n\n
+PROTOCOL: POST\n
+1/REGISTER PUBLIC KEY
+  @<pubkey[132]>
+2/REGISTER IG
+  &<hurl[10]><src[9]><date[4]><val(xi,pi,pf,rs)[8]><signature[132]>
+3/BUY €
+  +<currency><date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
+4/BUY IG
+  *<nb[4]><refig[10]><src[9]><date[4]><signature[132]>
+5/GET POSITION
+  !<hurl[0,10]>
+  return hurl[10]:nb
+6/Get BALANCE
+  ?<src>
+"""
+    print (usage.__doc__)
+
 if __name__ == '__main__':
-    simulate()
+    #simulate()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
         list_local_ids()
     elif len(sys.argv) == 2:
-        if sys.argv[1] == 'add': add_local_id()
+        if sys.argv[1] == 'usage': usage()
+        elif sys.argv[1] == 'add': add_local_id()
         elif sys.argv[1] == 'reg': register(node)
         elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1])
         else: buyig(node, sys.argv[1]) 
     elif len(sys.argv) == 3:
-        if sys.argv[1] in ('host', 'user'): set(sys.argv[1], sys.argv[2])
+        if sys.argv[1] in ('host', 'user', 'curreny'): set(sys.argv[1], sys.argv[2])
         elif re.match('[\d\.\,]+', sys.argv[2]): 
             buy(node, sys.argv[1], int(float(sys.argv[2])*100)) # €
         elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1], True)
