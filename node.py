@@ -1075,7 +1075,7 @@ def favicon():
 
 def header():
     "_"
-    o = '<a href="%s"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % (__url__, get_image('www/header.png'))
+    o = '<a href="./"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % (get_image('www/header.png'))
     return o + '<p class="alpha" title="still in security test phase!">Beta</p>'
 
 def get_image(img):
@@ -1430,9 +1430,8 @@ def index(d, env, cm64='', prc=0):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
-    o1 = '<ul><li><a title="moins de 2000 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i></li>'
-    o1 += '<li>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i></li>' 
-    o1 += '<li><form method="post">Consultez un compte :<br/><input class="txt" pattern="\S+" required="yes" name="cm" placeholder="...ID"/><input class="txt" pattern="\S+" required="yes" name="alias" placeholder="Alias"/><input type="submit" value="ok"/></form></li></ul>\n'
+    #o1 = '<a title="moins de 2000 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i><br/>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i>' 
+    o1 = '<p>Consultez un compte :<form method="post"><input class="txt" pattern="\S+" required="yes" name="cm" placeholder="...ID"/><input class="txt" pattern="\S+" required="yes" name="alias" placeholder="...alias"/><input type="submit" value="ok"/></form></p>\n'
     alias = ''
     if 'HTTP_COOKIE' in env:
         o1 += '<ol>'
@@ -1447,7 +1446,7 @@ def index(d, env, cm64='', prc=0):
     if cm in d['pub']:
         rpt, bal = report(d, cm)
         rpt1, bal1 = report_cup(d, cm)
-        o += '<h1>Compte:&nbsp;<b class="green">%s&nbsp;&nbsp;&nbsp;<b class="mono">%s</b></b></h1>' % (alias, cm64)
+        o += '<h1>Compte:&nbsp;<b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (alias, cm64)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €"%s/></form>' % v
@@ -1733,7 +1732,9 @@ def application(environ, start_response):
                     for x in environ['HTTP_COOKIE'].split(';'):
                         t = x.split('=')
                         if reg.v.group(2) == t[0] or r == t[1]: ok = False
-                if ok: ncok.append(('set-cookie', '%s=%s' % (reg.v.group(2), r)))
+                if ok:
+                    xprs = time.time() + 100 * 24 * 3600 # 100 days from now
+                    ncok.append(('set-cookie', '%s=%s;expires=%s GMT' % (reg.v.group(2), r, time.strftime('%a, %d-%b-%Y %T', time.gmtime(xprs)))))
                 o, mime = index(d, environ, r), 'text/html; charset=utf-8'
             else:
                 o += 'Id not found! |%s|' % arg 
