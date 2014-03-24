@@ -108,6 +108,17 @@ def hcode(m, s=10):
     "_"
     return (hashlib.sha1(m.encode('utf8')).digest())[:s]
 
+def valencode(xi, p1, pf):
+    "xi:7/p1:17/pf:32"
+    assert (p1 <= pf or xi==0) and xi<=100 and p1<(1<<17) and pf<(1<<32)
+    return i2b((xi<<49) + (p1<<32) + pf, 7)
+
+def valdecode(code):
+    "xi:7/p1:17/pf:32"
+    e = int.from_bytes(code, 'big')
+    return ((e>>49) & 0x7F), ((e>>32) & 0x1FFFF), (e & 0xFFFFFFFF)
+
+### OLD
 def valencode1(xi, p1, pf):
     "xi:7/p1:15/pf:26"
     assert (p1 <= pf or xi==0) and xi<=100 and p1<(1<<15) and pf<(1<<26)
@@ -118,12 +129,12 @@ def valdecode1(code):
     e = int.from_bytes(code, 'big')
     return ((e>>41) & 0x7F), ((e>>26) & 0x7FFF), (e & 0x3FFFFFF)
 
-def valencode(xi, rs, p1, pf):
+def valencode2(xi, rs, p1, pf):
     "xi:7/rs:4/p1:18/pf:27"
     assert (p1 <= pf or xi==0) and xi<=100 and p1<(1<<18) and pf<(1<<27)
     return i2b((xi<<49) + (rs<<45) + (p1<<27) + pf, 7)
 
-def valdecode(code):
+def valdecode2(code):
     "xi:7/rs:4/p1:18/pf:27"
     e = int.from_bytes(code, 'big')
     return ((e>>49) & 0x7F), ((e>>45) & 0xF), ((e>>27) & 0x3FFFF), (e & 0x7FFFFFF)
@@ -962,18 +973,19 @@ def buy(node, rid, prc, m=''):
 
 def buyig (node, ig):
     "_"
-    hig, db, k = btob64(hcode(ig)), dbm.open('keys'), ecdsa()
-    print (hig)
-    res = send(node, '!%s' % hig)
+    db, k = dbm.open('keys'), ecdsa()
+    print ('buyig', ig)
+    res = send(node, '!%s' % ig)
+    print (res)
     if reg(re.match(r'([^:]+):(\d+)$', res)): rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
     else: return 'error'
-    #print ('nb:', b2i(nb), btob64(rig))
+    print ('nb:', b2i(nb), btob64(rig))
     src = db['user']
     prv, pub = db[src][132:], db[src][:132]
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
     print ('...please wait')
     k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), rig + src + datencode()
-    print (send(node, '*' + btob64(msg + k.sign(msg))))
+    #print (send(node, '*' + btob64(msg + k.sign(msg))))
     #res = send(node, ig + ':%s' % b2i(nb))
     #print (res) # ici
     #if res != 'Error:': 
@@ -984,8 +996,7 @@ def buyig (node, ig):
     #else: print (res)
     db.close()
 
-def buyig_old (node, ig):
-    "_"
+def old_buyig(node, ig):
     hig, db, k = btob64(hcode(node+'/publish/'+ig)), dbm.open('keys'), ecdsa()
     print (hig)
     res = send(node, '!%s' % hig)
@@ -1014,8 +1025,7 @@ def postig(node, xi, p1, pf):
     prv, pub = db[src][132:], db[src][:132]
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
     url = input('url? ')
-    rs = 4 # tmp!
-    msg = hcode(url) + src + datencode() + valencode(xi, rs, p1, pf)
+    msg = hcode(url) + src + datencode() + valencode(xi, p1, pf)
     print ('...please wait')
     k.privkey = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest()))
     print (send(node, '&' + btob64(msg + k.sign(msg))))
@@ -1029,25 +1039,16 @@ def register(node):
             print (send(node, '@' + btob64(db[x][:132])))
     db.close()
 
-def debt(base, cm):
-    "_"
-    du, dc, dbt = dbm.open(base+'pub'), dbm.open(base+'crt'), 0
-    if cm in dc:
-        root, k = dc[b'_'], ecdsa()
-        k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
-        if is_after(dc[cm][:4], datencode()): dbt = b2i(dc[cm][4:12]) if k.verify(dc[cm][12:], cm + dc[cm][:12]) else 0
-    du.close(), dc.close()
-    return dbt
+def is_future(da):
+    return int(time.mktime(time.gmtime())) < b2i(da)
 
-def ndebt(d, cm):
+def debt(d, cm):
     "_"
     du, dc, dbt = d['pub'], d['crt'], 0
     if cm in dc:
-        #root, k = dc[b'_'], ecdsa()
-        #k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
-        #if is_after(dc[cm][:4], datencode()): 
-        #if k.verify(dc[cm][12:], cm + dc[cm][:12]):
-        dbt = b2i(dc[cm][4:12])
+        root, k = dc[b'_'], ecdsa()
+        k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
+        if is_future(dc[cm][:4]) and k.verify(dc[cm][12:], cm + dc[cm][:12]): dbt = b2i(dc[cm][4:12])
     return dbt
 
 def is_active(cm):
@@ -1139,6 +1140,16 @@ def report_cup(d, cm):
     else:
         o += '<th class="num"><b>%7d&nbsp;⊔</b></th><th></th></tr>' % (bal)
     return o + '</table>\n', bal
+
+def report_ig(d, cm):
+    "_"
+    di, o, found = d['igs'], '<table><tr><th>IG Auteur</th><th>Date</th><th>Prix</th><th>N</th></tr>', False
+    for i in di.keys():
+        if di[i][:9] == cm:
+            found, src, dat = True, btob64(di[i][:9]), datdecode(di[i][9:13])
+            xi, p1, pf = valdecode(di[i][13:20])
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (btob64(i), dat, p1, pf, xi, (len(di[i])-151)//9)
+    return o + '</table>' if found else ''
 
 def balance(base, cm):
     "_"
@@ -1427,6 +1438,7 @@ def bank(d, env):
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
 
 def index(d, env, cm64='', prc=0):
+    "_"
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
@@ -1450,8 +1462,11 @@ def index(d, env, cm64='', prc=0):
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €"%s/></form>' % v
-        o += '<h1>Solde:&nbsp;&nbsp;&nbsp;<b class="green">%7.2f&nbsp;€&nbsp;&nbsp;%7d&nbsp;⊔</b></h1>' % (bal/100, bal1) + rpt + rpt1
+        dbt = debt(d, cm)
+        if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d €</b></h1>' % dbt
+        o += '<h1>Solde:&nbsp;<b class="green">%7.2f&nbsp;€&nbsp;&nbsp;&nbsp;%7d&nbsp;⊔</b></h1>' % (bal/100, bal1) + rpt + rpt1
         da = btob64(cm) + ':%d' % prc if prc else ''
+        o += report_ig(d, cm)
         o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
         o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>'
     else:
@@ -1466,7 +1481,7 @@ def stat(d):
 
 def get_price(digs, ig, i):
     "_"
-    xi, rs, p1, pf = valdecode(digs[ig][13:20])
+    xi, p1, pf = valdecode(digs[ig][13:20])
     k = ((pf-p1)/(pf-2*p1))**(xi/100)
     return int((pf+(p1-pf)/k**i)/(i+1))
 
@@ -1475,23 +1490,23 @@ def dashboard(d, env):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
-    o += '<table><tr><th>Compte</th><th>Solde</th><th>dette</th></tr>'
+    o += '<table><tr><th>Compte</th><th>Solde</th><th>Dette</th></tr>'
     for u in d['pub'].keys():
-        o += '<tr><td><a class="mono" href="./?%s">%s</a></td><td class="num">%7.2f&nbsp;€</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (btob64(u), btob64(u), nblc(d, u)/100, ndebt(d, u)/100 ) 
+        o += '<tr><td><a class="mono" href="./?%s">%s</a></td><td class="num">%7.2f&nbsp;€</td><td class="num">%9d&nbsp;€</td></tr> ' % (btob64(u), btob64(u), nblc(d, u)/100, debt(d, u) ) 
     o += '</table>'
-    o += '<table><tr><th>Certificat</th><th>Date</th><th>Dette maxi</th></tr>'
+    o += '<table><tr><th>Certificat</th><th>Date</th><th>Dette</th></tr>'
     for c in d['crt'].keys():
         if len(c) == 9:
             dat, dbt = datdecode(d['crt'][c][:4]), b2i(d['crt'][c][4:12])
-            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%7.2f&nbsp;€</td></tr>' % (btob64(c), dat, dbt)
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%9d&nbsp;€</td></tr>' % (btob64(c), dat, dbt)
         else:
             o += '<tr><td class="mono">%s</td><td colspan="2">Autorité</td></tr>' % btob64(d['crt'][c])
     o += '</table>'
-    o += '<table><tr><th>IG</th><th>Autheur</th><th>Date</th><th>Prix</th><th>N</th></tr>'
+    o += '<table><tr><th>IG</th><th>Auteur</th><th>Date</th><th>Prix</th><th>N</th></tr>'
     for i in d['igs'].keys():
         if len(i) == 10:
             src, dat = btob64(d['igs'][i][:9]), datdecode(d['igs'][i][9:13])
-            xi, rs, p1, pf = valdecode(d['igs'][i][13:20])
+            xi, p1, pf = valdecode(d['igs'][i][13:20])
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (btob64(i), src, dat, p1, pf, xi, (len(d['igs'][i])-151)//9)
         else:
             o += '<tr><td class="mono">%s</td><td colspan="3">Erreur</td></tr>' % btob64(d['igs'][i])
@@ -1597,7 +1612,7 @@ def publish(d, dr, env, ign, pos):
         hig = hcode('%s/publish/%s' % (env['SERVER_NAME'], ign))
         if hig in d['igs']:
             src, dat, nb = d['igs'][hig][:9], datdecode(d['igs'][hig][9:13]), (len(d['igs'][hig])-151)//9
-            xi, rs, p1, pf = valdecode(d['igs'][hig][13:20])
+            xi, p1, pf = valdecode(d['igs'][hig][13:20])
             o += '<p>Code IG: %s</p>' % btob64(hig)
             o += '<p>ID autheur: %s</p>' % btob64(src)
             o += '<p>Date de publication: %s</p>' % dat
@@ -1668,7 +1683,6 @@ def valid_big(d, r):
     return False
 
 def old_valid_big(d, r):
-    "_"
     k, nb, hig, kk, src, dat, msg, sig = ecdsa(), r[:4], r[4:14], r[:14], r[14:23], r[23:27], r[:27], r[27:]
     if src in d['pub'] and hig in d['igs']:
         k.pt, ssrc = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'&'+src
@@ -1685,7 +1699,7 @@ def valid_trx(d, r):
     u, dat, src, v, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:22], r[22:25], r[:-132], r[-132:], ecdsa()
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
-        if nblc(d, src) + ndebt(d, src) > b2i(prc): 
+        if nblc(d, src) + debt(d, src)*100 > b2i(prc): 
             d['trx'][u] = v + sig
             d['trx'][src] = d['trx'][src] + dat if src in d['trx'] else dat # shortcut
             d['trx'][ddst] = d['trx'][ddst] + u if ddst in d['trx'] else u  # shortcut
@@ -1998,17 +2012,19 @@ def usage():
     """node.py [options]
 - no argument
 list current valid ids, * sign after the currently selected one
-- one argument
+- 1 argument:
 'usage': this page
 'add': add a new id (not registered)
 'reg': register unregistered ids
 <dbfile>: read the content of the db file
 <ig_id>: buy this intangible good
-- two arguments
+- 2 arguments:
 'host' <host_name>: select current host
 'user' <user_id_substring>: select current id. The substring shall be unique.
 'currency' <new_currency>: select local currency (default is €)
-<seller_id> <amount>: send to the seller such amount (default is € currency 
+<seller_id> <amount>: send to the seller such amount (default is € currency) 
+- 3 arguments:
+'<xi> <pi> <pf>': create an IG with speed parameter xi, initial price pi and expected income pf
 \n\n
 PROTOCOL: POST\n
 1/REGISTER PUBLIC KEY
