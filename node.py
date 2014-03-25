@@ -1128,10 +1128,16 @@ def report_cup(d, cm):
         if len(t) == 13:
             src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
             if cm == dst and cry == b'B':
-                #o += '<tr><td>%s</td><td>%s</td><td>%d</td></tr>' % (datdecode(t[:4]), btob64(src), prc)
                 dat = datdecode(t[:4])
                 t1, bal = '<td class="num">%7d&nbsp;⊔</td>' % prc, bal+prc 
                 tmp.append((t[:4], '<td class="num">%s</td>%s<td>Retrait</td><td class="mono">%s</td>%s%s</tr>' % (dat, typ, btob64(src), empty, t1)))
+    for t in dt.keys(): # bank deposit
+        if len(t) == 13:
+            src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
+            if cm == src and cry == b'B':
+                dat = datdecode(t[:4])
+                t1, bal = '<td class="num">%7d&nbsp;⊔</td>' % prc, bal-prc 
+                tmp.append((t[:4], '<td class="num">%s</td>%s<td>Retrait</td><td class="mono">%s</td>%s%s</tr>' % (dat, typ, btob64(dst), t1, empty)))
     for t in dt.keys(): # bought IG
         if len(t) == 14 and cm == dt[t][:9]:
             src, dst, prc, ig = dt[t][:9], dt[t][:9], real_price(di, t[4:], b2i(t[:4])), t[4:]
