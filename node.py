@@ -959,16 +959,16 @@ def get_host():
     db.close()
     return host.decode('utf8')
 
-def buy(node, rid, prc, currency='A'):
-    "A->€ B->⊔ C->£ D->$"
+def buy(node, rid, prc, cry=b'A'):
+    "A->€ (default) B->⊔ C->£ D->$"
     db, k, dat = dbm.open('keys'), ecdsa(), datencode()
     src, dst = db['user'], get_unique(db, rid)
     prv, pub = db[src][132:], db[src][:132]
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
     m = input('Message (20 chars maxi)? ')
     print ('...please wait')
-    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
-    print (send(node, '+' + currency + btob64(msg + k.sign(msg)))) # only € currently supported !
+    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
+    print (send(node, '+' + btob64(msg + k.sign(msg)))) 
     db.close()
 
 def buyig (node, ig):
@@ -1097,14 +1097,14 @@ def report(d, cm):
         o += '<tr><th></th><th>%s</th><th colspan="3">Ancien solde</th><th></th><th class="num">%s&nbsp;€</th></tr>' % (datdecode(dar), (bal/100))
     for t in dt.keys():
         if len(t) == 13 and (dar==None or is_after(t[:4], dar)):
-            src, dst, prc = t[4:], dt[t][:9], b2i(dt[t][9:12])
-            if cm in (dst, src):
+            src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
+            if cm in (dst, src) and cry == b'A':
                 if src == cm: 
                     one, t1, t2, bal = dst, '<td class="num">%7.2f&nbsp;€</td>' % (prc/100), '<td></td>', bal-prc 
                 else: 
                     one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f&nbsp;€</td>' % (prc/100), bal+prc
                 typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>'
-                desc = dt[t][12:-132].decode('utf8')
+                desc = dt[t][13:-132].decode('utf8')
                 tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), desc, t1, t2)))
     for i, (d, x) in enumerate(sorted(tmp)): o += '<tr><td class="num">%03d</td>' % (i+1) + x
     o += '<tr><th colspan="2">%s</th><th colspan="3"><b>Nouveau solde</b></th>' % datdecode(datencode())
@@ -1124,6 +1124,14 @@ def report_cup(d, cm):
             dat, prc = datdecode(di[t][9:13]), real_income(di, t)
             t1, bal = '<td class="num">%7d&nbsp;⊔</td>' % prc, bal+prc 
             tmp.append((di[t][9:13], '<td class="num">%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td class="mono">%s</td>%s%s</tr>' % (dat, typ, btob64(t), btob64(t), btob64(cm), empty, t1)))
+    for t in dt.keys(): # bank funding
+        if len(t) == 13:
+            src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
+            if cm == dst and cry == b'B':
+                #o += '<tr><td>%s</td><td>%s</td><td>%d</td></tr>' % (datdecode(t[:4]), btob64(src), prc)
+                dat = datdecode(t[:4])
+                t1, bal = '<td class="num">%7d&nbsp;⊔</td>' % prc, bal+prc 
+                tmp.append((t[:4], '<td class="num">%s</td>%s<td>Retrait</td><td class="mono">%s</td>%s%s</tr>' % (dat, typ, btob64(src), empty, t1)))
     for t in dt.keys(): # bought IG
         if len(t) == 14 and cm == dt[t][:9]:
             src, dst, prc, ig = dt[t][:9], dt[t][:9], real_price(di, t[4:], b2i(t[:4])), t[4:]
@@ -1138,13 +1146,17 @@ def report_cup(d, cm):
         o += '<th class="num"><b>%7d&nbsp;⊔</b></th><th></th></tr>' % (bal)
     return o + '</table>\n', bal
 
-def balance_cup(d, cm):
+def blc_cup(d, cm):
     "_"
     dt, di, bal = d['trx'], d['igs'], 0
-    for t in di.keys(): # created IG
+    for t in di.keys(): # created IG (+)
         if di[t][:9] == cm: bal += real_income(di, t)
-    for t in dt.keys(): # bought IG
+    for t in dt.keys(): # bought IG (-)
         if len(t) == 14 and cm == dt[t][:9]: bal -= real_price(di, t[4:], b2i(t[:4]))
+    for t in dt.keys(): # bank funding (+)
+        if len(t) == 13 and cm == dt[t][1:10] and dt[t][:1] == b'B': bal += b2i(dt[t][10:13])
+    for t in dt.keys(): # bank deposit (-)
+        if len(t) == 13 and cm == t[4:] and dt[t][:1] == b'B': bal -= b2i(dt[t][10:13])
     return bal
 
 def report_ig(d, cm):
@@ -1157,7 +1169,7 @@ def report_ig(d, cm):
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (btob64(i), dat, p1, pf, xi, (len(di[i])-151)//9)
     return o + '</table>' if found else ''
 
-def balance(base, cm):
+def old_balance(base, cm): # revoir
     "_"
     du, dt, dc, bal, k = dbm.open(base+'pub'), dbm.open(base+'trx'), dbm.open(base+'crt'), 0, ecdsa()
     z, root, dar = b'%'+cm, dc[b'_'], None
@@ -1182,8 +1194,8 @@ def nblc(d, cm):
     #if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
     if z in dc: dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
     for t in dt.keys():
-        if (len(t) == 13) and (dar==None or is_after(t[:4], dar)):
-            src, dst, prc = t[4:], dt[t][:9], b2i(dt[t][9:12])
+        if (len(t) == 13) and dt[t][:1] == b'A' and (dar==None or is_after(t[:4], dar)):
+            src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
             #k.pt = Point(c521, b2i(du[src][:66]), b2i(du[src][66:]+src))
             if (src == cm or dst == cm):# and k.verify(dt[t][12:], t + dt[t][:12]):
                 if src == cm: bal -= prc
@@ -1469,7 +1481,7 @@ def index(d, env, cm64='', prc=0):
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €"%s/></form>' % v
         dbt = debt(d, cm)
-        if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d €</b></h1>' % dbt
+        if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d</b></h1>' % dbt
         o += '<h1>Solde:&nbsp;<b class="green">%7.2f&nbsp;€&nbsp;&nbsp;&nbsp;%7d&nbsp;⊔</b></h1>' % (bal/100, bal1) + rpt + rpt1
         da = btob64(cm) + ':%d' % prc if prc else ''
         o += report_ig(d, cm)
@@ -1496,9 +1508,9 @@ def dashboard(d, env):
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
-    o += '<table><tr><th>Compte</th><th>Solde</th><th>Dette</th></tr>'
+    o += '<table><tr><th>Compte</th><th>Solde&nbsp;€</th><th>Solde&nbsp;⊔</th><th>Dette</th></tr>'
     for u in d['pub'].keys():
-        o += '<tr><td><a class="mono" href="./?%s">%s</a></td><td class="num">%7.2f&nbsp;€</td><td class="num">%9d&nbsp;€</td></tr> ' % (btob64(u), btob64(u), nblc(d, u)/100, debt(d, u) ) 
+        o += '<tr><td><a class="mono" href="./?%s">%s</a></td><td class="num">%7.2f&nbsp;€</td><td class="num">%9d&nbsp;⊔</td><td class="num">%9d</td></tr> ' % (btob64(u), btob64(u), nblc(d, u)/100, blc_cup(d, u), debt(d, u) ) 
     o += '</table>'
     o += '<table><tr><th>Certificat</th><th>Date</th><th>Dette</th></tr>'
     for c in d['crt'].keys():
@@ -1520,9 +1532,10 @@ def dashboard(d, env):
     o += '<table><tr><th>Trans. src</th><th>Date</th><th>Destinataire</th><th>Message</th><th>Montant</th></tr>'
     for t in d['trx'].keys():
         if len(t) == 13:
-            dat, src, dst, val = datdecode(t[:4]), btob64(t[4:13]), btob64(d['trx'][t][:9]), b2i(d['trx'][t][9:12])/100
-            desc = d['trx'][t][12:-132].decode('utf8')
-            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td>%s</td><td class="num">%7.2f&nbsp;€</td></tr> ' % (src, dat, dst, desc, val)
+            dat, src, cry, dst, val = datdecode(t[:4]), btob64(t[4:13]), d['trx'][t][:1], btob64(d['trx'][t][1:10]), b2i(d['trx'][t][10:13])
+            desc = d['trx'][t][13:-132].decode('utf8')
+            value = '%9d&nbsp;⊔' % val if cry == b'B' else '%7.2f&nbsp;€' % (val/100)
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td>%s</td><td class="num">%s</td></tr> ' % (src, dat, dst, desc, value)
     o += '</table>'
     o += '<table><tr><th>Trans. src</th><th>Date</th><th>No</th><th>IG</th><th>Destinataire</th><th>Montant</th></tr>'
     for t in d['trx'].keys():
@@ -1539,7 +1552,7 @@ def dashboard(d, env):
     #for i in d['igs'].keys(): del d['igs'][i]
     for t in d['trx'].keys():
         if len(t) == 13:
-            src, dst, msg, sig = t[4:], d['trx'][t][:9], t + d['trx'][t][:-132], d['trx'][t][-132:]
+            src, cry, dst, msg, sig = t[4:], d['trx'][t][:1], d['trx'][t][1:10], t + d['trx'][t][:-132], d['trx'][t][-132:]
             k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
             if src in d['pub'] and dst in d['pub'] and src != dst:
                 if not k.verify(sig, msg): 
@@ -1680,8 +1693,7 @@ def valid_big(d, r):
     k, hig, src, dat, msg, sig = ecdsa(), r[:10], r[10:19], r[19:23], r[:23], r[23:]
     if src in d['pub'] and hig in d['igs']:
         k.pt, ssrc = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'&'+src
-        if max_price(d['igs'], hig) <= balance_cup(d, src) and k.verify(sig, msg): 
-        #if k.verify(sig, msg): # temporary !
+        if max_price(d['igs'], hig) <= blc_cup(d, src) and k.verify(sig, msg): 
             nb = i2b((len(d['igs'][hig]) - 151)//9, 4)
             d['trx'][nb + hig] = src + dat + sig
             d['igs'][hig] += src 
@@ -1691,7 +1703,7 @@ def valid_big(d, r):
 
 def valid_trx(d, r):
     "_"
-    u, dat, src, v, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:22], r[22:25], r[:-132], r[-132:], ecdsa()
+    u, dat, src, v, cry, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:14], r[14:23], r[23:26], r[:-132], r[-132:], ecdsa()
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
         if nblc(d, src) + debt(d, src)*100 > b2i(prc): 
@@ -1776,14 +1788,10 @@ def application(environ, start_response):
             if valid_ig(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New IG registered [%s]' % len(d['igs'])
             else: o += 'IG already registered!'
         elif re.match('\*\S{207}$', arg): 
-            if valid_big(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New ⊔ transaction recorded [%s]' % len(d['trx'])
+            if valid_big(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New IG(⊔) transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid ig transaction !'
-        elif re.match('\+A\S{210,236}$', arg): 
-            #if valid_trx(d, b64tob(bytes(arg[2:], 'ascii'))) : o = 'New € transaction recorded [%s]' % len(d['trx'])
-            if valid_trx1(d, b64tob(bytes(arg[1:], 'ascii'))) : o = 'New € transaction recorded [%s]' % len(d['trx'])
-            else: o += 'not valid transaction !'
-        elif re.match('\+B\S{210,236}$', arg): 
-            if valid_trx_cup(d, b64tob(bytes(arg[2:], 'ascii'))) : o = 'New cup transaction recorded [%s]' % len(d['trx'])
+        elif re.match('\+\S{211,237}$', arg): 
+            if valid_trx(d, b64tob(bytes(arg[1:], 'ascii'))) : o = 'New transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid transaction !'
         elif arg[:10] == '-'*10:
             l2 = environ['wsgi.input'].read()
@@ -1948,7 +1956,8 @@ def real_price(digs, ig, l):
 def real_income(digs, ig):
     "_"
     xi, p1, pf = valdecode(digs[ig][13:20])
-    i = (len(digs[ig]) - 151)//9 -1
+    if (len(digs[ig]) - 151)//9 == 0: return 0
+    i = (len(digs[ig]) - 151)//9 - 1
     if xi == 0:
         p, r, t = int(p1/(i+1)), 0, round(p1)
         if p == 0:
@@ -1999,6 +2008,7 @@ def price(p1, pf, xi, i):
 def max_price(digs, ig):
     "just for balance checking"
     xi, p1, pf = valdecode(digs[ig][13:20])
+    if (len(digs[ig]) - 151)//9 == 0: return p1
     i = (len(digs[ig]) - 151)//9 -1
     if xi == 0:
         p = int(p1/(i+1))
@@ -2147,7 +2157,7 @@ if __name__ == '__main__':
         elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1], True)
     elif len(sys.argv) == 4: # IG registration
         if sys.argv[3] == 'cup':            
-            buy(node, sys.argv[1], int(sys.argv[2]), 'B') # ⊔
+            buy(node, sys.argv[1], int(sys.argv[2]), b'B') # ⊔
         else:
             postig(node, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
     sys.exit()    
