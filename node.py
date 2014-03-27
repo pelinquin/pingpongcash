@@ -39,7 +39,6 @@ __dfprt__  = 80
 __base__   = '/%s/%s_%s/' % (__app__,__app__,__dfprt__)
 __ppc__    = 'pingpongcash'
 __email__  = 'info@%s.fr' % __ppc__
-__url__    = 'http://%s.fr' % __ppc__
 
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 _b58char   = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
@@ -2046,7 +2045,7 @@ __curset__ = {'USD':870, 'EUR':334, 'JPY':230, 'GBP':118, 'AUD':86,
 
 def forex():
     " "
-    now, ytd, db, y, h, res = '%s' % datetime.datetime.now(), '%s' % (datetime.datetime.now() - datetime.timedelta(days=1)), '/%s/rates' %__app__, {}, {}, {}
+    now, ytd, db, y, h = '%s' % datetime.datetime.now(), '%s' % (datetime.datetime.now() - datetime.timedelta(days=1)), '/%s/rates' %__app__, {}, {}
     dr, s1, s2 = dbm.open(db, 'c'), __curset__['USD'], __curset__['USD']
     cu, co = datetime.datetime(2014, 1, 1), http.client.HTTPConnection('currencies.apps.grandtrunk.net')
     while cu < datetime.datetime.now():
@@ -2059,34 +2058,7 @@ def forex():
                     h[c] = float(co.getresponse().read())
             dr[cc[:10]] = '%s' % h
         cu += datetime.timedelta(days=1)
-    cu, first = datetime.datetime(2014, 1, 1), True
-    R = 1
-    while cu < datetime.datetime.now():
-        cc, s1, s2 = '%s' % cu, 1, 1
-        h = eval(dr[cc[:10]])
-        if first:
-            toto = h['EUR']
-            h['KUP'], first = .1, False
-        else:
-            for c in __curset__:
-                if c != 'USD':
-                    s1 += h[c]/y[c]*__curset__[c]
-                    s2 += h[c]*h[c]/y[c]/y[c]*__curset__[c]            
-            h['KUP'] = y['KUP']*s1/s2
-            R *= s1/s2
-        #print (cc, round(h['KUP'], 10))
-        y = h
-        cu += datetime.timedelta(days=1)
-    #
-    fnow = ('%s' % now)[:10] 
-    t = eval(dr[fnow])
-    for c in __curset__:
-        if c == 'USD': 
-            res['USD'] = round(toto/10/R, 10)
-        else:
-            res[c] = round(toto/t[c]/10/R, 10)
     dr.close()
-    return res
 
 def forex_read():
     " "
@@ -2162,7 +2134,7 @@ if __name__ == '__main__':
     #simulate()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
-        print (forex_read())
+        forex()
         list_local_ids()
     elif len(sys.argv) == 2:
         if sys.argv[1] == 'usage': usage()
