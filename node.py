@@ -1163,36 +1163,20 @@ def report_ig(d, cm):
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (btob64(i), dat, p1, pf, xi, (len(di[i])-152)//9)
     return o + '</table>' if found else ''
 
-def old_balance(base, cm): # revoir
-    "_"
-    du, dt, dc, bal, k = dbm.open(base+'pub'), dbm.open(base+'trx'), dbm.open(base+'crt'), 0, ecdsa()
-    z, root, dar = b'%'+cm, dc[b'_'], None
-    k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
-    if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
-    for t in dt.keys():
-        if dar==None or is_after(t[:4], dar):
-            src, dst, prc = t[4:], dt[t][:9], b2i(dt[t][9:12])
-            k.pt = Point(c521, b2i(du[src][:66]), b2i(du[src][66:]+src))
-            if (src == cm or dst == cm) and k.verify(dt[t][12:], t + dt[t][:12]):
-                if src == cm: bal -= prc
-                if dst == cm: bal += prc 
-    du.close(), dt.close(), dc.close()
-    return bal
-
-def blc_cup(d, cm):
-    "_"
+def blc(d, cm, cry=b'A'):
+    "balance for both   or cup"
     dt, di, bal = d['trx'], d['igs'], 0
-    for t in di.keys(): # created IG (+)
-        if di[t][:9] == cm: bal += real_income(di, t)
-    for t in dt.keys(): # bought IG (-)
-        if len(t) == 14 and cm == dt[t][:9]: bal -= real_price(di, t[4:], b2i(t[:4]))
-    for t in dt.keys(): # bank funding (+)
-        if len(t) == 13 and cm == dt[t][1:10] and dt[t][:1] == b'B': bal += b2i(dt[t][10:13])
-    for t in dt.keys(): # bank deposit (-)
-        if len(t) == 13 and cm == t[4:] and dt[t][:1] == b'B': bal -= b2i(dt[t][10:13])
+    if cry == b'B':
+        for t in di.keys(): 
+            if di[t][:9] == cm: bal += real_income(di, t) # created IG (+)
+    for t in dt.keys(): 
+        if len(t) == 14 and cm == dt[t][:9]: bal -= real_price(di, t[4:], b2i(t[:4])) # bought IG (-)
+        elif len(t) == 13 and dt[t][:1] == cry:
+            if cm == dt[t][1:10]: bal += b2i(dt[t][10:13]) # bank funding (+)
+            if cm == t[4:]:       bal -= b2i(dt[t][10:13]) # bank deposit (-)
     return bal
 
-def blc(d, cm):
+def blc_old(d, cm):
     "_"
     du, dt, dc, bal = d['pub'], d['trx'], d['crt'], 0
     z, root, dar, k = b'%'+cm, dc[b'_'], None, ecdsa()
@@ -1506,7 +1490,7 @@ def dashboard(d, env):
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
     o += '<table><tr><th>Compte</th><th>Solde&nbsp;€</th><th>Solde&nbsp;⊔</th><th>Dette</th></tr>'
     for u in d['pub'].keys():
-        o += '<tr><td><a class="mono" href="./?%s">%s</a></td><td class="num">%7.2f&nbsp;€</td><td class="num">%9d&nbsp;⊔</td><td class="num">%9d</td></tr> ' % (btob64(u), btob64(u), blc(d, u)/100, blc_cup(d, u), debt(d, u) ) 
+        o += '<tr><td><a class="mono" href="./?%s">%s</a></td><td class="num">%7.2f&nbsp;€</td><td class="num">%9d&nbsp;⊔</td><td class="num">%9d</td></tr> ' % (btob64(u), btob64(u), blc(d, u)/100, blc(d, u, b'B'), debt(d, u) ) 
     o += '</table>'
     o += '<table><tr><th>Certificat</th><th>Date</th><th>Dette</th></tr>'
     for c in d['crt'].keys():
@@ -1688,7 +1672,7 @@ def valid_big(d, r):
     k, hig, src, dat, msg, sig = ecdsa(), r[:10], r[10:19], r[19:23], r[:23], r[23:]
     if src in d['pub'] and hig in d['igs']:
         k.pt, ssrc = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'&'+src
-        if max_price(d['igs'], hig) <= blc_cup(d, src) and k.verify(sig, msg): 
+        if max_price(d['igs'], hig) <= blc(d, src, b'B') and k.verify(sig, msg): 
             nb = i2b((len(d['igs'][hig]) - 152)//9, 4)
             d['trx'][nb + hig] = src + dat + sig
             d['igs'][hig] += src 
@@ -1701,9 +1685,7 @@ def valid_trx(d, r):
     u, dat, src, v, cry, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:14], r[14:23], r[23:26], r[:-132], r[-132:], ecdsa()
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
-        bl = blc(d, src) if cry == b'A' else blc_cup(d, src)
-        if ((cry == b'B' and src in d['crt']) or cry == b'A') and (bl + debt(d, src, cry) > b2i(prc)):
-        #open('/tmp/toto', 'w').write('%s ' % blc(d, src))
+        if ((cry == b'B' and src in d['crt']) or cry == b'A') and (blc(d, src, cry) + debt(d, src, cry) > b2i(prc)):
             d['trx'][u] = v + sig
             d['trx'][src] = d['trx'][src] + dat if src in d['trx'] else dat # shortcut
             d['trx'][ddst] = d['trx'][ddst] + u if ddst in d['trx'] else u  # shortcut
