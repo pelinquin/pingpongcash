@@ -32,6 +32,7 @@
 #-----------------------------------------------------------------------------
 
 import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, random, getpass
+import PyQt4.QtGui # only for GUI
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:10]
 __app__    = os.path.basename(__file__)[:-3]
@@ -1064,7 +1065,7 @@ def is_active(cm):
 
 def style_html(bg=True):
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:220;}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:1;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:2pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{color:#AAA;font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}text{font-size:18pt;}'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:1;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:2pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{color:#AAA;font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}text{font-size:18pt;}'
     if bg:
         o += 'body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}' 
     return o + '</style>'
@@ -1140,7 +1141,7 @@ def report_cup(d, cm):
                 tmp.append((t[:4], '<td class="num">%s</td>%s<td>Financement</td><td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (dat, typ, btob64(dst), btob64(dst), t1, empty)))
     for t in dt.keys(): # bought IG
         if len(t) == 14 and cm == dt[t][:9]:
-            src, dst, prc, ig = dt[t][:9], dt[t][:9], real_price(di, t[4:], b2i(t[:4])), t[4:]
+            src, dst, prc, ig = dt[t][:9], dt[t][:9], price(di, t[4:], b2i(t[:4])), t[4:]
             t1, bal = '<td class="num">%7d&nbsp;⊔</td>' % prc, bal-prc 
             auth, dat = di[ig][:9], datdecode(dt[t][9:13])
             tmp.append((dt[t][9:13], '<td class="num">%s</td>%s<td class="mono">%s</td><td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (dat, typ, btob64(ig), btob64(auth), btob64(auth), t1, empty)))
@@ -1170,7 +1171,7 @@ def blc(d, cm, cry=b'A'):
         for t in di.keys(): 
             if di[t][:9] == cm: bal += real_income(di, t) # created IG (+)
     for t in dt.keys(): 
-        if len(t) == 14 and cm == dt[t][:9]: bal -= real_price(di, t[4:], b2i(t[:4])) # bought IG (-)
+        if len(t) == 14 and cm == dt[t][:9]: bal -= price(di, t[4:], b2i(t[:4])) # bought IG (-)
         elif len(t) == 13 and dt[t][:1] == cry:
             if cm == dt[t][1:10]: bal += b2i(dt[t][10:13]) # bank funding (+)
             if cm == t[4:]:       bal -= b2i(dt[t][10:13]) # bank deposit (-)
@@ -1382,15 +1383,15 @@ def simu(d, env, p1, pi, xi, graph=False):
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html(False) + header()
     if graph: o += '<script>' + jscript() + '</script>'
-    o += '<p><form>'
+    o += '<p><form><table>'
     if graph:
         dp1, dpf, dxi = 'value="%s"' % p1, 'value="%s"' % pi, 'value="%s"' % xi
     else:
-        dp1, dpf, dxi = 'placeholder="Prix initial"', 'placeholder="Revenu attendu"', 'placeholder="Vitesse"'
-    o += '<input id="p1" class="simu" pattern="[0-9]+" name="p" title="(⊔)" %s>' % dp1
-    o += '<input id="pf" class="simu" pattern="[0-9]+" name="f" title="(⊔)" %s>' % dpf
-    o += '<input id="xi" class="simu" pattern="[0-9]{1,3}" name="x" title="(0%%-100%%)" %s>' % dxi
-    o += '<input type="submit" value="Calculer"></form></p>'
+        dp1, dpf, dxi = 'placeholder="⊔"', 'placeholder="⊔"', 'placeholder="%"'
+    o += '<tr><td>Prix initial</td><td><input id="p1" class="simu" pattern="[0-9]+" name="p" title="(⊔)" %s></td></tr>' % dp1
+    o += '<tr><td>Revenu attendu</td><td><input id="pf" class="simu" pattern="[0-9]+" name="f" title="(⊔)" %s></td></tr>' % dpf
+    o += '<tr><td>Vitesse</td><td><input id="xi" class="simu" pattern="[0-9]{1,3}" name="x" title="(0%%-100%%)" %s></td></tr>' % dxi
+    o += '</table><input type="submit" value="Calculer"></form></p>'
     if graph:
         o += '<p>Nb*(Prix+1) + (N°acheteur-Nb)*Prix = Revenu auteur(s) [⊔]</p>\n'
         o += '<p class="note">Sélectionnez le nombre d\'acheteurs avec le pointeur ou avec les touches "gauche"/"droite"</p>\n'
@@ -1399,7 +1400,11 @@ def simu(d, env, p1, pi, xi, graph=False):
         o += '<svg %s id="svg1" width="100%%" height="320">\n' % (_SVGNS)
         o += '<rect x="%s" y="%s" width="700" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
         o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
-        for i in range(5): o += '<text id="t%d" y="%d"></text>' % (i, 50 + 30*i)
+        for i in range(5):
+            if i == 1: sty = ' style="fill:blue"'
+            elif i in (2,3): sty = ' style="fill:red"'
+            else: sty = ''
+            o += '<text id="t%d" y="%d"%s></text>' % (i, 50 + 30*i, sty)
         for i in range(0, pi, pi//100):
             pr, tau = fprice(p1, pi, xi, i, True)
             l1 += 'L%s,%s' % (dx + i*700/pi, 300+dy - tau*300/pi)
@@ -1477,12 +1482,6 @@ def stat(d):
     "_"
     return '[%d:%d:%d:%d]' % (len(d['pub']), len(d['crt']), len(d['igs']), len(d['trx']))
 
-def get_price(digs, ig, i):
-    "_"
-    xi, p1, pf = valdecode(digs[ig][13:20])
-    k = ((pf-p1)/(pf-2*p1))**(xi/100)
-    return int((pf+(p1-pf)/k**i)/(i+1))
-
 def dashboard(d, env):
     "_"
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
@@ -1522,7 +1521,7 @@ def dashboard(d, env):
         if len(t) == 14:
             nb, ig, hig, src, dat = b2i(t[:4]), t[4:], btob64(t[4:14]), btob64(d['trx'][t][:9]), datdecode(d['trx'][t][9:13])
             dst = btob64(d['igs'][ig][:9])
-            prc = get_price(d['igs'], ig, nb)
+            prc = price(d['igs'], ig, nb)
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%05d</td><td class="mono">%s</td><td class="mono">%s</td><td class="num">%d&nbsp;⊔</td></tr> ' % (src, dat, nb, hig, dst, prc)
     o += '</table>'
     o += '<table><tr><th>Errors</th></tr>'
@@ -1618,7 +1617,7 @@ def publish(d, dr, env, ign, pos):
             o += '<p>Revenu cumulé maximum escompté: %d&nbsp;⊔</p>' % pf
             o += '<p>Paramètre de vitesse: %d%%</p>' % xi
             o += "<p>Nombre d'acheteurs: %6d</p>" % nb
-            o += "<p><b>Prochain Prix %7.2f&nbsp;⊔</b></p>" % next_price(d['igs'], hig, nb+1)
+            o += "<p><b>Prochain Prix %7.2f&nbsp;⊔</b></p>" % price(d['igs'], hig, 0, True)
             o += "<p><b>Revenu courant %7.2f&nbsp;⊔</b></p>" % real_income(d['igs'], hig)
             if pos != None and int(pos)<=nb and int(pos)>0:
                 ign2 = '%s/publish/%s' % (env['SERVER_NAME'], ign)
@@ -1672,7 +1671,7 @@ def valid_big(d, r):
     k, hig, src, dat, msg, sig = ecdsa(), r[:10], r[10:19], r[19:23], r[:23], r[23:]
     if src in d['pub'] and hig in d['igs']:
         k.pt, ssrc = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'&'+src
-        if max_price(d['igs'], hig) <= blc(d, src, b'B') and k.verify(sig, msg): 
+        if price(d['igs'], hig, 0, True) <= blc(d, src, b'B') and k.verify(sig, msg): 
             nb = i2b((len(d['igs'][hig]) - 152)//9, 4)
             d['trx'][nb + hig] = src + dat + sig
             d['igs'][hig] += src 
@@ -1848,12 +1847,6 @@ def simulate():
     print ('%d⊔ %s  %s%%' % (p1, pi, xi))
     M = 0
     for i in range(3000):
-        #p, t, x, r = price(p1, pi, xi, i)
-        #dr = '' if r == 0 else ' + %d' %r
-        #s1 = '' if i+1 == x else '%d*%d' % (i+1-x, p+1)
-        #s2 = '' if x == 0 else '%d*%d' % (x, p) 
-        #s = '%s + %s' %(s1, s2) if (s1 and s2) else s1 if s1 else s2    
-        #print (i+1, '[%s = %d%s]' % (s, t, dr))
         print (i+1, fprice(p1, pi, xi, i, False))
     sys.exit()
 
@@ -1889,10 +1882,13 @@ def fprice(p1, pf, xi, i, disp=False):
     else:
         return '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x+r, p+1, x-r, p, t+r)
 
-def real_price(digs, ig, l):
+def price2(digs, ig, l, nxt=False):
     "_"
     xi, p1, pf = valdecode(digs[ig][13:20])
-    i = (len(digs[ig]) - 152)//9 -1
+    i = (len(digs[ig]) - 152)//9 - 1
+    if nxt==True: 
+        l = i
+        i -= 1
     if xi == 0:
         p, r, t = int(p1/(i+1)), 0, round(p1)
         if p == 0:
@@ -1920,10 +1916,11 @@ def real_price(digs, ig, l):
             if j+1-y == pf: break
     return p+1 if l<=i-x+r else p
 
-def next_price(digs, ig, l):
+def price(digs, ig, l, nxt=False):
     "_"
     xi, p1, pf = valdecode(digs[ig][13:20])
-    i = (len(digs[ig]) - 152)//9
+    i = (len(digs[ig]) - 152)//9 if nxt else (len(digs[ig]) - 152)//9 - 1
+    if nxt: l = i
     if xi == 0:
         p, r, t = int(p1/(i+1)), 0, round(p1)
         if p == 0:
@@ -1982,40 +1979,6 @@ def real_income(digs, ig):
                 break
             if j+1-y == pf: break
     return t+r
-
-def price(p1, pf, xi, i):
-    "_"
-    k = ((pf-p1)/(pf-2*p1))**(xi/100)
-    ta = (pf+(p1-pf)/k**i)
-    p, t = int(ta/(i+1)), round(ta)
-    x, j, r = (i+1)*(p+1)-t, i, 0
-    while True:
-        j+=1
-        ta1 = (pf+(p1-pf)/k**j)
-        pr1, t1 = int(ta1/(j+1)), round(ta1)
-        y = (j+1)*(pr1+1)-t1
-        if p != pr1: break
-        if j+x >= r+y+i: r = j-y-i+x
-        else: break
-        if x<r: 
-            r = x
-            break
-        if j+1-y == pf: break
-    return p, t, x-r, r
-
-def max_price(digs, ig):
-    "just for balance checking"
-    xi, p1, pf = valdecode(digs[ig][13:20])
-    if (len(digs[ig]) - 152)//9 == 0: return p1
-    i = (len(digs[ig]) - 152)//9 -1
-    if xi == 0:
-        p = int(p1/(i+1))
-    else:
-        if xi>100: xi = 100
-        k = ((pf-p1)/(pf-2*p1))**(xi/100)
-        ta = (pf+(p1-pf)/k**i)
-        p = int(ta/(i+1))
-    return p+1
 
 def get_random_ibank(dc):
     for x in dc.keys():
@@ -2112,8 +2075,37 @@ PROTOCOL: POST\n
 """
     print (usage.__doc__)
 
+def gui():
+    app = PyQt4.QtGui.QApplication(sys.argv)
+    win = PyQt4.QtGui.QWidget()
+    lcmb = PyQt4.QtGui.QLabel('ID', win)
+    wcmb = PyQt4.QtGui.QComboBox(win)
+    if os.path.isfile('keys'):
+        db = dbm.open('keys', 'c')
+        for x in db.keys(): 
+            if len(x) == 9: wcmb.addItem(btob64(x))
+        db.close()
+    ldst = PyQt4.QtGui.QLabel('Destinataire', win)
+    wdst = PyQt4.QtGui.QLineEdit(win)
+    lprc = PyQt4.QtGui.QLabel('Prix', win)
+    wprc = PyQt4.QtGui.QLineEdit(win)
+    wbut = PyQt4.QtGui.QPushButton('Envoyer', win)
+    # 
+    wcmb.move(140, 10)
+    lcmb.move(10,  15)
+    wdst.move(140, 50)
+    ldst.move(10,  55)
+    wprc.move(140, 90)
+    lprc.move(10,  95)
+    wbut.move(220,  440)
+    win.setWindowTitle('PingPongCash')
+    win.setGeometry(50, 50, 320, 480)
+    win.show()
+    app.exec_()
+
 if __name__ == '__main__':
     #simulate()
+    #gui()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
