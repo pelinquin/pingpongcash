@@ -1018,7 +1018,7 @@ def old_buyig(node, ig):
     else: print (res)
     db.close()
 
-def postig(node, xi, p1, pf):
+def postig(node, p1, pf, xi):
     "_"
     db, k = dbm.open('keys'), ecdsa()
     src = db['user']
@@ -1028,7 +1028,7 @@ def postig(node, xi, p1, pf):
     msg = hcode(url) + src + datencode() + valencode(xi, p1, pf)
     print ('...please wait')
     k.privkey = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest()))
-    print (send(node, '&' + btob64(msg + k.sign(msg))))
+    print (send(node, '&' + btob64(msg + k.sign(msg)) + url))
     db.close()
 
 def register(node):
@@ -1120,11 +1120,12 @@ def report_cup(d, cm):
     du, dt, dc, di, bal, o = d['pub'], d['trx'], d['crt'], d['igs'], 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>IG</th><th>Référence</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, n , tmp = b'%'+cm, dc[b'_'], 0, []
     typ, empty = '<td title="particulier ou commerçant">part.</td>', '<td></td>'
-    for t in di.keys(): # created IG
-        if di[t][:9] == cm:
-            dat, prc = datdecode(di[t][9:13]), real_income(di, t)
+    for i in di.keys(): # created IG
+        if di[i][:9] == cm and len(i) == 10:
+            url = d['igs'][b'%'+i]
+            dat, prc = datdecode(di[i][9:13]), real_income(di, i)
             t1, bal = '<td class="num">%7d&nbsp;⊔</td>' % prc, bal+prc 
-            tmp.append((di[t][9:13], '<td class="num">%s</td>%s<td class="mono">%s</td><td class="mono">%s</td>%s%s</tr>' % (dat, typ, btob64(t), btob64(cm), empty, t1)))
+            tmp.append((di[i][9:13], '<td class="num">%s</td>%s<td><a href="%s" class="mono">%s</a></td><td class="mono">%s</td>%s%s</tr>' % (dat, typ, url.decode('utf8'), btob64(i), btob64(cm), empty, t1)))
     for t in dt.keys(): # bank funding
         if len(t) == 13:
             src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
@@ -1153,15 +1154,15 @@ def report_cup(d, cm):
         o += '<th class="num"><b>%7d&nbsp;⊔</b></th><th></th></tr>' % (bal)
     return o + '</table>\n', bal
 
-
 def report_ig(d, cm):
     "_"
     di, o, found = d['igs'], '<table><tr><th>IG</th><th>Date</th><th>F-prix</th><th>Nb</th></tr>', False
     for i in di.keys():
-        if di[i][:9] == cm:
+        if di[i][:9] == cm and len(i) == 10:
+            url = d['igs'][b'%'+i]
             found, src, dat = True, btob64(di[i][:9]), datdecode(di[i][9:13])
             xi, p1, pf = valdecode(di[i][13:20])
-            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (btob64(i), dat, p1, pf, xi, (len(di[i])-152)//9)
+            o += '<tr><td><a href="%s" class="mono">%s</a></td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (url.decode('utf8'), btob64(i), dat, p1, pf, xi, (len(di[i])-152)//9)
     return o + '</table>' if found else ''
 
 def blc(d, cm, cry=b'A'):
@@ -1171,7 +1172,7 @@ def blc(d, cm, cry=b'A'):
         for t in di.keys(): 
             if di[t][:9] == cm: bal += real_income(di, t) # created IG (+)
     for t in dt.keys(): 
-        if len(t) == 14 and cm == dt[t][:9]: bal -= price(di, t[4:], b2i(t[:4])) # bought IG (-)
+        if len(t) == 14 and cry==b'B' and cm == dt[t][:9]: bal -= price(di, t[4:], b2i(t[:4])) # bought IG (-)
         elif len(t) == 13 and dt[t][:1] == cry:
             if cm == dt[t][1:10]: bal += b2i(dt[t][10:13]) # bank funding (+)
             if cm == t[4:]:       bal -= b2i(dt[t][10:13]) # bank deposit (-)
@@ -1502,11 +1503,10 @@ def dashboard(d, env):
     o += '<table><tr><th>IG</th><th>Auteur</th><th>Date</th><th>Prix</th><th>N</th></tr>'
     for i in d['igs'].keys():
         if len(i) == 10:
+            url = d['igs'][b'%'+i]
             src, dat = btob64(d['igs'][i][:9]), datdecode(d['igs'][i][9:13])
             xi, p1, pf = valdecode(d['igs'][i][13:20])
-            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (btob64(i), src, dat, p1, pf, xi, (len(d['igs'][i])-152)//9)
-        else:
-            o += '<tr><td class="mono">%s</td><td colspan="3">Erreur</td></tr>' % btob64(d['igs'][i])
+            o += '<tr><td><a class="mono" href="http://%s">%s</a></td><td class="num">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (url.decode('utf8'), btob64(i), src, dat, p1, pf, xi, (len(d['igs'][i])-152)//9)
     o += '</table>'
     o += '<table><tr><th>Trans. src</th><th>Date</th><th>Destinataire</th><th>Message</th><th>Montant</th></tr>'
     for t in d['trx'].keys():
@@ -1526,7 +1526,9 @@ def dashboard(d, env):
     o += '</table>'
     o += '<table><tr><th>Errors</th></tr>'
     su =  sum([blc(d, u) for u in d['pub'].keys()])     
-    if su != 0: o += '<tr><td class="mono">%s</td></tr> ' % su
+    if su != 0: o += '<tr><td class="mono">Balance: %s €</td></tr> ' % (su/100)
+    su =  sum([blc(d, u, b'B') for u in d['pub'].keys()])     
+    if su != 0: o += '<tr><td class="mono">Balance: %s ⊔</td></tr> ' % (su)
     k = ecdsa()
     #for i in d['igs'].keys(): del d['igs'][i]
     for t in d['trx'].keys():
@@ -1656,13 +1658,14 @@ def valid_pub(d, pub):
         return True
     return False
 
-def valid_ig(d, dig):
+def valid_ig(d, dig, url):
     "_"
     k, h, src, r, msg, sig = ecdsa(), dig[:10], dig[10:19], dig[10:], dig[:30], dig[30:]
     k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
     if h not in d['igs']:
         if k.verify(sig, msg):
             d['igs'][h] = r
+            d['igs'][b'%'+h] = url
             return True
     return False
 
@@ -1674,7 +1677,7 @@ def valid_big(d, r):
         if price(d['igs'], hig, 0, True) <= blc(d, src, b'B') and k.verify(sig, msg): 
             nb = i2b((len(d['igs'][hig]) - 152)//9, 4)
             d['trx'][nb + hig] = src + dat + sig
-            d['igs'][hig] += src 
+            d['igs'][hig] += src
             d['trx'][ssrc] = d['trx'][ssrc] + hig if ssrc in d['trx'] else hig # shortcut
             return True
     return False
@@ -1750,8 +1753,8 @@ def application(environ, start_response):
         elif re.match('@\S{174,176}$', arg): 
             if valid_pub(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
-        elif re.match('&\S{216}$', arg): 
-            if valid_ig(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New IG registered [%s]' % len(d['igs'])
+        elif re.match('&\S{216}', arg): 
+            if valid_ig(d, b64tob(bytes(arg[1:217], 'ascii')), arg[217:]): o = 'New IG registered [%s]' % len(d['igs'])
             else: o += 'IG already registered!'
         elif re.match('\*\S{207}$', arg): 
             if valid_big(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New IG(⊔) transaction recorded [%s]' % len(d['trx'])
