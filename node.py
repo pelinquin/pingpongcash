@@ -984,12 +984,9 @@ def buyig (node, ig):
     db, k = dbm.open('keys'), ecdsa()
     src = db['user']
     prv, pub = db[src][132:], db[src][:132]
-    #print ('buyig', ig)
     res = send(node, '!%s' % ig)
-    print (res)
-    if reg(re.match(r'([^:]+):(\d+)$', res)): rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
-    else: return 'error'
-    print ('ig complet:', btob64(rig))
+    if res == '': return 'error'
+    rig = b64tob(bytes(res, 'ascii'))
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
     print ('...please wait')
     k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), rig + src + datencode()
@@ -1001,28 +998,6 @@ def buyig (node, ig):
     #    toto = send_get(node, url)
     #    open('toto.pdf', 'wb').write(toto)
     #else: print (res)
-    db.close()
-
-def old_buyig(node, ig):
-    hig, db, k = btob64(hcode(node+'/publish/'+ig)), dbm.open('keys'), ecdsa()
-    print (hig)
-    res = send(node, '!%s' % hig)
-    if reg(re.match(r'([^:]+):(\d+)$', res)): rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
-    else: return 'error'
-    src = db['user']
-    prv, pub = db[src][132:], db[src][:132]
-    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
-    print ('...please wait')
-    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), nb + rig + src + datencode()
-    print (send(node, '*' + btob64(msg + k.sign(msg))))
-    res = send(node, ig + ':%s' % b2i(nb))
-    print (res) # ici
-    if res != 'Error:': 
-        url = k.decrypt(b64tob(bytes(res, 'ascii'))).decode('ascii')
-        print ('http://%s/%s' % (node, url))
-        toto = send_get(node, url)
-        open('toto.pdf', 'wb').write(toto)
-    else: print (res)
     db.close()
 
 def postig(node, p1, pf, xi):
@@ -1079,12 +1054,12 @@ def style_html(bg=True):
 
 def style():
     "_"
-    return '<style>@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1{font-size:64pt;text-align:center;font-family:Schoolbell}div,body{margin:0}p{font-family:arial;font-size:16pt;text-align:center;margin:0;margin-top:5}.page{position:relative;padding-top:60;padding-bottom:20}.aa{background-color:#00FF00;color:#FFFFFF}.bb{background-color:#00FFFF;color:#FF0000}.cc{background-color:#FFFF00;color:#0000FF}.dd{background-color:#EEEEEE;color:#555555}.foot{background-color:#555555;color:#CCCCCC}.note{font-family:arial;font-size:8pt;margin:0;margin-left:20;text-align:left}a{color:DodgerBlue;text-decoration:none}a.id{font-family:"Lucida Concole",Courier;font-weight:bold;color:White;text-decoration:none;background:black;padding:5;border-radius:7px}.header{position:fixed;top:0;left:10;margin:0;color:white}</style>'
+    return '<style>@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1{font-size:64pt;text-align:center;font-family:Schoolbell}div,body{margin:0}p{font-family:arial;font-size:16pt;text-align:center;margin:0;margin-top:5}.page{position:relative;padding-top:60;padding-bottom:20}.aa{background-color:#22AA22;color:#FFFFFF}.bb{background-color:#22AAAA;color:#AA2222}.cc{background-color:#EEEE22;color:#2222AA}.dd{background-color:#AAEEEE;color:#555555}.foot{background-color:#555555;color:#CCCCCC}.note{font-family:arial;font-size:8pt;margin:0;margin-left:20;text-align:left}a{color:DodgerBlue;text-decoration:none}a.id{font-family:"Lucida Concole",Courier;font-weight:bold;color:White;text-decoration:none;background:black;padding:5;border-radius:7px}.header{position:fixed;top:0;left:10;margin:0;color:white}</style>'
 
 def ibank():
     "_"
-    o = '<div class="page dd"><h1>1- Créez un ID</h1><p>Par sécurité, un identifiant (ID) n\'est jamais créé en ligne mais toujours localement, de préférence déconecté du réseau</p><p><a href="zzzz">Téléchargez</a> pour cela l\'application gratuite. Choisissez un mot de passe et ne le communiquez à personne</p><p>Vous pouvez créer autant d\'IDs que vous le desirez, leur solde initial est toujours nul</p><p> Ne faites confiance à personne, même pas à nous ! Inspectez notre <a href="dsd">code</a></p><p>————</p><p><i>Nous créditons sur votre demande 1€ et 1⊔ pour tester l\'application<sup>1</sup></i></p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> offre limitée à un crédit par individu et pour un compte créé en 2014...la communication de votre nom est nécessaire seulement pour éviter les doublons.</p><p class="note">&nbsp;&nbsp;&nbsp;La base de donnée qui lie votre nom à votre ID n\'est pas accessible en ligne. Nous pouvons effacer ce lien si vous nous remboursez cet euro.</p></div><div class="page aa"><h1>2- Provisionnez</h1><p>Nous n\'utilisons que les virements <a href="http://fr.wikipedia.org/wiki/Single_Euro_Payments_Area">SEPA</a> (€)</p><p>Effectuez un virement<sup>1</sup> de la somme que vous désirez sur le compte bancaire:</p><p><b>CUP-FOUNDATION</b> <i>BIC</i>: CMCIFR2A <i>IBAN</i>: <b>FR76 1027 8022 3300 0202 8350 157</b> <i>ID</i>: <a class="id" href="dsds">IbankVBixRIm</a></p><p>N\'oubliez pas d\'indiquer en message l\'ID de votre compte à créditer</p><p>Ce compte sera provisioné sous moins de 24 heures</p><p>————</p><p>Aucune commission n\'est retenue, ni à l\'achat, ni à la vente</p><p>Les comptes ne sont pas rémunérés et jamais débiteurs</p><p>Indiquez nous si vous désirez des ⊔<sup>2</sup> à la place des €</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> Vous pouvez aussi fournir un de vos ID à vos débiteurs pour régler directement sur ce compte.</p><p class="note"><sup>2</sup> La conversion € vers ⊔ ou de ⊔ vers € est soumise à une TVA de 3,5% reversée au Trésor-Public. Le taux de change nominal est consultable <a href="df">ici</a></p></div><div class="page bb"><h1>3- Echangez</h1><p>Tous les échanges sont possibles tant que le solde reste positif</p><p>Echangez entre vos comptes, sans limite</p><p>Echangez aussi avec des tiers qui possèdent un ID<sup>1</sup></p><p>Achetez des biens immatériels culturels et vendez vos créations numériques, en ⊔<sup>2</sup></p><p>Consultez à tout moment vos soldes et opérations sur <a href="hh">Internet</a></p><p>————</p><p>Si vous désirez vous retirer, transmettez nous votre IBAN et créditez du solde l\'ID <a class="id" href="dsddd">IbankVBixRIm</a></p> <p>Le virement SEPA sera effectué sous 24 heures</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> insitez vos contacts à créer leur propre ID. Nous ne faisons aucune publicité.</p><p class="note"><sup>2</sup> Les échanges directs en ⊔ entre personnes ne sont pas autorisés, seulement avec une <b>i-Bank</b>.</p><p class="note"><sup>3</sup> Nous proposerons en 2015 de chèques électronique et de billets électronique à usage unique.</p></div><div class="page cc"><h1>Une question ?</h1><h1>⥥</h1><p>Pas d\'hésitation, contactez nous !</p><p>————————</p><h2>&nbsp;</h2></div><div class="page foot"><p>Contact: <a href="mailto:laurent.fournier@cupfoundation.net">⊔Foundation</a>&nbsp;&nbsp;&nbsp;<i>SIREN:</i> 399 661 602 00025&nbsp;&nbsp;&nbsp;<i>Tel:</i> 06 19 29 14 85</p><p>&nbsp;</p></div><h1 class="header"><a class="header" href="http://cupfoundation.net">⊔</a></h1>'
-    return '<html>%s<meta charset="utf-8"/>%s</html>' % (style(), o)
+    o = '<div class="page dd"><h1>1- Créez un ID</h1><p>Par sécurité, un identifiant (ID) n\'est jamais créé en ligne mais toujours localement<sup>1</sup></p><p><a href="zzzz">Téléchargez</a> pour cela l\'application gratuite. Choisissez un mot de passe et ne le communiquez à personne</p><p>Vous pouvez créer autant d\'IDs que vous le desirez, leur solde initial est toujours nul</p><p> Ne faites confiance à personne, même pas à nous ! Inspectez notre <a href="dsd">code</a></p><p>————</p><p><i>Nous créditons sur votre demande 1€ et 1⊔ pour tester l\'application<sup>2</sup></i></p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> de préférence déconnecté du réseau.</p><p class="note"><sup>2</sup> offre limitée à un crédit par individu et pour un compte créé en 2014...la communication de votre nom est nécessaire seulement pour éviter les doublons.</p><p class="note">&nbsp;&nbsp;&nbsp;La base de donnée qui lie votre nom à votre ID n\'est pas accessible en ligne. Nous pouvons effacer ce lien si vous nous remboursez cet euro.</p></div><div class="page aa"><h1>2- Provisionnez</h1><p>Nous n\'utilisons que les virements <a href="http://fr.wikipedia.org/wiki/Single_Euro_Payments_Area">SEPA</a> (€)</p><p>Effectuez un virement<sup>1</sup> de la somme que vous désirez sur le compte bancaire:</p><p><b>CUP-FOUNDATION</b> <i>BIC</i>: CMCIFR2A <i>IBAN</i>: <b>FR76 1027 8022 3300 0202 8350 157</b> <i>ID</i>: <a class="id" href="dsds">IbankVBixRIm</a></p><p>N\'oubliez pas d\'indiquer en message l\'ID de votre compte à créditer</p><p>Ce compte sera provisioné sous moins de 24 heures</p><p>————</p><p>Aucune commission n\'est retenue, ni à l\'achat, ni à la vente</p><p>Les comptes ne sont pas rémunérés et jamais débiteurs</p><p>Indiquez nous si vous désirez des ⊔<sup>2</sup> à la place des €</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> Vous pouvez aussi fournir un de vos ID à vos débiteurs pour régler directement sur ce compte.</p><p class="note"><sup>2</sup> La conversion € vers ⊔ ou de ⊔ vers € est soumise à une TVA de 3,5% reversée au Trésor-Public. Le taux de change nominal est consultable <a href="df">ici</a></p></div><div class="page bb"><h1>3- Echangez</h1><p>Tous les échanges sont possibles tant que le solde reste positif</p><p>Echangez entre vos comptes, sans limite</p><p>Echangez aussi avec des tiers qui possèdent un ID<sup>1</sup></p><p>Achetez des biens immatériels culturels et vendez vos créations numériques, en ⊔<sup>2</sup></p><p>Consultez à tout moment vos soldes et opérations sur <a href="hh">Internet</a></p><p>————</p><p>Si vous désirez vous retirer, transmettez nous votre IBAN et créditez du solde l\'ID <a class="id" href="dsddd">IbankVBixRIm</a></p> <p>Le virement SEPA sera effectué sous 24 heures</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> insitez vos contacts à créer leur propre ID. Nous ne faisons aucune publicité.</p><p class="note"><sup>2</sup> Les échanges directs en ⊔ entre personnes ne sont pas autorisés, seulement avec une <b>i-Bank</b>.</p><p class="note"><sup>3</sup> Nous proposerons en 2015 de chèques électronique et de billets électronique à usage unique.</p></div><div class="page cc"><h1>Une question ?</h1><h1>⥥</h1><p>Pas d\'hésitation, contactez nous !</p><p>————————</p><h2>&nbsp;</h2></div><div class="page foot"><p>Contact: <a href="mailto:laurent.fournier@cupfoundation.net">⊔Foundation</a>&nbsp;&nbsp;&nbsp;<i>SIREN:</i> 399 661 602 00025&nbsp;&nbsp;&nbsp;<i>Tel:</i> 06 19 29 14 85</p><p>&nbsp;</p></div><h1 class="header"><a class="header" href="http://cupfoundation.net">⊔</a></h1>'
+    return '<?xml version="1.0" encoding="utf8"?>\n<html>%s%s<meta charset="utf-8"/>%s</html>' % (favicon(), style(), o)
 
 def favicon():
     "_"
@@ -1320,8 +1295,7 @@ def capture_ig(d, arg):
     res = []
     for i in d['igs'].keys():
         if re.match(arg, btob64(i)): res.append(i)
-    if len(res) == 1:
-        return '%s:%s' % (btob64(res[0]), (len(d['igs'][res[0]])-152)//9)
+    if len(res) == 1: return btob64(res[0])
     return None
 
 def jscript():
@@ -1438,7 +1412,7 @@ def simu(d, env, p1, pi, xi, graph=False):
 
 def bank(d, env):
     "_"
-    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
     o += '<p class="msg" title="une offre par personne!"><a href="mailto:%s">Contactez nous,</a> nous offrons 1€ + 10⊔ sur tout compte créé avant le 01/09/2014 !</p>' % __email__
@@ -1448,11 +1422,8 @@ def bank(d, env):
     o += '<p>Créez un compte <a class="ppc">PingPong</a> sur votre téléphone portable (iPhone ou Android-Phone).</p><p>Le solde est initialement nul. Pour le créditer:<ul><li>demandez à vos débiteurs de vous rembourser sur votre compte <a class="ppc">PingPong</a> ou,'
     o += '<li>faites un virement SEPA vers notre <i>iBanque</i>: <br/>Nom: CUP-FOUNDATION<br/>BIC: CMCIFR2A <br/>IBAN: FR76 1027 8022 3300 0202 8350 157,<li>ajoutez votre ID en message de virement oubien envoyez-nous un <a href="mailto:%s">email</a> contenant votre ID associé à la référence du virement,<li>nous créditerons votre compte <a class="ppc">PingPong</a> dans la journée (7j/7) dès reception du virement,<li>aucune commission n\'est retenue mais le compte <a class="ppc">PingPong</a> n\'est pas rémunéré.</ul>' % __email__
     o += '<p>Inversement, à tout moment, vous pouvez récuperer toute somme de votre compte <a class="ppc">PingPong</a>,</p><ul><li>faites un paiement vers notre <i>iBanque</i> (ID <b class="mono">%s</b> ou scannez le QRcode) du montant à retirer,<li><a href="mailto:%s">envoyez nous</a> votre IBAN+BIC ainsi que l\'ID de votre compte,<li>dans la journée (7j/7), la somme sera tranférée par virement SEPA au crédit de votre compte bancaire,<li>vous pouvez aussi régler vos créanciers avec le compte <a class="ppc">PingPong</a>,<li>aucune commission n\'est retenue et vous pouvez consulter votre compte depuis n\'importe quel point connecté au Net.</ul><p>Vous pouvez aussi nous demander de convertir des € en ⊔ ou inversement des ⊔ en € au <a href="/rates">taux nominal du jour</a>. Nous ne prenons aucune commission, mais une taxe de 5%% est prélevée pour chaque conversion et le montant de cette taxe est reversée au <i>Trésor Public</i>.</p>' % (bnk, __email__)
-
     o += '<p class="note">Aucune personne autre que vous, muni du téléphone sur lequel vous avez créé un compte, ne peut payer depuis votre compte <a class="ppc">PingPong</a>.<br/>Strictement personne ne peut retrouver votre passphrase si vous la perdez.<br/>A la création de votre compte, pensez à générer un <b>i-chèque</b> vers notre <i>iBanque</i> (%s) du montant que vous estimez vous assurer et gardez le fichier dans un endroit sécurisé, autre que le téléphone.<br/>Si vous perdez ou vous faites voler votre téléphone ou si vous oubliez votre passphrase, <a href="mailto:%s">Envoyez nous</a> l\'ID d\'un nouveau compte créé.<br>Nous créditerons ce nouveau compte dès que vous aurez posté l\'<b>i-chèque</b> de réserve à l\'encaissement.<br/>L\'ancien compte ainsi vidé ne peut plus être débité. Pensez à avertir vos débiteurs du changement de compte car les sommes qui depasseraient le montant de l\'<b>i-chèque</b> de réserve sur le compte perdu ou qui surviendraient après l\'encaissement seraient non récupérables.</p>' % (bnk, __email__)
-
     o += '<p class="note">Pour maintenir la confidentialité de vos comptes, nous <i>iBanque</i> ne pouvons pas associer votre identité à l\'un ou à l\'ensemble de vos comptes. L\'utilisation de plusieurs comptes vous assure un anonymat de vos transactions. Cependant vos débiteurs peuvent vous demander cette association afin qu\'ils puissent prouver devant un tier du remboursement de leur dette à la bonne personne et que vous ne puissiez pas contester ne pas avoir été payé.</p>' 
-
     o += '<div class="qr" title="%s">%s</div>\n' % (bnk, QRCode(bnk, 2).svg(0, 0, 4))
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
@@ -1501,7 +1472,7 @@ def stat(d):
 
 def dashboard(d, env):
     "_"
-    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
     o += '<table><tr><th>Compte</th><th>Solde&nbsp;€</th><th>Solde&nbsp;⊔</th><th>Dette</th></tr>'
@@ -2089,7 +2060,7 @@ def gui():
 
 if __name__ == '__main__':
     #simulate()
-    gui()
+    #gui()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         #forex()
