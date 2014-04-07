@@ -37,7 +37,7 @@ import PyQt4.QtGui # only for GUI
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:10]
 __app__    = os.path.basename(__file__)[:-3]
 __dfprt__  = 80
-__base__   = '/%s/%s_%s/' % (__app__,__app__,__dfprt__)
+__base__   = '/%s/%s_%s/' % (__app__, __app__, __dfprt__)
 __ppc__    = 'pingpongcash'
 __email__  = 'info@%s.fr' % __ppc__
 
@@ -45,6 +45,9 @@ _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 _b58char   = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
 _root_id   = 'AdminJqjFdcY'
 _root_pkey = 'AdMctT3bXbwrTBGkB5eKAG74qIqShRRy1nHa_NWCHsxmKhmZeE_aWgo_S251td8d6C5uti6TymQSSZvhmO1b19pI/AYYPFxkKL_13dnhBGXdFdmDQhQEZZbc1P7GDDrZZwU0FSGuwc53_AxHk1vVRte7bdmhzIcOUMUvO' 
+
+_cur = {'€':b'A', '£':b'P', '$':b'D', '⊔':b'U'}
+
 
 ##### ENCODING #####
 PAD = lambda s:(len(s)%2)*'0'+s[2:]
@@ -395,12 +398,12 @@ class AES:
         return state;
 
     def mixColumn(self, col):
-        mult, cpy = [2,1,1,3], [0]*4
+        mult, cpy = [2, 1, 1, 3], [0]*4
         for i in range(4): cpy[i] = col[i]
-        col[0] = self.g_mult(cpy[0],mult[0]) ^ self.g_mult(cpy[3],mult[1]) ^ self.g_mult(cpy[2],mult[2]) ^ self.g_mult(cpy[1],mult[3])
-        col[1] = self.g_mult(cpy[1],mult[0]) ^ self.g_mult(cpy[0],mult[1]) ^ self.g_mult(cpy[3],mult[2]) ^ self.g_mult(cpy[2],mult[3])
-        col[2] = self.g_mult(cpy[2],mult[0]) ^ self.g_mult(cpy[1],mult[1]) ^ self.g_mult(cpy[0],mult[2]) ^ self.g_mult(cpy[3],mult[3])
-        col[3] = self.g_mult(cpy[3],mult[0]) ^ self.g_mult(cpy[2],mult[1]) ^ self.g_mult(cpy[1],mult[2]) ^ self.g_mult(cpy[0],mult[3])
+        col[0] = self.g_mult(cpy[0], mult[0]) ^ self.g_mult(cpy[3], mult[1]) ^ self.g_mult(cpy[2], mult[2]) ^ self.g_mult(cpy[1], mult[3])
+        col[1] = self.g_mult(cpy[1], mult[0]) ^ self.g_mult(cpy[0], mult[1]) ^ self.g_mult(cpy[3], mult[2]) ^ self.g_mult(cpy[2], mult[3])
+        col[2] = self.g_mult(cpy[2], mult[0]) ^ self.g_mult(cpy[1], mult[1]) ^ self.g_mult(cpy[0], mult[2]) ^ self.g_mult(cpy[3], mult[3])
+        col[3] = self.g_mult(cpy[3], mult[0]) ^ self.g_mult(cpy[2], mult[1]) ^ self.g_mult(cpy[1], mult[2]) ^ self.g_mult(cpy[0], mult[3])
         return col
 	
     def aes_round(self, state, roundKey):
@@ -411,11 +414,11 @@ class AES:
         return state
 	
     def aes_main(self, state, expandedKey, nbrRounds):
-        state, i = self.addRoundKey(state, self.createRoundKey(expandedKey,0)), 1
-        for i in range(1, nbrRounds): state = self.aes_round(state, self.createRoundKey(expandedKey,16*i))
+        state, i = self.addRoundKey(state, self.createRoundKey(expandedKey, 0)), 1
+        for i in range(1, nbrRounds): state = self.aes_round(state, self.createRoundKey(expandedKey, 16*i))
         state = self.subBytes(state)
         state = self.shiftRows(state)
-        state = self.addRoundKey(state, self.createRoundKey(expandedKey,16*nbrRounds))
+        state = self.addRoundKey(state, self.createRoundKey(expandedKey, 16*nbrRounds))
         return state
 	
     def enc(self, iput, key):
@@ -784,10 +787,10 @@ class QRCode:
             k = 0
             for c in range(mc):
                 if self.m[r][c]: k += 1
-                elif k>0:
+                elif k > 0:
                     o += '<rect x="%d" y="%d" width="%d" height="%d"/>\n' % (ox+(c-k)*d, oy+r*d, k*d, d)
                     k = 0
-            if k>0: o += '<rect x="%d" y="%d" width="%d" height="%d"/>\n' % (ox+(mc-k)*d, oy+r*d, k*d, d)
+            if k > 0: o += '<rect x="%d" y="%d" width="%d" height="%d"/>\n' % (ox+(mc-k)*d, oy+r*d, k*d, d)
         if txt:
             o += '<text x="%s" y="%s" style="font-size:32;fill:gray" >%s</text>\n' % (ox, oy + 40 + d*mc, txt)
         return o + '</svg>\n'
@@ -800,10 +803,10 @@ class QRCode:
             k = 0
             for c in range(mc):
                 if self.m[r][c]: k += 1
-                elif k>0:
+                elif k > 0:
                     o += bytes('%d %d %d %d re ' % (ox+(c-k)*d, oy-r*d, k*d, d), 'ascii')
                     k = 0
-            if k>0: o += bytes('%d %d %d %d re ' % (ox+(mc-k)*d, oy-r*d, k*d, d), 'ascii')
+            if k > 0: o += bytes('%d %d %d %d re ' % (ox+(mc-k)*d, oy-r*d, k*d, d), 'ascii')
         return o + b'f '
 
     def setup_timing_pattern(self):
@@ -916,7 +919,7 @@ def list_local_ids():
     "_"
     if os.path.isfile('keys'):
         db = dbm.open('keys', 'c')
-        print ('Autority: %s, Currency: €, Host: \'%s\', You have %d IDs:' % (_root_id, db['host'].decode('ascii'), len(db.keys())-2))
+        print ('Autority: %s, Currency: %s, Host: \'%s\', You have %d user IDs:' % (_root_id, db['cry'].decode('utf8'), db['host'].decode('ascii'), len(db.keys())-3))
         for x in db.keys(): 
             if len(x) == 9: 
                 print (btob64(x) if db['user'] != x else btob64(x)+' *')
@@ -942,6 +945,9 @@ def set(k, h):
     elif k == 'host':
         d[k] = h
         print ('%s->%s' % (k, h))
+    elif k == 'cry':
+        d[k] = h
+        print ('%s->%s' % (k, h))
     d.close()
 
 def readdb(arg, ascii=False):
@@ -951,7 +957,7 @@ def readdb(arg, ascii=False):
         for x in d.keys(): print (x.decode('ascii'), '->', d[x].decode('ascii'))
         #for x in d.keys(): print (x, '->', d[x])
     else:
-        for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x),'->', btob64(d[x]))
+        for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x), '->', btob64(d[x]))
 
 def get_host():
     "_"
@@ -960,15 +966,16 @@ def get_host():
     db.close()
     return host.decode('utf8')
 
-def buy(node, rid, prc, cry=b'A'):
-    "A->€ (default) B->⊔ C->£ D->$"
+def buy(node, rid, prc):
+    "_"
     db, k, dat = dbm.open('keys'), ecdsa(), datencode()
-    src, dst = db['user'], get_unique(db, rid)
+    cry = _cur[db['cry'].decode('utf8')] if db['cry'].decode('utf8') in _cur else db['cry']
+    src, dst, pri = db['user'], get_unique(db, rid), int(prc*100) if cry == b'A' else int(prc)
     prv, pub = db[src][132:], db[src][:132]
     pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
     m = input('Message (20 chars maxi)? ')
     print ('...please wait')
-    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + i2b(prc, 3) + bytes(m, 'utf8')[:20]
+    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + i2b(pri, 3) + bytes(m, 'utf8')[:20]
     print (send(node, '+' + btob64(msg + k.sign(msg)))) 
     db.close()
 
@@ -977,7 +984,7 @@ def buyig (node, ig):
     db, k = dbm.open('keys'), ecdsa()
     src = db['user']
     prv, pub = db[src][132:], db[src][:132]
-    print ('buyig', ig)
+    #print ('buyig', ig)
     res = send(node, '!%s' % ig)
     print (res)
     if reg(re.match(r'([^:]+):(\d+)$', res)): rig, nb = b64tob(bytes(reg.v.group(1), 'ascii')), i2b(int(reg.v.group(2)), 4)
@@ -1049,7 +1056,7 @@ def debt(d, cm, cry=b'A'):
         root, k = dc[b'_'], ecdsa()
         k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
         if is_future(dc[cm][:4]) and k.verify(dc[cm][12:], cm + dc[cm][:12]): dbt = b2i(dc[cm][4:12])
-    return dbt if cry==b'B' else dbt*100
+    return dbt if cry == b'U' else dbt*100
 
 def is_active(cm):
     "_"
@@ -1065,10 +1072,19 @@ def is_active(cm):
 
 def style_html(bg=True):
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif;}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold;}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80;}div.qr,a.qr{position:absolute;top:0;right:0;margin:15;}p.note{font-size:9;}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217;}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999;}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333;}b.red{color:red;}b.green{color:green;}b.blue{color:blue;}b.bigorange{font-size:32;color:#F87217;}b.biggreen{font-size:32;color:green;}#wrap{overflow:hidden;}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:1;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:2pt;}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20;}h2{color:#AAA;font-size:18;margin:5 0 0 30;}svg{background-color:white;}img.book{border:2px outset}text{font-size:18pt;}'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80}div.qr,a.qr{position:absolute;top:0;right:0;margin:15}p.note{font-size:9}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333}b.red{color:red}b.green{color:green}b.blue{color:blue}b.bigorange{font-size:32;color:#F87217}b.biggreen{font-size:32;color:green}#wrap{overflow:hidden}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:1;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:2pt}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:22;margin:20 0 0 20}h2{color:#AAA;font-size:18;margin:5 0 0 30}svg{background-color:white}img.book{border:2px outset}text{font-size:18pt}'
     if bg:
-        o += 'body{color:black; background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat;}' 
+        o += 'body{color:black;background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat}' 
     return o + '</style>'
+
+def style():
+    "_"
+    return '<style>@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1{font-size:64pt;text-align:center;font-family:Schoolbell}div,body{margin:0}p{font-family:arial;font-size:16pt;text-align:center;margin:0;margin-top:5}.page{position:relative;padding-top:60;padding-bottom:20}.aa{background-color:#00FF00;color:#FFFFFF}.bb{background-color:#00FFFF;color:#FF0000}.cc{background-color:#FFFF00;color:#0000FF}.dd{background-color:#EEEEEE;color:#555555}.foot{background-color:#555555;color:#CCCCCC}.note{font-family:arial;font-size:8pt;margin:0;margin-left:20;text-align:left}a{color:DodgerBlue;text-decoration:none}a.id{font-family:"Lucida Concole",Courier;font-weight:bold;color:White;text-decoration:none;background:black;padding:5;border-radius:7px}.header{position:fixed;top:0;left:10;margin:0;color:white}</style>'
+
+def ibank():
+    "_"
+    o = '<div class="page dd"><h1>1- Créez un ID</h1><p>Par sécurité, un identifiant (ID) n\'est jamais créé en ligne mais toujours localement, de préférence déconecté du réseau</p><p><a href="zzzz">Téléchargez</a> pour cela l\'application gratuite. Choisissez un mot de passe et ne le communiquez à personne</p><p>Vous pouvez créer autant d\'IDs que vous le desirez, leur solde initial est toujours nul</p><p> Ne faites confiance à personne, même pas à nous ! Inspectez notre <a href="dsd">code</a></p><p>————</p><p><i>Nous créditons sur votre demande 1€ et 1⊔ pour tester l\'application<sup>1</sup></i></p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> offre limitée à un crédit par individu et pour un compte créé en 2014...la communication de votre nom est nécessaire seulement pour éviter les doublons.</p><p class="note">&nbsp;&nbsp;&nbsp;La base de donnée qui lie votre nom à votre ID n\'est pas accessible en ligne. Nous pouvons effacer ce lien si vous nous remboursez cet euro.</p></div><div class="page aa"><h1>2- Provisionnez</h1><p>Nous n\'utilisons que les virements <a href="http://fr.wikipedia.org/wiki/Single_Euro_Payments_Area">SEPA</a> (€)</p><p>Effectuez un virement<sup>1</sup> de la somme que vous désirez sur le compte bancaire:</p><p><b>CUP-FOUNDATION</b> <i>BIC</i>: CMCIFR2A <i>IBAN</i>: <b>FR76 1027 8022 3300 0202 8350 157</b> <i>ID</i>: <a class="id" href="dsds">IbankVBixRIm</a></p><p>N\'oubliez pas d\'indiquer en message l\'ID de votre compte à créditer</p><p>Ce compte sera provisioné sous moins de 24 heures</p><p>————</p><p>Aucune commission n\'est retenue, ni à l\'achat, ni à la vente</p><p>Les comptes ne sont pas rémunérés et jamais débiteurs</p><p>Indiquez nous si vous désirez des ⊔<sup>2</sup> à la place des €</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> Vous pouvez aussi fournir un de vos ID à vos débiteurs pour régler directement sur ce compte.</p><p class="note"><sup>2</sup> La conversion € vers ⊔ ou de ⊔ vers € est soumise à une TVA de 3,5% reversée au Trésor-Public. Le taux de change nominal est consultable <a href="df">ici</a></p></div><div class="page bb"><h1>3- Echangez</h1><p>Tous les échanges sont possibles tant que le solde reste positif</p><p>Echangez entre vos comptes, sans limite</p><p>Echangez aussi avec des tiers qui possèdent un ID<sup>1</sup></p><p>Achetez des biens immatériels culturels et vendez vos créations numériques, en ⊔<sup>2</sup></p><p>Consultez à tout moment vos soldes et opérations sur <a href="hh">Internet</a></p><p>————</p><p>Si vous désirez vous retirer, transmettez nous votre IBAN et créditez du solde l\'ID <a class="id" href="dsddd">IbankVBixRIm</a></p> <p>Le virement SEPA sera effectué sous 24 heures</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> insitez vos contacts à créer leur propre ID. Nous ne faisons aucune publicité.</p><p class="note"><sup>2</sup> Les échanges directs en ⊔ entre personnes ne sont pas autorisés, seulement avec une <b>i-Bank</b>.</p><p class="note"><sup>3</sup> Nous proposerons en 2015 de chèques électronique et de billets électronique à usage unique.</p></div><div class="page cc"><h1>Une question ?</h1><h1>⥥</h1><p>Pas d\'hésitation, contactez nous !</p><p>————————</p><h2>&nbsp;</h2></div><div class="page foot"><p>Contact: <a href="mailto:laurent.fournier@cupfoundation.net">⊔Foundation</a>&nbsp;&nbsp;&nbsp;<i>SIREN:</i> 399 661 602 00025&nbsp;&nbsp;&nbsp;<i>Tel:</i> 06 19 29 14 85</p><p>&nbsp;</p></div><h1 class="header"><a class="header" href="http://cupfoundation.net">⊔</a></h1>'
+    return '<html>%s<meta charset="utf-8"/>%s</html>' % (style(), o)
 
 def favicon():
     "_"
@@ -1109,7 +1125,7 @@ def report(d, cm):
                 tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), desc, t1, t2)))
     for i, (d, x) in enumerate(sorted(tmp)): o += '<tr><td class="num">%03d</td>' % (i+1) + x
     o += '<tr><th colspan="2">%s</th><th colspan="3"><b>Nouveau solde</b></th>' % datdecode(datencode())
-    if bal<0:
+    if bal < 0:
         o += '<th></th><th class="num"><b>%7.2f&nbsp;€</b></th></tr>' % (-bal/100)
     else:
         o += '<th class="num"><b>%7.2f&nbsp;€</b></th><th></th></tr>' % (bal/100)
@@ -1129,14 +1145,14 @@ def report_cup(d, cm):
     for t in dt.keys(): # bank funding
         if len(t) == 13:
             src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
-            if cm == dst and cry == b'B':
+            if cm == dst and cry == b'U':
                 dat = datdecode(t[:4])
                 t1, bal = '<td class="num">%7d&nbsp;⊔</td>' % prc, bal+prc 
                 tmp.append((t[:4], '<td class="num">%s</td>%s<td>Retrait</td><td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (dat, typ, btob64(src), btob64(src), empty, t1)))
     for t in dt.keys(): # bank deposit
         if len(t) == 13:
             src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
-            if cm == src and cry == b'B':
+            if cm == src and cry == b'U':
                 dat = datdecode(t[:4])
                 t1, bal = '<td class="num">%7d&nbsp;⊔</td>' % prc, bal-prc 
                 tmp.append((t[:4], '<td class="num">%s</td>%s<td>Financement</td><td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (dat, typ, btob64(dst), btob64(dst), t1, empty)))
@@ -1148,7 +1164,7 @@ def report_cup(d, cm):
             tmp.append((dt[t][9:13], '<td class="num">%s</td>%s<td class="mono">%s</td><td><a class="mono" href="?%s">%s</a></td>%s%s</tr>' % (dat, typ, btob64(ig), btob64(auth), btob64(auth), t1, empty)))
     for i, (d, x) in enumerate(sorted(tmp)): o += '<tr><td class="num">%03d</td>' % (i+1) + x
     o += '<tr><th colspan="2">%s</th><th colspan="3"><b>Nouveau solde</b></th>' % datdecode(datencode())
-    if bal<0:
+    if bal < 0:
         o += '<th></th><th class="num"><b>%7d&nbsp;⊔</b></th></tr>' % (-bal)
     else:
         o += '<th class="num"><b>%7d&nbsp;⊔</b></th><th></th></tr>' % (bal)
@@ -1168,11 +1184,11 @@ def report_ig(d, cm):
 def blc(d, cm, cry=b'A'):
     "balance for both   or cup"
     dt, di, bal = d['trx'], d['igs'], 0
-    if cry == b'B':
+    if cry == b'U':
         for t in di.keys(): 
             if di[t][:9] == cm: bal += real_income(di, t) # created IG (+)
     for t in dt.keys(): 
-        if len(t) == 14 and cry==b'B' and cm == dt[t][:9]: bal -= price(di, t[4:], b2i(t[:4])) # bought IG (-)
+        if len(t) == 14 and cry == b'U' and cm == dt[t][:9]: bal -= price(di, t[4:], b2i(t[:4])) # bought IG (-)
         elif len(t) == 13 and dt[t][:1] == cry:
             if cm == dt[t][1:10]: bal += b2i(dt[t][10:13]) # bank funding (+)
             if cm == t[4:]:       bal -= b2i(dt[t][10:13]) # bank deposit (-)
@@ -1403,7 +1419,7 @@ def simu(d, env, p1, pi, xi, graph=False):
         o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
         for i in range(5):
             if i == 1: sty = ' style="fill:blue"'
-            elif i in (2,3): sty = ' style="fill:red"'
+            elif i in (2, 3): sty = ' style="fill:red"'
             else: sty = ''
             o += '<text id="t%d" y="%d"%s></text>' % (i, 50 + 30*i, sty)
         for i in range(0, pi, pi//100):
@@ -1466,7 +1482,7 @@ def index(d, env, cm64='', prc=0):
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €"%s/></form>' % v
-        dbt = debt(d, cm, b'B')
+        dbt = debt(d, cm, b'U')
         if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d</b></h1>' % dbt   
         o += '<h1>Solde:&nbsp;<b class="green">%7.2f&nbsp;€&nbsp;&nbsp;&nbsp;%7d&nbsp;⊔</b></h1>' % (bal/100, bal1) + rpt + rpt1
         da = btob64(cm) + ':%d' % prc if prc else ''
@@ -1490,7 +1506,7 @@ def dashboard(d, env):
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
     o += '<table><tr><th>Compte</th><th>Solde&nbsp;€</th><th>Solde&nbsp;⊔</th><th>Dette</th></tr>'
     for u in d['pub'].keys():
-        o += '<tr><td><a class="mono" href="./?%s">%s</a></td><td class="num">%7.2f&nbsp;€</td><td class="num">%9d&nbsp;⊔</td><td class="num">%9d</td></tr> ' % (btob64(u), btob64(u), blc(d, u)/100, blc(d, u, b'B'), debt(d, u) ) 
+        o += '<tr><td><a class="mono" href="./?%s">%s</a></td><td class="num">%7.2f&nbsp;€</td><td class="num">%9d&nbsp;⊔</td><td class="num">%9d</td></tr> ' % (btob64(u), btob64(u), blc(d, u)/100, blc(d, u, b'U'), debt(d, u) ) 
     o += '</table>'
     o += '<table><tr><th>Certificat</th><th>Date</th><th>Dette</th></tr>'
     for c in d['crt'].keys():
@@ -1506,14 +1522,14 @@ def dashboard(d, env):
             url = d['igs'][b'%'+i]
             src, dat = btob64(d['igs'][i][:9]), datdecode(d['igs'][i][9:13])
             xi, p1, pf = valdecode(d['igs'][i][13:20])
-            o += '<tr><td><a class="mono" href="http://%s">%s</a></td><td class="num">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (url.decode('utf8'), btob64(i), src, dat, p1, pf, xi, (len(d['igs'][i])-152)//9)
+            o += '<tr><td><a class="mono" href="http://%s">%s</a></td><td class="mono">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (url.decode('utf8'), btob64(i), src, dat, p1, pf, xi, (len(d['igs'][i])-152)//9)
     o += '</table>'
     o += '<table><tr><th>Trans. src</th><th>Date</th><th>Destinataire</th><th>Message</th><th>Montant</th></tr>'
     for t in d['trx'].keys():
         if len(t) == 13:
             dat, src, cry, dst, val = datdecode(t[:4]), btob64(t[4:13]), d['trx'][t][:1], btob64(d['trx'][t][1:10]), b2i(d['trx'][t][10:13])
             desc = d['trx'][t][13:-132].decode('utf8')
-            value = '%9d&nbsp;⊔' % val if cry == b'B' else '%7.2f&nbsp;€' % (val/100)
+            value = '%9d&nbsp;⊔' % val if cry == b'U' else '%7.2f&nbsp;€' % (val/100)
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td>%s</td><td class="num">%s</td></tr> ' % (src, dat, dst, desc, value)
     o += '</table>'
     o += '<table><tr><th>Trans. src</th><th>Date</th><th>No</th><th>IG</th><th>Destinataire</th><th>Montant</th></tr>'
@@ -1525,12 +1541,9 @@ def dashboard(d, env):
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%05d</td><td class="mono">%s</td><td class="mono">%s</td><td class="num">%d&nbsp;⊔</td></tr> ' % (src, dat, nb, hig, dst, prc)
     o += '</table>'
     o += '<table><tr><th>Errors</th></tr>'
-    su =  sum([blc(d, u) for u in d['pub'].keys()])     
-    if su != 0: o += '<tr><td class="mono">Balance: %s €</td></tr> ' % (su/100)
-    su =  sum([blc(d, u, b'B') for u in d['pub'].keys()])     
-    if su != 0: o += '<tr><td class="mono">Balance: %s ⊔</td></tr> ' % (su)
+    su =  sum([blc(d, u) + blc(d, u, b'U') for u in d['pub'].keys()])     
+    if su != 0: o += '<tr><td class="num">Balances: %s</td></tr> ' % su
     k = ecdsa()
-    #for i in d['igs'].keys(): del d['igs'][i]
     for t in d['trx'].keys():
         if len(t) == 13:
             src, cry, dst, msg, sig = t[4:], d['trx'][t][:1], d['trx'][t][1:10], t + d['trx'][t][:-132], d['trx'][t][-132:]
@@ -1538,10 +1551,8 @@ def dashboard(d, env):
             if src in d['pub'] and dst in d['pub'] and src != dst:
                 if not k.verify(sig, msg): 
                     o += '<tr><td class="mono">%s %s</td></tr>' % (datdecode(t[:4]), btob64(t[4:]))
-                    #del d['trx'][t]
             else:
                 '<tr><td class="mono">Pb!</td></tr>'
-        #elif len(t) == 15: del d['trx'][t]
     if b'_' in d['crt']:
         root = d['crt'][b'_']
         if root in d['pub']:
@@ -1549,7 +1560,6 @@ def dashboard(d, env):
             for c in d['crt'].keys():
                 if len(c) == 9 and not k.verify(d['crt'][c][12:], c + d['crt'][c][:12]): 
                     o += '<tr><td class="mono">certificat</td></tr>'
-                    #del d['crt'][c]
     o += '</table>'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('%s %s Auth:%s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
@@ -1674,7 +1684,7 @@ def valid_big(d, r):
     k, hig, src, dat, msg, sig = ecdsa(), r[:10], r[10:19], r[19:23], r[:23], r[23:]
     if src in d['pub'] and hig in d['igs']:
         k.pt, ssrc = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'&'+src
-        if price(d['igs'], hig, 0, True) <= blc(d, src, b'B') and k.verify(sig, msg): 
+        if price(d['igs'], hig, 0, True) <= blc(d, src, b'U') and k.verify(sig, msg): 
             nb = i2b((len(d['igs'][hig]) - 152)//9, 4)
             d['trx'][nb + hig] = src + dat + sig
             d['igs'][hig] += src
@@ -1687,7 +1697,7 @@ def valid_trx(d, r):
     u, dat, src, v, cry, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:14], r[14:23], r[23:26], r[:-132], r[-132:], ecdsa()
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
-        if ((cry == b'B' and src in d['crt']) or cry == b'A') and (blc(d, src, cry) + debt(d, src, cry) > b2i(prc)):
+        if ((cry == b'U' and (src in d['crt'] or dst in d['crt'])) or cry == b'A') and (blc(d, src, cry) + debt(d, src, cry) > b2i(prc)):
             d['trx'][u] = v + sig
             d['trx'][src] = d['trx'][src] + dat if src in d['trx'] else dat # shortcut
             d['trx'][ddst] = d['trx'][ddst] + u if ddst in d['trx'] else u  # shortcut
@@ -1792,6 +1802,7 @@ def application(environ, start_response):
             elif raw == 'src': o = open(__file__, 'r', encoding='utf-8').read() 
             elif raw == 'download': o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
             elif raw == 'bank': o, mime = bank(d, environ), 'text/html; charset=utf-8'
+            elif raw == 'ibank': o, mime = ibank(), 'text/html; charset=utf-8'
             elif raw == 'simu': o, mime = simu(d, environ, 10, 1000, 35), 'text/html; charset=utf-8'
             elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)$', raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), True), 'text/html; charset=utf-8'
             elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)&i=(\d+)$', raw)): o = fprice(int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), int(reg.v.group(4))) 
@@ -1863,20 +1874,20 @@ def fprice(p1, pf, xi, i, disp=False):
         else:
             x = (i+1)*(p+1)-t
     else:
-        if xi>100: xi = 100
+        if xi > 100: xi = 100
         k = ((pf-p1)/(pf-2*p1))**(xi/100)
         ta = (pf+(p1-pf)/k**i)
         p, t = int(ta/(i+1)), round(ta)
         x, j, r = (i+1)*(p+1)-t, i, 0
         while False:
-            j+=1
+            j += 1
             tb = (pf+(p1-pf)/k**j)
             pr1, t1 = int(tb/(j+1)), round(tb)
             y = (j+1)*(pr1+1)-t1
             if p != pr1: break
             if j+x >= r+y+i: r = j-y-i+x
             else: break
-            if x<r: 
+            if x < r: 
                 r = x
                 break
             if j+1-y == pf: break
@@ -1884,40 +1895,6 @@ def fprice(p1, pf, xi, i, disp=False):
         return (t+r)/(i+1), t+r
     else:
         return '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x+r, p+1, x-r, p, t+r)
-
-def price2(digs, ig, l, nxt=False):
-    "_"
-    xi, p1, pf = valdecode(digs[ig][13:20])
-    i = (len(digs[ig]) - 152)//9 - 1
-    if nxt==True: 
-        l = i
-        i -= 1
-    if xi == 0:
-        p, r, t = int(p1/(i+1)), 0, round(p1)
-        if p == 0:
-            if i < pf: t, x = i+1, 0
-            else: t, x = pf, i+1-pf
-        else:
-            x = (i+1)*(p+1)-t
-    else:
-        if xi>100: xi = 100
-        k = ((pf-p1)/(pf-2*p1))**(xi/100)
-        ta = (pf+(p1-pf)/k**i)
-        p, t = int(ta/(i+1)), round(ta)
-        x, j, r = (i+1)*(p+1)-t, i, 0
-        while False:
-            j+=1
-            tb = (pf+(p1-pf)/k**j)
-            pr1, t1 = int(tb/(j+1)), round(tb)
-            y = (j+1)*(pr1+1)-t1
-            if p != pr1: break
-            if j+x >= r+y+i: r = j-y-i+x
-            else: break
-            if x<r: 
-                r = x
-                break
-            if j+1-y == pf: break
-    return p+1 if l<=i-x+r else p
 
 def price(digs, ig, l, nxt=False):
     "_"
@@ -1932,24 +1909,24 @@ def price(digs, ig, l, nxt=False):
         else:
             x = (i+1)*(p+1)-t
     else:
-        if xi>100: xi = 100
+        if xi > 100: xi = 100
         k = ((pf-p1)/(pf-2*p1))**(xi/100)
         ta = (pf+(p1-pf)/k**i)
         p, t = int(ta/(i+1)), round(ta)
         x, j, r = (i+1)*(p+1)-t, i, 0
         while False:
-            j+=1
+            j += 1
             tb = (pf+(p1-pf)/k**j)
             pr1, t1 = int(tb/(j+1)), round(tb)
             y = (j+1)*(pr1+1)-t1
             if p != pr1: break
             if j+x >= r+y+i: r = j-y-i+x
             else: break
-            if x<r: 
+            if x < r: 
                 r = x
                 break
             if j+1-y == pf: break
-    return p+1 if l<=i-x+r else p
+    return p+1 if l <= i-x+r else p
 
 def real_income(digs, ig):
     "_"
@@ -1964,20 +1941,20 @@ def real_income(digs, ig):
         else:
             x = (i+1)*(p+1)-t
     else:
-        if xi>100: xi = 100
+        if xi > 100: xi = 100
         k = ((pf-p1)/(pf-2*p1))**(xi/100)
         ta = (pf+(p1-pf)/k**i)
         p, t = int(ta/(i+1)), round(ta)
         x, j, r = (i+1)*(p+1)-t, i, 0
         while False:
-            j+=1
+            j += 1
             tb = (pf+(p1-pf)/k**j)
             pr1, t1 = int(tb/(j+1)), round(tb)
             y = (j+1)*(pr1+1)-t1
             if p != pr1: break
             if j+x >= r+y+i: r = j-y-i+x
             else: break
-            if x<r: 
+            if x < r: 
                 r = x
                 break
             if j+1-y == pf: break
@@ -2048,7 +2025,7 @@ def usage():
 - no argument
 list current valid ids, * sign after the currently selected one
 - 1 argument:
-'usage': this page
+'usage' or 'help': this page
 'add': add a new id (not registered)
 'reg': register unregistered ids
 <dbfile>: read the content of the db file
@@ -2059,14 +2036,14 @@ list current valid ids, * sign after the currently selected one
 'currency' <new_currency>: select local currency (default is €)
 <seller_id> <amount>: send to the seller such amount (default is € currency) 
 - 3 arguments:
-'<xi> <pi> <pf>': create an IG with speed parameter xi, initial price pi and expected income pf
+'<pi> <pf> <xi>': create an IG with speed parameter xi, initial price pi and expected income pf
 \n\n
 PROTOCOL: POST\n
 1/REGISTER PUBLIC KEY
   @<pubkey[132]>
 2/REGISTER IG
   &<hurl[10]><src[9]><date[4]><val(xi,pi,pf,rs)[8]><signature[132]>
-3/BUY €
+3/BUY €/£/$/U
   +<currency><date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
 4/BUY IG
   *<nb[4]><refig[10]><src[9]><date[4]><signature[132]>
@@ -2079,6 +2056,9 @@ PROTOCOL: POST\n
     print (usage.__doc__)
 
 def gui():
+    def calluser(name):
+        text = wprc.text()
+        print ('%s' % text)
     app = PyQt4.QtGui.QApplication(sys.argv)
     win = PyQt4.QtGui.QWidget()
     lcmb = PyQt4.QtGui.QLabel('ID', win)
@@ -2093,13 +2073,14 @@ def gui():
     lprc = PyQt4.QtGui.QLabel('Prix', win)
     wprc = PyQt4.QtGui.QLineEdit(win)
     wbut = PyQt4.QtGui.QPushButton('Envoyer', win)
+    wbut.clicked.connect(calluser)
     # 
-    wcmb.move(140, 10)
-    lcmb.move(10,  15)
-    wdst.move(140, 50)
-    ldst.move(10,  55)
-    wprc.move(140, 90)
-    lprc.move(10,  95)
+    wcmb.move(140, 15)
+    lcmb.move(20,  20)
+    wdst.move(140, 55)
+    ldst.move(20,  60)
+    wprc.move(140, 95)
+    lprc.move(20,  100)
     wbut.move(220,  440)
     win.setWindowTitle('PingPongCash')
     win.setGeometry(50, 50, 320, 480)
@@ -2108,27 +2089,23 @@ def gui():
 
 if __name__ == '__main__':
     #simulate()
-    #gui()
+    gui()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
-        forex()
+        #forex()
         list_local_ids()
     elif len(sys.argv) == 2:
-        if sys.argv[1] == 'usage': usage()
+        if sys.argv[1] in ('usage', 'help'): usage()
         elif sys.argv[1] == 'add': add_local_id()
         elif sys.argv[1] == 'reg': register(node)
         elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1])
         else: buyig(node, sys.argv[1]) 
     elif len(sys.argv) == 3:
-        if sys.argv[1] in ('host', 'user', 'curreny'): set(sys.argv[1], sys.argv[2])
-        elif re.match('[\d\.\,]+', sys.argv[2]): 
-            buy(node, sys.argv[1], int(float(sys.argv[2])*100)) # €
+        if sys.argv[1] in ('host', 'user', 'cry'): set(sys.argv[1], sys.argv[2])
+        elif re.match('[\d\.\,]+', sys.argv[2]): buy(node, sys.argv[1], float(sys.argv[2]))
         elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1], True)
     elif len(sys.argv) == 4:
-        if sys.argv[3] == 'cup':            
-            buy(node, sys.argv[1], int(sys.argv[2]), b'B') # ⊔
-        else:
-            postig(node, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+        postig(node, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
     sys.exit()    
 
 # End ⊔net!
