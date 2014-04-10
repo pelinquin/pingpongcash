@@ -48,7 +48,6 @@ _root_pkey = 'AdMctT3bXbwrTBGkB5eKAG74qIqShRRy1nHa_NWCHsxmKhmZeE_aWgo_S251td8d6C
 
 _cur = {'€':b'A', '£':b'P', '$':b'D', '⊔':b'U'}
 
-
 ##### ENCODING #####
 PAD = lambda s:(len(s)%2)*'0'+s[2:]
 
@@ -920,9 +919,7 @@ def list_local_ids():
     if os.path.isfile('keys'):
         db = dbm.open('keys', 'c')
         print ('Autority: %s, Currency: %s, Host: \'%s\', You have %d user IDs:' % (_root_id, db['cry'].decode('utf8'), db['host'].decode('ascii'), len(db.keys())-3))
-        for x in db.keys(): 
-            if len(x) == 9: 
-                print (btob64(x) if db['user'] != x else btob64(x)+' *')
+        for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
         db.close()
     else:
         print ('Use \'./%s add\' for adding an ID' % __app__) 
@@ -930,6 +927,7 @@ def list_local_ids():
 def get_unique(dk, rid):
     "_"
     out = []
+    #for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
     for u in dk.keys():
         if re.match(rid, btob64(u)): out.append(u)
     return out[0] if len(out) == 1 else None
@@ -970,42 +968,51 @@ def buy(node, rid, prc):
     "_"
     db, k, dat = dbm.open('keys'), ecdsa(), datencode()
     cry = _cur[db['cry'].decode('utf8')] if db['cry'].decode('utf8') in _cur else db['cry']
-    src, dst, pri = db['user'], get_unique(db, rid), int(prc*100) if cry == b'A' else int(prc)
-    prv, pub = db[src][132:], db[src][:132]
-    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
-    m = input('Message (20 chars maxi)? ')
-    print ('...please wait')
-    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + i2b(pri, 3) + bytes(m, 'utf8')[:20]
-    print (send(node, '+' + btob64(msg + k.sign(msg)))) 
+    src, pri, res = db['user'], int(prc*100) if cry == b'A' else int(prc), send(node, '?' + rid)
+    if res: 
+        prv, pub, dst, pp = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii')), getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+        m = input('Message (20 chars maxi)? ')
+        print ('...please wait')
+        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + i2b(pri, 3) + bytes(m, 'utf8')[:20]
+        print (send(node, '+' + btob64(msg + k.sign(msg)))) 
+    else:
+        print('unknown recipient')
+    db.close()
+
+def buy2(node, src, rid, prc, pp):
+    "_"
+    prc, scr = float(prc), b64tob(bytes(src, 'ascii'))
+    db, k, dat = dbm.open('keys'), ecdsa(), datencode()
+    cry = _cur[db['cry'].decode('utf8')] if db['cry'].decode('utf8') in _cur else db['cry']
+    pri, res = int(prc*100) if cry == b'A' else int(prc), send(node, '?' + rid)
+    if res: 
+        prv, pub, dst = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii'))
+        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + i2b(pri, 3) 
+        print (send(node, '+' + btob64(msg + k.sign(msg)))) 
     db.close()
 
 def buyig (node, ig):
     "_"
     db, k = dbm.open('keys'), ecdsa()
-    src = db['user']
-    prv, pub = db[src][132:], db[src][:132]
-    res = send(node, '!%s' % ig)
-    if res == '': return 'error'
-    rig = b64tob(bytes(res, 'ascii'))
-    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
-    print ('...please wait')
-    k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), rig + src + datencode()
-    res = send(node, '*' + btob64(msg + k.sign(msg)))
-    print (res) # ici
-    #if res != 'Error:': 
-    #    url = k.decrypt(b64tob(bytes(res, 'ascii'))).decode('ascii')
-    #    print ('http://%s/%s' % (node, url))
-    #    toto = send_get(node, url)
-    #    open('toto.pdf', 'wb').write(toto)
-    #else: print (res)
+    src, res = db['user'], send(node, '!' + ig)
+    if res:
+        prv, pub, rig, pp = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii')), getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+        print ('...please wait')
+        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), rig + src + datencode()
+        print (send(node, '*' + btob64(msg + k.sign(msg))))
+        #    url = k.decrypt(b64tob(bytes(res, 'ascii'))).decode('ascii')
+        #    print ('http://%s/%s' % (node, url))
+        #    toto = send_get(node, url)
+        #    open('toto.pdf', 'wb').write(toto)
+    else:
+        print('unknown recipient')
     db.close()
 
 def postig(node, p1, pf, xi):
     "_"
     db, k = dbm.open('keys'), ecdsa()
     src = db['user']
-    prv, pub = db[src][132:], db[src][:132]
-    pp = getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+    prv, pub, pp = db[src][132:], db[src][:132], getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
     url = input('url? ')
     msg = hcode(url) + src + datencode() + valencode(xi, p1, pf)
     print ('...please wait')
@@ -1016,9 +1023,9 @@ def postig(node, p1, pf, xi):
 def register(node):
     "_"
     db = dbm.open('keys')
+    #for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
     for x in db.keys():
-        if len(x) == 9:
-            print (send(node, '@' + btob64(db[x][:132])))
+        if len(x) == 9: print (send(node, '@' + btob64(db[x][:132])))
     db.close()
 
 def is_future(da):
@@ -1160,6 +1167,7 @@ def blc(d, cm, cry=b'A'):
     "balance for both   or cup"
     dt, di, bal = d['trx'], d['igs'], 0
     if cry == b'U':
+        #for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
         for t in di.keys(): 
             if di[t][:9] == cm: bal += real_income(di, t) # created IG (+)
     for t in dt.keys(): 
@@ -1176,6 +1184,7 @@ def blc_old(d, cm):
     #k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
     #if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
     if z in dc: dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
+    #for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
     for t in dt.keys():
         if (len(t) == 13) and dt[t][:1] == b'A' and (dar==None or is_after(t[:4], dar)):
             src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
@@ -1236,6 +1245,7 @@ def init_dbs(dbs, port):
 def update_peers(env, d, li):
     "_"
     now = '%s' % datetime.datetime.now()
+    #for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
     for p in li:
         if p != env['HTTP_HOST'] and bytes(p, 'utf8') not in d: d[p] = now[:19]
     return 'Peers: %s\nDigest: %s' % ({x.decode('utf8'):d[x].decode('utf8') for x in d.keys()}, rdigest(env['SERVER_PORT']))
@@ -1285,18 +1295,17 @@ def app_update(host):
 def capture_id(d, arg):
     "_"
     res = []
-    for u in d['pub'].keys():
-        if re.match(arg, btob64(u)): res.append(btob64(u))            
+    for u in filter(lambda i:re.match(arg, btob64(i)), d['pub'].keys()): res.append(btob64(u))
     if len(res) == 1: return res[0]
-    return None
+    return ''
 
 def capture_ig(d, arg):
     "_"
     res = []
-    for i in d['igs'].keys():
-        if re.match(arg, btob64(i)): res.append(i)
+    for u in filter(lambda i:len(i) == 10 and re.match(arg, btob64(i)), d['igs'].keys()): res.append(u)
+    #res = [filter(lambda i:len(i) == 10 and re.match(arg, btob64(i)), d['igs'].keys())]
     if len(res) == 1: return btob64(res[0])
-    return None
+    return ''
 
 def jscript():
     """window.onload=main;
@@ -1708,8 +1717,7 @@ def application(environ, start_response):
             r = capture_id(d, reg.v.group(2))
             o, mime = index(d, environ, r, prc), 'text/html; charset=utf-8'
         elif reg(re.match('cm=(\S{1,12})&alias=(\S+)$', arg)):
-            r = capture_id(d, reg.v.group(1))
-            ok = True
+            r, ok = capture_id(d, reg.v.group(1)), True
             if r:
                 if 'HTTP_COOKIE' in environ:
                     for x in environ['HTTP_COOKIE'].split(';'):
@@ -1725,12 +1733,8 @@ def application(environ, start_response):
             ign2 = '%s/%s' % (environ['SERVER_NAME'], reg.v.group(1))
             eurl = enurl(d, dr, ign2, int(reg.v.group(2)))
             if eurl: o = btob64(eurl)
-        elif re.match('!\S{1,25}$', arg):
-            r = capture_ig(d, arg[1:])
-            o = r if r != None else 'IG not found!' 
-        elif re.match('\S{1,12}$', arg):
-            r = capture_id(d, arg)
-            o = r if r else 'Id not found! |%s|' % arg 
+        elif re.match('\!\S{1,15}$', arg): o = capture_ig(d, arg[1:])
+        elif re.match('\?\S{1,12}$', arg): o = capture_id(d, arg[1:])
         elif re.match('@\S{174,176}$', arg): 
             if valid_pub(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
@@ -2027,32 +2031,50 @@ PROTOCOL: POST\n
     print (usage.__doc__)
 
 def gui():
-    def calluser(name):
-        text = wprc.text()
-        print ('%s' % text)
+    "_"
+    def call_buy(name):
+        vcmb = wcmb.currentText()
+        vprc = wprc.text()
+        vdst = wdst.text()
+        vpas = wpas.text()
+        node = get_host()
+        buy2(node, vcmb, vdst, vprc, vpas)
     app = PyQt4.QtGui.QApplication(sys.argv)
     win = PyQt4.QtGui.QWidget()
     lcmb = PyQt4.QtGui.QLabel('ID', win)
     wcmb = PyQt4.QtGui.QComboBox(win)
     if os.path.isfile('keys'):
         db = dbm.open('keys', 'c')
-        for x in db.keys(): 
-            if len(x) == 9: wcmb.addItem(btob64(x))
+        wcmb.addItems([btob64(x) for x in db.keys() if len(x) == 9])
         db.close()
     ldst = PyQt4.QtGui.QLabel('Destinataire', win)
     wdst = PyQt4.QtGui.QLineEdit(win)
     lprc = PyQt4.QtGui.QLabel('Prix', win)
     wprc = PyQt4.QtGui.QLineEdit(win)
     wbut = PyQt4.QtGui.QPushButton('Envoyer', win)
-    wbut.clicked.connect(calluser)
-    # 
+    wbut.clicked.connect(call_buy)
+    lpas = PyQt4.QtGui.QLabel('Mot de passe', win)
+    wpas = PyQt4.QtGui.QLineEdit(win)
+    wpas.setEchoMode(PyQt4.QtGui.QLineEdit.Password)
+    lmes = PyQt4.QtGui.QLabel('Message', win)
+    wmes = PyQt4.QtGui.QLineEdit(win)
+    ldev = PyQt4.QtGui.QLabel('Devise', win)
+    wdev = PyQt4.QtGui.QComboBox(win)
+    wdev.addItems(['€','⊔'])
+    #
     wcmb.move(140, 15)
     lcmb.move(20,  20)
     wdst.move(140, 55)
     ldst.move(20,  60)
     wprc.move(140, 95)
     lprc.move(20,  100)
-    wbut.move(220,  440)
+    wbut.move(230, 440)
+    lpas.move(10,  445)
+    wpas.move(100, 440)
+    wmes.move(140, 135)
+    lmes.move(20, 140)
+    wdev.move(100, 200)
+    ldev.move(20, 200)    
     win.setWindowTitle('PingPongCash')
     win.setGeometry(50, 50, 320, 480)
     win.show()
@@ -2060,10 +2082,10 @@ def gui():
 
 if __name__ == '__main__':
     #simulate()
-    #gui()
+    gui()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
-        #forex()
+        forex()
         list_local_ids()
     elif len(sys.argv) == 2:
         if sys.argv[1] in ('usage', 'help'): usage()
