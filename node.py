@@ -90,13 +90,13 @@ def H(*tab):
     "hash"
     return int(hashlib.sha1(b''.join(tab)).hexdigest(), 16)
 
-def datencode(n=0):
-    "4 chars"
-    return i2b(int(time.mktime(time.gmtime()) + 3600*24*n), 4)
+def datencode():
+    "4 chars (minute precision)"
+    return i2b(int(time.mktime(time.gmtime())/60), 4)
 
 def datdecode(tt):
-    "4 chars"
-    return time.strftime('%d/%m/%y %H:%M:%S', time.localtime(float(b2i(tt))))
+    "4 chars (minute precision)"
+    return time.strftime('%d/%m/%y %H:%M', time.localtime(float(b2i(tt)*60)))
 
 def is_after(d1, d2): 
     "_"
@@ -2082,7 +2082,7 @@ def gui():
 
 if __name__ == '__main__':
     #simulate()
-    gui()
+    #gui()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
