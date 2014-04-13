@@ -979,11 +979,9 @@ def buy(node, rid, prc):
         print('unknown recipient')
     db.close()
 
-def buy2(node, src, rid, prc, pp):
-    "_"
-    prc, scr = float(prc), b64tob(bytes(src, 'ascii'))
-    db, k, dat = dbm.open('keys'), ecdsa(), datencode()
-    cry = _cur[db['cry'].decode('utf8')] if db['cry'].decode('utf8') in _cur else db['cry']
+def buy2(node, sc, rid, pc, cry, pp):
+    "gui call"
+    prc, src, db, k, dat, cry = float(pc), b64tob(bytes(sc, 'ascii')), dbm.open('keys'), ecdsa(), datencode(), _cur[cry]
     pri, res = int(prc*100) if cry == b'A' else int(prc), send(node, '?' + rid)
     if res: 
         prv, pub, dst = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii'))
@@ -1006,6 +1004,17 @@ def buyig (node, ig):
         #    open('toto.pdf', 'wb').write(toto)
     else:
         print('unknown recipient')
+    db.close()
+
+def buyig2 (node, sc, ig, pp):
+    "gui call"
+    src = b64tob(bytes(sc, 'ascii'))
+    db, k = dbm.open('keys'), ecdsa()
+    res = send(node, '!' + ig)
+    if res:
+        prv, pub, rig = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii'))
+        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), rig + src + datencode()
+        print (send(node, '*' + btob64(msg + k.sign(msg))))
     db.close()
 
 def postig(node, p1, pf, xi):
@@ -1661,6 +1670,7 @@ def valid_ig(d, dig, url):
 
 def valid_big(d, r):
     "validate buying IG"
+    "TBD: check that the date is not the same!"
     k, hig, src, dat, msg, sig = ecdsa(), r[:10], r[10:19], r[19:23], r[:23], r[23:]
     if src in d['pub'] and hig in d['igs']:
         k.pt, ssrc = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'&'+src
@@ -1735,6 +1745,7 @@ def application(environ, start_response):
             if eurl: o = btob64(eurl)
         elif re.match('\!\S{1,15}$', arg): o = capture_ig(d, arg[1:])
         elif re.match('\?\S{1,12}$', arg): o = capture_id(d, arg[1:])
+        elif re.match('\=\S{1,12}$', arg): o = "balance"
         elif re.match('@\S{174,176}$', arg): 
             if valid_pub(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
@@ -2022,11 +2033,13 @@ PROTOCOL: POST\n
   +<currency><date[4]><src[9]><dst[9]><price[3]><log[0,20]><signature[132]>
 4/BUY IG
   *<nb[4]><refig[10]><src[9]><date[4]><signature[132]>
-5/GET POSITION
-  !<hurl[0,10]>
+5/GET id
+  !<string>
   return hurl[10]:nb
-6/Get BALANCE
-  ?<src>
+6/GET ig 
+  ?<string>
+7/Get BALANCE
+  ??<src>
 """
     print (usage.__doc__)
 
@@ -2037,20 +2050,30 @@ def gui():
         vprc = wprc.text()
         vdst = wdst.text()
         vpas = wpas.text()
+        vdev = wdev.currentText()
+        vigi = wigi.text()
         node = get_host()
-        buy2(node, vcmb, vdst, vprc, vpas)
+        if vigi: buyig2(node, vcmb, vigi, vpas)
+        else: buy2(node, vcmb, vdst, vprc, vdev, vpas)
     app = PyQt4.QtGui.QApplication(sys.argv)
     win = PyQt4.QtGui.QWidget()
-    lcmb = PyQt4.QtGui.QLabel('ID', win)
+    lcmb = PyQt4.QtGui.QLabel('Source ID', win)
     wcmb = PyQt4.QtGui.QComboBox(win)
     if os.path.isfile('keys'):
         db = dbm.open('keys', 'c')
         wcmb.addItems([btob64(x) for x in db.keys() if len(x) == 9])
         db.close()
-    ldst = PyQt4.QtGui.QLabel('Destinataire', win)
+    wcmb.setFocus()
+    lhst = PyQt4.QtGui.QLabel('Host', win)
+    whst = PyQt4.QtGui.QLineEdit(win)
+    whst.setText(get_host())
+    ldst = PyQt4.QtGui.QLabel('Destinataire ID', win)
     wdst = PyQt4.QtGui.QLineEdit(win)
     lprc = PyQt4.QtGui.QLabel('Prix', win)
     wprc = PyQt4.QtGui.QLineEdit(win)
+    wprc.setMaximumWidth(100)
+    #wprc.setAlignment(PyQt4.QtCore.Qt.Alignment.right)
+    #wprc.setInputMask('0.00')
     wbut = PyQt4.QtGui.QPushButton('Envoyer', win)
     wbut.clicked.connect(call_buy)
     lpas = PyQt4.QtGui.QLabel('Mot de passe', win)
@@ -2058,23 +2081,50 @@ def gui():
     wpas.setEchoMode(PyQt4.QtGui.QLineEdit.Password)
     lmes = PyQt4.QtGui.QLabel('Message', win)
     wmes = PyQt4.QtGui.QLineEdit(win)
-    ldev = PyQt4.QtGui.QLabel('Devise', win)
+    ligi = PyQt4.QtGui.QLabel('Référence ig', win)
+    wigi = PyQt4.QtGui.QLineEdit(win)
     wdev = PyQt4.QtGui.QComboBox(win)
     wdev.addItems(['€','⊔'])
+    wprc.setText('0.00' if wdev.currentText() == '€' else '0') 
     #
-    wcmb.move(140, 15)
-    lcmb.move(20,  20)
-    wdst.move(140, 55)
-    ldst.move(20,  60)
-    wprc.move(140, 95)
-    lprc.move(20,  100)
-    wbut.move(230, 440)
-    lpas.move(10,  445)
-    wpas.move(100, 440)
-    wmes.move(140, 135)
-    lmes.move(20, 140)
-    wdev.move(100, 200)
-    ldev.move(20, 200)    
+    gb = PyQt4.QtGui.QGroupBox('hello')
+    gb.setFlat(True)
+    vb = PyQt4.QtGui.QVBoxLayout()
+    h0 = PyQt4.QtGui.QHBoxLayout()
+    h0.addWidget(lhst)
+    h0.addWidget(whst)
+    vb.addLayout(h0)
+    h1 = PyQt4.QtGui.QHBoxLayout()
+    h1.addWidget(lcmb)
+    h1.addWidget(wcmb)
+    vb.addLayout(h1)
+    h2 = PyQt4.QtGui.QHBoxLayout()
+    h2.addWidget(ldst)    
+    h2.addWidget(wdst)
+    vb.addLayout(h2)
+    h3 = PyQt4.QtGui.QHBoxLayout()
+    h3.addWidget(lprc)    
+    h3.addWidget(wprc)
+    h3.addWidget(wdev)
+    vb.addLayout(h3)
+    h4 = PyQt4.QtGui.QHBoxLayout()
+    h4.addWidget(lmes)    
+    h4.addWidget(wmes)
+    vb.addLayout(h4)
+    h5 = PyQt4.QtGui.QHBoxLayout()
+    h5.addWidget(ligi)    
+    h5.addWidget(wigi)
+    vb.addLayout(h5)
+    vb.addStretch(1)
+    h6 = PyQt4.QtGui.QHBoxLayout()
+    h6.addWidget(lpas)    
+    h6.addWidget(wpas)
+    h6.addWidget(wbut)
+    vb.addLayout(h6)
+    #gb.setLayout(vb)
+    win.setLayout(vb)
+
+
     win.setWindowTitle('PingPongCash')
     win.setGeometry(50, 50, 320, 480)
     win.show()
@@ -2082,13 +2132,13 @@ def gui():
 
 if __name__ == '__main__':
     #simulate()
-    #gui()
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
         list_local_ids()
     elif len(sys.argv) == 2:
-        if sys.argv[1] in ('usage', 'help'): usage()
+        if sys.argv[1] in ('gui', 'g'): gui()
+        elif sys.argv[1] in ('usage', 'help'): usage()
         elif sys.argv[1] == 'add': add_local_id()
         elif sys.argv[1] == 'reg': register(node)
         elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1])
