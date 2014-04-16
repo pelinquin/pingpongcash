@@ -914,22 +914,21 @@ def add_local_id():
     if b'host' not in db: db[b'host'] = b'cup'    
     db.close()
 
-def list_local_ids():
+def list_local_ids(node):
     "_"
     if os.path.isfile('keys'):
         db = dbm.open('keys', 'c')
         print ('Autority: %s, Currency: %s, Host: \'%s\', You have %d user IDs:' % (_root_id, db['cry'].decode('utf8'), db['host'].decode('ascii'), len(db.keys())-3))
-        for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
+        for x in filter(lambda i:len(i)==9, db.keys()):
+            bl = send(node, '=' + btob64(x))
+            print (btob64(x), '%20s' % bl if db['user'] != x else '%20s\t*' % bl )
         db.close()
     else:
         print ('Use \'./%s add\' for adding an ID' % __app__) 
 
 def get_unique(dk, rid):
     "_"
-    out = []
-    #for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
-    for u in dk.keys():
-        if re.match(rid, btob64(u)): out.append(u)
+    out = [u for u in filter(lambda i:re.match(rid, btob64(i)), dk.keys())]
     return out[0] if len(out) == 1 else None
 
 def set(k, h):
@@ -1003,7 +1002,7 @@ def buyig (node, ig):
         #    toto = send_get(node, url)
         #    open('toto.pdf', 'wb').write(toto)
     else:
-        print('unknown recipient')
+        print('unknown ig recipient')
     db.close()
 
 def buyig2 (node, sc, ig, pp):
@@ -1032,9 +1031,7 @@ def postig(node, p1, pf, xi):
 def register(node):
     "_"
     db = dbm.open('keys')
-    #for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
-    for x in db.keys():
-        if len(x) == 9: print (send(node, '@' + btob64(db[x][:132])))
+    for x in filter(lambda i:len(i)==9, db.keys()): print (send(node, '@' + btob64(db[x][:132])))
     db.close()
 
 def is_future(da):
@@ -1176,9 +1173,7 @@ def blc(d, cm, cry=b'A'):
     "balance for both   or cup"
     dt, di, bal = d['trx'], d['igs'], 0
     if cry == b'U':
-        #for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
-        for t in di.keys(): 
-            if di[t][:9] == cm: bal += real_income(di, t) # created IG (+)
+        for t in filter(lambda i:di[i][:9]==cm, di.keys()): bal += real_income(di, t) # created IG (+)
     for t in dt.keys(): 
         if len(t) == 14 and cry == b'U' and cm == dt[t][:9]: bal -= price(di, t[4:], b2i(t[:4])) # bought IG (-)
         elif len(t) == 13 and dt[t][:1] == cry:
@@ -1193,7 +1188,6 @@ def blc_old(d, cm):
     #k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
     #if z in dc and k.verify(dc[z][8:], cm + dc[z][:8]): dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
     if z in dc: dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
-    #for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
     for t in dt.keys():
         if (len(t) == 13) and dt[t][:1] == b'A' and (dar==None or is_after(t[:4], dar)):
             src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
@@ -1254,7 +1248,7 @@ def init_dbs(dbs, port):
 def update_peers(env, d, li):
     "_"
     now = '%s' % datetime.datetime.now()
-    #for x in filter(lambda i:len(i)==9, db.keys()): print (btob64(x) if db['user'] != x else btob64(x)+' *')
+    #for p in filter(lambda i:i != env['HTTP_HOST'] and bytes(i, 'utf8') not in d, li): d[p] = now[:19]
     for p in li:
         if p != env['HTTP_HOST'] and bytes(p, 'utf8') not in d: d[p] = now[:19]
     return 'Peers: %s\nDigest: %s' % ({x.decode('utf8'):d[x].decode('utf8') for x in d.keys()}, rdigest(env['SERVER_PORT']))
@@ -1303,16 +1297,13 @@ def app_update(host):
 
 def capture_id(d, arg):
     "_"
-    res = []
-    for u in filter(lambda i:re.match(arg, btob64(i)), d['pub'].keys()): res.append(btob64(u))
+    res = [btob64(u) for u in filter(lambda i:re.match(arg, btob64(i)), d['pub'].keys())]
     if len(res) == 1: return res[0]
     return ''
 
 def capture_ig(d, arg):
     "_"
-    res = []
-    for u in filter(lambda i:len(i) == 10 and re.match(arg, btob64(i)), d['igs'].keys()): res.append(u)
-    #res = [filter(lambda i:len(i) == 10 and re.match(arg, btob64(i)), d['igs'].keys())]
+    res = [ u for u in filter(lambda i:len(i) == 10 and re.match(arg, btob64(i)), d['igs'].keys())]
     if len(res) == 1: return btob64(res[0])
     return ''
 
@@ -1745,7 +1736,9 @@ def application(environ, start_response):
             if eurl: o = btob64(eurl)
         elif re.match('\!\S{1,15}$', arg): o = capture_ig(d, arg[1:])
         elif re.match('\?\S{1,12}$', arg): o = capture_id(d, arg[1:])
-        elif re.match('\=\S{1,12}$', arg): o = "balance"
+        elif re.match('\=\S{12}$', arg):
+            u = b64tob(bytes(arg[1:], 'ascii'))
+            o = '%s:%s:%s' % (blc(d, u)/100, blc(d, u, b'U'), debt(d, u))
         elif re.match('@\S{174,176}$', arg): 
             if valid_pub(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
@@ -2035,11 +2028,14 @@ PROTOCOL: POST\n
   *<nb[4]><refig[10]><src[9]><date[4]><signature[132]>
 5/GET id
   !<string>
-  return hurl[10]:nb
+  return id[9]
 6/GET ig 
   ?<string>
+  return ig[10]
 7/Get BALANCE
-  ??<src>
+  =<src>
+  return <bal€>:<bal⊔>:<debt>
+  debt is always nul for regular user (not i-bank)
 """
     print (usage.__doc__)
 
@@ -2123,8 +2119,6 @@ def gui():
     vb.addLayout(h6)
     #gb.setLayout(vb)
     win.setLayout(vb)
-
-
     win.setWindowTitle('PingPongCash')
     win.setGeometry(50, 50, 320, 480)
     win.show()
@@ -2135,7 +2129,7 @@ if __name__ == '__main__':
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
-        list_local_ids()
+        list_local_ids(node)
     elif len(sys.argv) == 2:
         if sys.argv[1] in ('gui', 'g'): gui()
         elif sys.argv[1] in ('usage', 'help'): usage()
