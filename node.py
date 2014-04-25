@@ -112,7 +112,7 @@ def hcode(m, s=10):
 
 def valencode(xi, p1, pf):
     "xi:7/p1:17/pf:32"
-    assert (p1 <= pf or xi==0) and xi<=100 and p1<(1<<17) and pf<(1<<32)
+    assert (2*p1 < pf or xi==0) and xi<=100 and p1<(1<<17) and pf<(1<<32)
     return i2b((xi<<49) + (p1<<32) + pf, 7)
 
 def valdecode(code):
@@ -123,7 +123,7 @@ def valdecode(code):
 ### OLD
 def valencode1(xi, p1, pf):
     "xi:7/p1:15/pf:26"
-    assert (p1 <= pf or xi==0) and xi<=100 and p1<(1<<15) and pf<(1<<26)
+    assert (2*p1 < pf or xi==0) and xi<=100 and p1<(1<<15) and pf<(1<<26)
     return i2b((xi<<41) + (p1<<26) + pf, 6)
 
 def valdecode1(code):
@@ -914,6 +914,16 @@ def add_local_id():
     if b'host' not in db: db[b'host'] = b'cup'    
     db.close()
 
+def add_local_id2(pp):
+    "for gui"
+    cm, k, db = b'', ecdsa(), dbm.open('keys', 'c')
+    k.generate()
+    cm = i2b(k.pt.y)[-9:]
+    if cm not in db:
+        db[cm] = i2b(k.pt.x, 66) + i2b(k.pt.y, 66) + AES().encrypt('%s' % k.privkey, hashlib.sha256(pp.encode('utf8')).digest())
+        print ('%s added' % btob64(cm))
+    db.close()
+
 def list_local_ids(node):
     "_"
     if os.path.isfile('keys'):
@@ -1024,6 +1034,15 @@ def postig(node, p1, pf, xi):
     url = input('url? ')
     msg = hcode(url) + src + datencode() + valencode(xi, p1, pf)
     print ('...please wait')
+    k.privkey = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest()))
+    print (send(node, '&' + btob64(msg + k.sign(msg)) + url))
+    db.close()
+
+def postig2(node, sc, p1, pf, xi, url, pp):
+    "_"
+    db, k, src = dbm.open('keys'), ecdsa(), b64tob(bytes(sc, 'ascii'))
+    prv, pub = db[src][132:], db[src][:132]
+    msg = hcode(url) + src + datencode() + valencode(xi, p1, pf)
     k.privkey = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest()))
     print (send(node, '&' + btob64(msg + k.sign(msg)) + url))
     db.close()
@@ -1548,6 +1567,51 @@ def rates(d, env):
     "_"
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
+    now, db = '%s' % datetime.datetime.now(), '/%s/rates' %__app__
+    dr = dbm.open(db) 
+    tmp = [(time.mktime(time.strptime(x.decode('ascii'),'%Y-%m-%d')), x, dr[x]) for x in dr.keys()]
+    first = True
+    y, R, RR = {}, 1, []
+    for i, x in enumerate(sorted(tmp)):
+        h = eval(x[2].decode('ascii'))
+        s1, s2 = 1, 1
+        if first:
+            h['KUP'], first = .1, False
+        else:
+            for c in filter(lambda i:i!='USD', __curset__):
+                s1 += h[c]/y[c]*__curset__[c]
+                s2 += h[c]*h[c]/y[c]/y[c]*__curset__[c]            
+            h['KUP'] = y['KUP']*s1/s2
+            R *= s1/s2
+            RR.append(R)
+        y = h
+    o += '<p>%s %s</p>' % (now[:19], R)
+    o += '<svg %s width="100%%" height="500">\n' % (_SVGNS)
+    o += '<rect x="10" y="10" width="95%%" height="300" style="stroke:gray;fill:none"/>\n'
+    gain, offset = 4000, 300
+    for c in __curset__:
+        if c != 'USD':
+            l1 = ''
+            for i, x in enumerate(sorted(tmp)):
+                tot = eval(x[2].decode('ascii'))
+                if i == 0: dec = tot[c]*gain
+                l1 += 'L%s,%s' % (10*i, int(tot[c]*gain - dec + offset))
+            o += '<path d="M%s" style="stroke:%s;stroke-width:1;fill:none;"/>\n' % (l1[1:], 'blue' if c == 'KUP' else 'red')  
+    l1 = ''
+    for i, r in enumerate(RR):
+        if i == 0: dec = r*gain
+        l1 += 'L%s,%s' % (10*i, int(r*gain - dec + offset))
+        o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/>\n' % l1[1:]
+    o += '</svg>'
+    dr.close()
+    atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
+    return o + footer('%s %s Auth:%s' % (rdigest(env['SERVER_PORT']), stat(d), atrt)) + '</body></html>\n'
+
+def rates_old(d, env):
+    "_"
+    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
     now = '%s' % datetime.datetime.now()
     o += '<p>%s<br/> 1 ⊔ = ...</p>' % now[:19]
@@ -1630,15 +1694,11 @@ def diff_dbs(d, port):
 
 def push_dbs(d, port):
     "_"
-    tab = []
-    for p in d['prs'].keys(): 
-        if rdigest(port) != digest_req(p.decode('utf8')).decode('utf8'): 
-            tab.append(p)
-    for p in tab: 
-        req(p.decode('utf8'), 'TRX%s' % {x: d['trx'][x] for x in d['trx'].keys()})
-        req(p.decode('utf8'), 'CRT%s' % {x: d['crt'][x] for x in d['crt'].keys()})
-        req(p.decode('utf8'), 'PUB%s' % {x: d['pub'][x] for x in d['pub'].keys()})
-        req(p.decode('utf8'), 'IGS%s' % {x: d['igs'][x] for x in d['igs'].keys()})
+    for q in [p for p in filter(lambda i: rdigest(port) != digest_req(i.decode('utf8')).decode('utf8'), d['prs'].keys())]: 
+        req(q.decode('utf8'), 'TRX%s' % {x: d['trx'][x] for x in d['trx'].keys()})
+        req(q.decode('utf8'), 'CRT%s' % {x: d['crt'][x] for x in d['crt'].keys()})
+        req(q.decode('utf8'), 'PUB%s' % {x: d['pub'][x] for x in d['pub'].keys()})
+        req(q.decode('utf8'), 'IGS%s' % {x: d['igs'][x] for x in d['igs'].keys()})
 
 def valid_pub(d, pub):
     "_"
@@ -1835,16 +1895,39 @@ Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 
 def simulate():
     "_"
-    f1, f2, f3 = True, True, True
-    p1, pi, xi = 10, 1000, 35
-    print ('%d⊔ %s  %s%%' % (p1, pi, xi))
-    M = 0
-    for i in range(3000):
-        print (i+1, fprice(p1, pi, xi, i, False))
+    pu, pi, xi = 10, 1000, 35
+    #pu, pi, xi = 1, 14, 1
+    print ('%d⊔ %s⊔ %s%%' % (pu, pi, xi))
+    for i in range(5*pi): 
+        #print (i+1, fprice(pu, pi, xi, i, False))
+        p, x, r, t = price_debug(pu, pi, xi, i)
+        ## begin - check increase income ## 
+        if i>0 and t<to: assert False
+        to = t  
+        ## end - check incrase income ##
+        print ('%s*%s⊔ + %s*%s⊔ = %s⊔ (%s)' % (i+1-x+r, p+1, x-r, p, t+r, r))
+    sys.exit()
+
+def get_proof(limite):
+    "_"
+    for p1 in range(1, limite):
+        print('[%s]' % p1)
+        #sys.stdout.write(.)
+        #sys.stdout.flush()
+        for pi in range(2*p1+1, limite):
+            print('<%s>' % pi)
+            for xi in range(0, 101):
+                M = 0
+                for i in range(3*pi):
+                    p, r = fprice(p1, pi, xi, i, True)
+                    if r >= M: M = r
+                    else: print (r, M, xi, i); assert False
+    print ('ok!')
     sys.exit()
 
 def fprice(p1, pf, xi, i, disp=False):
     "_"
+    if xi > 100: xi = 100
     if xi == 0:
         p, r, t = int(p1/(i+1)), 0, round(p1)
         if p == 0:
@@ -1853,27 +1936,62 @@ def fprice(p1, pf, xi, i, disp=False):
         else:
             x = (i+1)*(p+1)-t
     else:
-        if xi > 100: xi = 100
         k = ((pf-p1)/(pf-2*p1))**(xi/100)
         ta = (pf+(p1-pf)/k**i)
         p, t = int(ta/(i+1)), round(ta)
         x, j, r = (i+1)*(p+1)-t, i, 0
-        while False:
+        f, po, xo, ro = False, p, x, r ## check double price ##   
+        while True:
             j += 1
             tb = (pf+(p1-pf)/k**j)
-            pr1, t1 = int(tb/(j+1)), round(tb)
-            y = (j+1)*(pr1+1)-t1
-            if p != pr1: break
+            q = int(tb/(j+1))
+            y = (j+1)*(q+1) - round(tb)
+            if p != q: break
             if j+x >= r+y+i: r = j-y-i+x
             else: break
-            if x < r: 
-                r = x
-                break
+            if x < r: r = x; break
             if j+1-y == pf: break
+            if j-i > pf: break
+            ## begin - check double price ## 
+            if q==po:
+                if 1+xo+r > x+ro:
+                    if f and t+r < pi: assert False
+                else: f = True
+            else: f = False
+            po, xo, ro = q, x, r  
+            ## end - check double price ##
     if disp:
         return (t+r)/(i+1), t+r
     else:
         return '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x+r, p+1, x-r, p, t+r)
+
+def price_debug(p1, pf, xi, i):
+    "_"
+    k = ((pf-p1)/(pf-2*p1))**(xi/100)
+    ta = (pf+(p1-pf)/k**i)
+    p, t = int(ta/(i+1)), round(ta)
+    x, j, r = (i+1)*(p+1)-t, i, 0    
+    f, po, xo, ro = False, p, x, r ## check double price ##   
+    while True:
+        j += 1
+        tb = (pf+(p1-pf)/k**j)
+        q = int(tb/(j+1))
+        y = (j+1)*(q+1) - round(tb)
+        if p != q: break
+        if j+x >= r+y+i: r = j-y-i+x
+        else: break
+        if x < r: r = x; break
+        if j+1-y == pf: break
+        if j-i > pf: break
+        ## begin - check double price ## 
+        if q==po:
+            if 1+xo+r > x+ro:
+                if f and t+r < pi: assert False
+            else: f = True
+        else: f = False
+        po, xo, ro = q, x, r  
+        ## end - check double price ##
+    return p, x, r, t
 
 def price(digs, ig, l, nxt=False):
     "_"
@@ -1964,6 +2082,14 @@ def forex():
         cu += datetime.timedelta(days=1)
     dr.close()
 
+def forex_graph():
+    " "
+    now, db = '%s' % datetime.datetime.now(), '/%s/rates' %__app__
+    #__curset__['USD']
+    dr = dbm.open(db)
+    dr.close()
+    return "hello"
+
 def forex_read():
     " "
     now, ytd, db, y, h, res = '%s' % datetime.datetime.now(), '%s' % (datetime.datetime.now() - datetime.timedelta(days=1)), '/%s/rates' %__app__, {}, {}, {}
@@ -2040,8 +2166,8 @@ PROTOCOL: POST\n
     print (usage.__doc__)
 
 def gui():
-    "_"
-    def call_buy(name):
+    "Qt4"
+    def call_buy():
         vcmb = wcmb.currentText()
         vprc = wprc.text()
         vdst = wdst.text()
@@ -2049,39 +2175,64 @@ def gui():
         vdev = wdev.currentText()
         vigi = wigi.text()
         node = get_host()
-        if vigi: buyig2(node, vcmb, vigi, vpas)
+        vip1, vipi, vixi, vurl = wip1.text(), wipi.text(), wixi.text(), wurl.text()
+        if re.match('\d+$', vip1): postig2(node, vcmb, int(vip1), int(vipi), int(vixi), vurl, vpas) 
+        elif vigi: buyig2(node, vcmb, vigi, vpas)
         else: buy2(node, vcmb, vdst, vprc, vdev, vpas)
+    def call_create():
+        vpas, vpw2 = wpas.text(), wpw2.text()
+        if vpas == vpw2: add_local_id2(vpas) 
+    def call_postig():
+        vpas, vpw2 = wpas.text(), wpw2.text()
+        if vpas == vpw2: add_local_id2(vpas) 
+    def call_register():
+        node = get_host()
+        register(node)
     app = PyQt4.QtGui.QApplication(sys.argv)
-    win = PyQt4.QtGui.QWidget()
-    lcmb = PyQt4.QtGui.QLabel('Source ID', win)
-    wcmb = PyQt4.QtGui.QComboBox(win)
+    w = PyQt4.QtGui.QWidget()
+    lcmb = PyQt4.QtGui.QLabel('Source ID', w)
+    wcmb = PyQt4.QtGui.QComboBox(w)
+    nb = 0
     if os.path.isfile('keys'):
         db = dbm.open('keys', 'c')
+        nb = len(db.keys())-2        
         wcmb.addItems([btob64(x) for x in db.keys() if len(x) == 9])
         db.close()
     wcmb.setFocus()
-    lhst = PyQt4.QtGui.QLabel('Host', win)
-    whst = PyQt4.QtGui.QLineEdit(win)
-    whst.setText(get_host())
-    ldst = PyQt4.QtGui.QLabel('Destinataire ID', win)
-    wdst = PyQt4.QtGui.QLineEdit(win)
-    lprc = PyQt4.QtGui.QLabel('Prix', win)
-    wprc = PyQt4.QtGui.QLineEdit(win)
+    lhst = PyQt4.QtGui.QLabel('Host', w)
+    whst = PyQt4.QtGui.QLineEdit(get_host(), w)
+    lidn = PyQt4.QtGui.QLabel('%s IDs locales' % nb, w)
+    ldst = PyQt4.QtGui.QLabel('Destinataire ID', w)
+    wdst = PyQt4.QtGui.QLineEdit(w)
+    lprc = PyQt4.QtGui.QLabel('Prix', w)
+    wprc = PyQt4.QtGui.QLineEdit(w)
     wprc.setMaximumWidth(100)
     #wprc.setAlignment(PyQt4.QtCore.Qt.Alignment.right)
     #wprc.setInputMask('0.00')
-    wbut = PyQt4.QtGui.QPushButton('Envoyer', win)
+    wbut = PyQt4.QtGui.QPushButton('Envoyer', w)
     wbut.clicked.connect(call_buy)
-    lpas = PyQt4.QtGui.QLabel('Mot de passe', win)
-    wpas = PyQt4.QtGui.QLineEdit(win)
+    lpas = PyQt4.QtGui.QLabel('Mot de passe', w)
+    wpas = PyQt4.QtGui.QLineEdit(w)
     wpas.setEchoMode(PyQt4.QtGui.QLineEdit.Password)
-    lmes = PyQt4.QtGui.QLabel('Message', win)
-    wmes = PyQt4.QtGui.QLineEdit(win)
-    ligi = PyQt4.QtGui.QLabel('Référence ig', win)
-    wigi = PyQt4.QtGui.QLineEdit(win)
-    wdev = PyQt4.QtGui.QComboBox(win)
-    wdev.addItems(['€','⊔'])
+    lmes = PyQt4.QtGui.QLabel('Message', w)
+    wmes = PyQt4.QtGui.QLineEdit(w)
+    ligi = PyQt4.QtGui.QLabel('Référence IG', w)
+    wigi = PyQt4.QtGui.QLineEdit(w)
+    wdev = PyQt4.QtGui.QComboBox(w)
+    wbt2 = PyQt4.QtGui.QPushButton('Créer un compte', w)
+    wbt2.clicked.connect(call_create)
+    lpw2 = PyQt4.QtGui.QLabel('Confirmer', w)
+    wpw2 = PyQt4.QtGui.QLineEdit(w)
+    wpw2.setEchoMode(PyQt4.QtGui.QLineEdit.Password)
+    wdev.addItems(['€', '⊔'])
     wprc.setText('0.00' if wdev.currentText() == '€' else '0') 
+    wbt3 = PyQt4.QtGui.QPushButton('Enregistrer les comptes locaux', w)
+    wbt3.clicked.connect(call_register)
+    ligc = PyQt4.QtGui.QLabel('Nouvel IG', w)
+    wip1 = PyQt4.QtGui.QLineEdit('prix initial', w)
+    wipi = PyQt4.QtGui.QLineEdit('revenu maxi', w)
+    wixi = PyQt4.QtGui.QLineEdit('vitesse %', w)
+    wurl = PyQt4.QtGui.QLineEdit('http://', w)
     #
     gb = PyQt4.QtGui.QGroupBox('hello')
     gb.setFlat(True)
@@ -2089,6 +2240,7 @@ def gui():
     h0 = PyQt4.QtGui.QHBoxLayout()
     h0.addWidget(lhst)
     h0.addWidget(whst)
+    h0.addWidget(lidn)
     vb.addLayout(h0)
     h1 = PyQt4.QtGui.QHBoxLayout()
     h1.addWidget(lcmb)
@@ -2112,26 +2264,45 @@ def gui():
     h5.addWidget(wigi)
     vb.addLayout(h5)
     vb.addStretch(1)
+
     h6 = PyQt4.QtGui.QHBoxLayout()
-    h6.addWidget(lpas)    
-    h6.addWidget(wpas)
-    h6.addWidget(wbut)
+    h6.addWidget(ligc)    
+    h6.addWidget(wurl)
     vb.addLayout(h6)
+    h7 = PyQt4.QtGui.QHBoxLayout()
+    h7.addWidget(wip1)
+    h7.addWidget(wipi)
+    h7.addWidget(wixi)
+    vb.addLayout(h7)
+    h8 = PyQt4.QtGui.QHBoxLayout()
+    h8.addWidget(lpas)    
+    h8.addWidget(wpas)
+    h8.addWidget(wbut)
+    vb.addLayout(h8)
+    h9 = PyQt4.QtGui.QHBoxLayout()    
+    h9.addWidget(lpw2)
+    h9.addWidget(wpw2)
+    h9.addWidget(wbt2)
+    vb.addLayout(h9)
+    h10 = PyQt4.QtGui.QHBoxLayout()    
+    h10.addWidget(wbt3)
+    vb.addLayout(h10)
     #gb.setLayout(vb)
-    win.setLayout(vb)
-    win.setWindowTitle('PingPongCash')
-    win.setGeometry(50, 50, 320, 480)
-    win.show()
+    w.setLayout(vb)
+    w.setWindowTitle('PingPongCash')
+    w.setGeometry(50, 50, 320, 480)
+    w.show()
     app.exec_()
 
 if __name__ == '__main__':
     #simulate()
+    #get_proof(50)
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
-        list_local_ids(node)
+        gui()
     elif len(sys.argv) == 2:
-        if sys.argv[1] in ('gui', 'g'): gui()
+        if sys.argv[1] in ('list', 'l'): list_local_ids(node)
         elif sys.argv[1] in ('usage', 'help'): usage()
         elif sys.argv[1] == 'add': add_local_id()
         elif sys.argv[1] == 'reg': register(node)
