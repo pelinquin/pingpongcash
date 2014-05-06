@@ -1146,7 +1146,7 @@ def report_cup(d, cm):
     for i in di.keys(): # created IG
         if di[i][:9] == cm and len(i) == 10:
             url = d['igs'][b'%'+i]
-            dat, prc = datdecode(di[i][9:13]), real_income(di, i)
+            dat, prc = datdecode(di[i][9:13]), income(di, i)
             t1, bal = '<td class="num">%7d&nbsp;⊔</td>' % prc, bal+prc 
             tmp.append((di[i][9:13], '<td class="num">%s</td>%s<td><a href="%s" class="mono">%s</a></td><td class="mono">%s</td>%s%s</tr>' % (dat, typ, url.decode('utf8'), btob64(i), btob64(cm), empty, t1)))
     for t in dt.keys(): # bank funding
@@ -1192,7 +1192,7 @@ def blc(d, cm, cry=b'A'):
     "balance for both   or cup"
     dt, di, bal = d['trx'], d['igs'], 0
     if cry == b'U':
-        for t in filter(lambda i:di[i][:9]==cm, di.keys()): bal += real_income(di, t) # created IG (+)
+        for t in filter(lambda i:di[i][:9]==cm, di.keys()): bal += income(di, t) # created IG (+)
     for t in dt.keys(): 
         if len(t) == 14 and cry == b'U' and cm == dt[t][:9]: bal -= price(di, t[4:], b2i(t[:4])) # bought IG (-)
         elif len(t) == 13 and dt[t][:1] == cry:
@@ -1417,22 +1417,24 @@ def simu(d, env, p1, pi, xi, graph=False):
     l1, l2, dx, dy = '', '', 30, 10
     if graph:
         o += '<svg %s id="svg1" width="100%%" height="320">\n' % (_SVGNS)
-        o += '<rect x="%s" y="%s" width="700" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
+        o += '<rect x="%s" y="%s" width="800" height="300" style="stroke:gray;fill:none"/>\n' % (dx, dy) 
         o += '<path id="path1" d="m%s,%sl0,300" style="stroke:gray;stroke-width:1"/>\n' % (dx, dy)
         for i in range(5):
             if i == 1: sty = ' style="fill:blue"'
             elif i in (2, 3): sty = ' style="fill:red"'
             else: sty = ''
             o += '<text id="t%d" y="%d"%s></text>' % (i, 50 + 30*i, sty)
-        for i in range(0, pi, pi//100):
-            pr, tau = fprice(p1, pi, xi, i, True)
+        for i in range(0, pi+pi//10, pi//100):
+            p, x = fprice(p1, pi, xi, i)
+            tau = (i+1-x)*(p+1) +x*p
+            pr = tau/(i+1)
             l1 += 'L%s,%s' % (dx + i*700/pi, 300+dy - tau*300/pi)
             l2 += 'L%s,%s ' % (dx + int(i*700/pi), dy + int(300*(1-pr/p1)))
         o += '<path d="M%s" style="stroke:blue;stroke-width:1;fill:none;"/>\n<path d="M%s" style="stroke:red;stroke-width:1;fill:none;"/>\n' % (l1[1:], l2[1:])  
         o += '<text x="2" y="10" style="fill:red;font-size:10">%s⊔</text>' % p1
         o += '<text x="2" y="310" style="fill:red;font-size:10">0⊔</text>'
-        o += '<text x="740" y="10" style="fill:blue;font-size:10">%s⊔</text>' % pi
-        o += '<text x="740" y="310" style="fill:blue;font-size:10">0⊔</text>'
+        o += '<text x="840" y="10" style="fill:blue;font-size:10">%s⊔</text>' % pi
+        o += '<text x="840" y="310" style="fill:blue;font-size:10">0⊔</text>'
         o += '<circle id="c1" r="4" style="fill:blue"/><circle id="c2" r="4" style="fill:red"/><circle id="c3" r="4" style="fill:red"/>\n'  
         o += '</svg>\n'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
@@ -1674,7 +1676,7 @@ def publish(d, dr, env, ign, pos):
             o += '<p>Paramètre de vitesse: %d%%</p>' % xi
             o += "<p>Nombre d'acheteurs: %6d</p>" % nb
             o += "<p><b>Prochain Prix %7.2f&nbsp;⊔</b></p>" % price(d['igs'], hig, 0, True)
-            o += "<p><b>Revenu courant %7.2f&nbsp;⊔</b></p>" % real_income(d['igs'], hig)
+            o += "<p><b>Revenu courant %7.2f&nbsp;⊔</b></p>" % income(d['igs'], hig)
             if pos != None and int(pos)<=nb and int(pos)>0:
                 ign2 = '%s/publish/%s' % (env['SERVER_NAME'], ign)
                 eurl = enurl(d, dr, ign2, int(pos))
@@ -1844,7 +1846,11 @@ def application(environ, start_response):
             elif raw == 'ibank': o, mime = ibank(), 'text/html; charset=utf-8'
             elif raw == 'simu': o, mime = simu(d, environ, 10, 1000, 35), 'text/html; charset=utf-8'
             elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)$', raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), True), 'text/html; charset=utf-8'
-            elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)&i=(\d+)$', raw)): o = fprice(int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), int(reg.v.group(4))) 
+            elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)&i=(\d+)$', raw)): 
+                pu, pi, xi, i = int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), int(reg.v.group(4)) 
+                p, x = fprice(pu, pi, xi, i)
+                t = (i+1-x)*(p+1) +x*p
+                o = '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x, p+1, x, p, t)
             else:
                 o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
                 #diff_dbs(d, port)
@@ -1896,16 +1902,23 @@ Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 def simulate():
     "_"
     pu, pi, xi = 10, 1000, 35
-    #pu, pi, xi = 1, 14, 1
+    #pu, pi, xi = 10, 1000, 0
     print ('%d⊔ %s⊔ %s%%' % (pu, pi, xi))
-    for i in range(5*pi): 
-        #print (i+1, fprice(pu, pi, xi, i, False))
-        p, x, r, t = price_debug(pu, pi, xi, i)
-        ## begin - check increase income ## 
-        if i>0 and t<to: assert False
-        to = t  
-        ## end - check incrase income ##
-        print ('%s*%s⊔ + %s*%s⊔ = %s⊔ (%s)' % (i+1-x+r, p+1, x-r, p, t+r, r))
+    f, po, xo, M = False, 0, 0, 0 ## check double price ##   
+    for i in range(4*pi): 
+        p, x = fprice(pu, pi, xi, i)
+        t = (i+1-x)*(p+1) +x*p
+        print ('%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x, p+1, x, p, t))
+        ## begin - check double price and increase income## 
+        if p==po:
+            if 1+xo > x:
+                if f and t <= pi: assert False
+            else: f = True
+        else: f = False
+        if t >= M: M = t
+        else: assert False
+        po, xo = p, x   
+        ## end check ##
     sys.exit()
 
 def get_proof(limite):
@@ -1917,145 +1930,82 @@ def get_proof(limite):
         for pi in range(2*p1+1, limite):
             print('<%s>' % pi)
             for xi in range(0, 101):
-                M = 0
+                f, po, xo, M = False, 0, 0, 0 ## check double price ##   
                 for i in range(3*pi):
-                    p, r = fprice(p1, pi, xi, i, True)
-                    if r >= M: M = r
-                    else: print (r, M, xi, i); assert False
+                    p, x = fprice(p1, pi, xi, i)
+                    t = (i+1-x)*(p+1) +x*p
+                    ## begin - check double price and increase income## 
+                    if p==po:
+                        if 1+xo > x:
+                            if f and t <= pi: assert False
+                        else: f = True
+                    else: f = False
+                    if t >= M: M = t
+                    else: assert False
+                    po, xo = p, x   
+                    ## end check ##
     print ('ok!')
     sys.exit()
 
-def fprice(p1, pf, xi, i, disp=False):
-    "_"
-    if xi > 100: xi = 100
+def fprice(p1, pf, xi, i):
+    "function price"
     if xi == 0:
-        p, r, t = int(p1/(i+1)), 0, round(p1)
+        pv = int(p1/(i+1))
         if p == 0:
-            if i < pf: t, x = i+1, 0
-            else: t, x = pf, i+1-pf
+            if i < pf: return 0, 0
+            else: return 0, i+1-pf
         else:
-            x = (i+1)*(p+1)-t
-    else:
-        k = ((pf-p1)/(pf-2*p1))**(xi/100)
-        ta = (pf+(p1-pf)/k**i)
-        p, t = int(ta/(i+1)), round(ta)
-        x, j, r = (i+1)*(p+1)-t, i, 0
-        f, po, xo, ro = False, p, x, r ## check double price ##   
-        while True:
-            j += 1
-            tb = (pf+(p1-pf)/k**j)
-            q = int(tb/(j+1))
-            y = (j+1)*(q+1) - round(tb)
-            if p != q: break
-            if j+x >= r+y+i: r = j-y-i+x
-            else: break
-            if x < r: r = x; break
-            if j+1-y == pf: break
-            if j-i > pf: break
-            ## begin - check double price ## 
-            if q==po:
-                if 1+xo+r > x+ro:
-                    if f and t+r < pi: assert False
-                else: f = True
-            else: f = False
-            po, xo, ro = q, x, r  
-            ## end - check double price ##
-    if disp:
-        return (t+r)/(i+1), t+r
-    else:
-        return '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x+r, p+1, x-r, p, t+r)
-
-def price_debug(p1, pf, xi, i):
-    "_"
-    k = ((pf-p1)/(pf-2*p1))**(xi/100)
-    ta = (pf+(p1-pf)/k**i)
-    p, t = int(ta/(i+1)), round(ta)
-    x, j, r = (i+1)*(p+1)-t, i, 0    
-    f, po, xo, ro = False, p, x, r ## check double price ##   
+            return p, (i+1)*(p+1)-round(p1)
+    if xi > 100: xi = 100
+    l = ((pf-p1)/(pf-2*p1))**(xi/100)
+    ta = pf+(p1-pf)/l**i
+    p = int(ta/(i+1))
+    k, j = (i+1)*(p+1)-round(ta), i
     while True:
         j += 1
-        tb = (pf+(p1-pf)/k**j)
+        tb = pf+(p1-pf)/l**j
         q = int(tb/(j+1))
         y = (j+1)*(q+1) - round(tb)
         if p != q: break
-        if j+x >= r+y+i: r = j-y-i+x
+        if k >= y+i-j: k = y+i-j
         else: break
-        if x < r: r = x; break
+        if k < 0: k=0; break
         if j+1-y == pf: break
-        if j-i > pf: break
-        ## begin - check double price ## 
-        if q==po:
-            if 1+xo+r > x+ro:
-                if f and t+r < pi: assert False
-            else: f = True
-        else: f = False
-        po, xo, ro = q, x, r  
-        ## end - check double price ##
-    return p, x, r, t
+    #print ('%d %d %s' % (t, j, k))
+    return p, k
+
+#def PRICE(p1, pf, xi, i):
+#    l = ((pf-p1)/(pf-2*p1))**(xi/100)
+#    ta = pf+(p1-pf)/l**i
+#    p = int(ta/(i+1))
+#    k, j = (i+1)*(p+1)-round(ta), i
+#    while True:
+#        j += 1
+#        tb = pf+(p1-pf)/l**j
+#        q = int(tb/(j+1))
+#        y = (j+1)*(q+1) - round(tb)
+#        if p != q: return p, k
+#        if k >= y+i-j: k = y+i-j
+#        else: return p, k
+#        if k < 0: return p, 0
+#        if j+1-y == pf: return p, k
+
 
 def price(digs, ig, l, nxt=False):
     "_"
     xi, p1, pf = valdecode(digs[ig][13:20])
     i = (len(digs[ig]) - 152)//9 if nxt else (len(digs[ig]) - 152)//9 - 1
     if nxt: l = i
-    if xi == 0:
-        p, r, t = int(p1/(i+1)), 0, round(p1)
-        if p == 0:
-            if i < pf: t, x = i+1, 0
-            else: t, x = pf, i+1-pf
-        else:
-            x = (i+1)*(p+1)-t
-    else:
-        if xi > 100: xi = 100
-        k = ((pf-p1)/(pf-2*p1))**(xi/100)
-        ta = (pf+(p1-pf)/k**i)
-        p, t = int(ta/(i+1)), round(ta)
-        x, j, r = (i+1)*(p+1)-t, i, 0
-        while False:
-            j += 1
-            tb = (pf+(p1-pf)/k**j)
-            pr1, t1 = int(tb/(j+1)), round(tb)
-            y = (j+1)*(pr1+1)-t1
-            if p != pr1: break
-            if j+x >= r+y+i: r = j-y-i+x
-            else: break
-            if x < r: 
-                r = x
-                break
-            if j+1-y == pf: break
-    return p+1 if l <= i-x+r else p
+    p, x = fprice(p1, pf, xi, i)
+    return p+1 if l <= i-x else p
 
-def real_income(digs, ig):
+def income(digs, ig):
     "_"
     xi, p1, pf = valdecode(digs[ig][13:20])
     if (len(digs[ig]) - 152)//9 == 0: return 0
     i = (len(digs[ig]) - 152)//9 - 1
-    if xi == 0:
-        p, r, t = int(p1/(i+1)), 0, round(p1)
-        if p == 0:
-            if i < pf: t, x = i+1, 0
-            else: t, x = pf, i+1-pf
-        else:
-            x = (i+1)*(p+1)-t
-    else:
-        if xi > 100: xi = 100
-        k = ((pf-p1)/(pf-2*p1))**(xi/100)
-        ta = (pf+(p1-pf)/k**i)
-        p, t = int(ta/(i+1)), round(ta)
-        x, j, r = (i+1)*(p+1)-t, i, 0
-        while False:
-            j += 1
-            tb = (pf+(p1-pf)/k**j)
-            pr1, t1 = int(tb/(j+1)), round(tb)
-            y = (j+1)*(pr1+1)-t1
-            if p != pr1: break
-            if j+x >= r+y+i: r = j-y-i+x
-            else: break
-            if x < r: 
-                r = x
-                break
-            if j+1-y == pf: break
-    return t+r
+    p, x = fprice(p1, pf, xi, i)
+    return (i+1-x)*(p+1) + x*p
 
 def get_random_ibank(dc):
     for x in dc.keys():
@@ -2295,8 +2245,8 @@ def gui():
     app.exec_()
 
 if __name__ == '__main__':
-    #simulate()
-    #get_proof(50)
+    simulate()
+    #get_proof(20)
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
