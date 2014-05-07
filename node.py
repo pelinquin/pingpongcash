@@ -1425,8 +1425,8 @@ def simu(d, env, p1, pi, xi, graph=False):
             else: sty = ''
             o += '<text id="t%d" y="%d"%s></text>' % (i, 50 + 30*i, sty)
         for i in range(0, pi+pi//10, pi//100):
-            p, x = fprice(p1, pi, xi, i)
-            tau = (i+1-x)*(p+1) +x*p
+            p, k = fprice(p1, pi, xi, i)
+            tau = (i+1-k)*(p+1) +k*p
             pr = tau/(i+1)
             l1 += 'L%s,%s' % (dx + i*700/pi, 300+dy - tau*300/pi)
             l2 += 'L%s,%s ' % (dx + int(i*700/pi), dy + int(300*(1-pr/p1)))
@@ -1848,9 +1848,9 @@ def application(environ, start_response):
             elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)$', raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), True), 'text/html; charset=utf-8'
             elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)&i=(\d+)$', raw)): 
                 pu, pi, xi, i = int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), int(reg.v.group(4)) 
-                p, x = fprice(pu, pi, xi, i)
-                t = (i+1-x)*(p+1) +x*p
-                o = '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x, p+1, x, p, t)
+                p, k = fprice(pu, pi, xi, i)
+                t = (i+1-k)*(p+1) +k*p
+                o = '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-k, p+1, k, p, t)
             else:
                 o, mime = index(d, environ, raw), 'text/html; charset=utf-8'
                 #diff_dbs(d, port)
@@ -1904,20 +1904,20 @@ def simulate():
     pu, pi, xi = 10, 1000, 35
     #pu, pi, xi = 10, 1000, 0
     print ('%d⊔ %s⊔ %s%%' % (pu, pi, xi))
-    f, po, xo, M = False, 0, 0, 0 ## check double price ##   
-    for i in range(4*pi): 
-        p, x = fprice(pu, pi, xi, i)
-        t = (i+1-x)*(p+1) +x*p
-        print ('%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-x, p+1, x, p, t))
+    fo, po, ko, mo = False, 0, 0, 0 ## check double price ##   
+    for i in range(5*pi): 
+        p, k = fprice(pu, pi, xi, i)
+        t = (i+1-k)*(p+1) +k*p
+        print ('%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-k, p+1, k, p, t))
         ## begin - check double price and increase income## 
         if p==po:
-            if 1+xo > x:
-                if f and t <= pi: assert False
-            else: f = True
-        else: f = False
-        if t >= M: M = t
+            if 1+ko > k:
+                if fo and t <= pi: assert False
+            else: fo = True
+        else: fo = False
+        if t >= mo: mo = t
         else: assert False
-        po, xo = p, x   
+        po, ko = p, k   
         ## end check ##
     sys.exit()
 
@@ -1930,19 +1930,19 @@ def get_proof(limite):
         for pi in range(2*p1+1, limite):
             print('<%s>' % pi)
             for xi in range(0, 101):
-                f, po, xo, M = False, 0, 0, 0 ## check double price ##   
+                fo, po, ko, mo = False, 0, 0, 0 ## check double price ##   
                 for i in range(3*pi):
-                    p, x = fprice(p1, pi, xi, i)
-                    t = (i+1-x)*(p+1) +x*p
+                    p, k = fprice(p1, pi, xi, i)
+                    t = (i+1-k)*(p+1) +k*p
                     ## begin - check double price and increase income## 
                     if p==po:
-                        if 1+xo > x:
-                            if f and t <= pi: assert False
-                        else: f = True
-                    else: f = False
-                    if t >= M: M = t
+                        if 1+ko > k:
+                            if fo and t <= pi: assert False
+                        else: fo = True
+                    else: fo = False
+                    if t >= mo: mo = t
                     else: assert False
-                    po, xo = p, x   
+                    po, ko = p, k   
                     ## end check ##
     print ('ok!')
     sys.exit()
@@ -1950,12 +1950,12 @@ def get_proof(limite):
 def fprice(p1, pf, xi, i):
     "function price"
     if xi == 0:
-        pv = int(p1/(i+1))
+        p = p1//(i+1)
         if p == 0:
             if i < pf: return 0, 0
             else: return 0, i+1-pf
         else:
-            return p, (i+1)*(p+1)-round(p1)
+            return p, (i+1)*(p+1)-p1
     if xi > 100: xi = 100
     l = ((pf-p1)/(pf-2*p1))**(xi/100)
     ta = pf+(p1-pf)/l**i
@@ -1971,41 +1971,24 @@ def fprice(p1, pf, xi, i):
         else: break
         if k < 0: k=0; break
         if j+1-y == pf: break
-    #print ('%d %d %s' % (t, j, k))
+    #print ('%d %d' % (j, k))
     return p, k
-
-#def PRICE(p1, pf, xi, i):
-#    l = ((pf-p1)/(pf-2*p1))**(xi/100)
-#    ta = pf+(p1-pf)/l**i
-#    p = int(ta/(i+1))
-#    k, j = (i+1)*(p+1)-round(ta), i
-#    while True:
-#        j += 1
-#        tb = pf+(p1-pf)/l**j
-#        q = int(tb/(j+1))
-#        y = (j+1)*(q+1) - round(tb)
-#        if p != q: return p, k
-#        if k >= y+i-j: k = y+i-j
-#        else: return p, k
-#        if k < 0: return p, 0
-#        if j+1-y == pf: return p, k
-
 
 def price(digs, ig, l, nxt=False):
     "_"
     xi, p1, pf = valdecode(digs[ig][13:20])
     i = (len(digs[ig]) - 152)//9 if nxt else (len(digs[ig]) - 152)//9 - 1
     if nxt: l = i
-    p, x = fprice(p1, pf, xi, i)
-    return p+1 if l <= i-x else p
+    p, k = fprice(p1, pf, xi, i)
+    return p+1 if l <= i-k else p
 
 def income(digs, ig):
     "_"
     xi, p1, pf = valdecode(digs[ig][13:20])
     if (len(digs[ig]) - 152)//9 == 0: return 0
     i = (len(digs[ig]) - 152)//9 - 1
-    p, x = fprice(p1, pf, xi, i)
-    return (i+1-x)*(p+1) + x*p
+    p, k = fprice(p1, pf, xi, i)
+    return (i+1-k)*(p+1) + k*p
 
 def get_random_ibank(dc):
     for x in dc.keys():
@@ -2245,7 +2228,7 @@ def gui():
     app.exec_()
 
 if __name__ == '__main__':
-    simulate()
+    #simulate()
     #get_proof(20)
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
