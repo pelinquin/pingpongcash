@@ -1901,11 +1901,11 @@ Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 
 def simulate():
     "_"
-    pu, pi, xi = 10, 1000, 35
-    #pu, pi, xi = 10, 1000, 0
+    pu, pi, xi = 10, 1000, 0
+    #pu, pi, xi = 10, 200, 0
     print ('%d⊔ %s⊔ %s%%' % (pu, pi, xi))
     fo, po, ko, mo = False, 0, 0, 0 ## check double price ##   
-    for i in range(5*pi): 
+    for i in range(1*pi+10): 
         p, k = fprice(pu, pi, xi, i)
         t = (i+1-k)*(p+1) +k*p
         print ('%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-k, p+1, k, p, t))
@@ -1917,8 +1917,36 @@ def simulate():
         else: fo = False
         if t >= mo: mo = t
         else: assert False
+        assert k>=0 and k<=i+1 and p>=0
         po, ko = p, k   
         ## end check ##
+    sys.exit()
+
+def simul_table():
+    "_"
+    pu, pi, ta = 10, 1000, []
+    for i in range(pi+2+1): ta.append(['%04s ' % i]) 
+    for xi in (0, 15, 30, 40, 60, 70, 85, 100):
+        ta[0].append('%016s' % xi)
+        fo, po, ko, mo = False, 0, 0, 0 ## check double price ##   
+        for i in range(pi+2): 
+            p, k = fprice(pu, pi, xi, i)
+            t = (i+1-k)*(p+1) +k*p
+            dp = '%s*%s+%s*%s=%s' % (i+1-k, p+1, k, p, t)
+            #dp = '%s %s' % (p, k)
+            ta[i+1].append('%16s' % dp)
+            ## begin - check double price and increase income## 
+            if p==po:
+                if 1+ko > k:
+                    if fo and t <= pi: assert False
+                else: fo = True
+            else: fo = False
+            if t >= mo: mo = t
+            else: assert False
+            assert k>=0 and k<=i+1 and p>=0
+            po, ko = p, k   
+            ## end check ##
+    for l in ta: print (' '.join(l))
     sys.exit()
 
 def get_proof(limite):
@@ -1928,7 +1956,7 @@ def get_proof(limite):
         #sys.stdout.write(.)
         #sys.stdout.flush()
         for pi in range(2*p1+1, limite):
-            print('<%s>' % pi)
+            #print('<%s>' % pi)
             for xi in range(0, 101):
                 fo, po, ko, mo = False, 0, 0, 0 ## check double price ##   
                 for i in range(3*pi):
@@ -1942,12 +1970,13 @@ def get_proof(limite):
                     else: fo = False
                     if t >= mo: mo = t
                     else: assert False
+                    assert k>=0 and k<=i+1 and p>=0
                     po, ko = p, k   
                     ## end check ##
     print ('ok!')
     sys.exit()
 
-def fprice(p1, pf, xi, i):
+def fprice_continious(p1, pf, xi, i):
     "function price"
     if xi == 0:
         p = p1//(i+1)
@@ -1971,8 +2000,21 @@ def fprice(p1, pf, xi, i):
         else: break
         if k < 0: k=0; break
         if j+1-y == pf: break
-    #print ('%d %d' % (j, k))
     return p, k
+
+def fprice(p1, pf, xi, i):
+    "function price (pelinquin)"
+    j, g = 0, 1 + int(xi/100*(p1-1))
+    if i+1 < p1/g:
+        p = int(p1/(i+1))
+        return p, (i+1)*(p+1)-p1              #phase1
+    elif g*(i+1) < pf: 
+        return (0, 0) if g == 1 else (g, i+1) #phase2
+    else: 
+        while True: 
+            j += 1
+            k = (i+1)*(p1-j+1)-pf
+            if k < i+1: return p1-j, k        #phase3 
 
 def price(digs, ig, l, nxt=False):
     "_"
@@ -2228,8 +2270,9 @@ def gui():
     app.exec_()
 
 if __name__ == '__main__':
+    #simul_table()
     #simulate()
-    #get_proof(20)
+    #get_proof(50)
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
