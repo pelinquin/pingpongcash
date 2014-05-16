@@ -1351,7 +1351,6 @@ function draw (b) {
   var p1 = document.getElementById("p1").value;
   var pf = document.getElementById("pf").value;
   PINF = parseInt(pf);
-  var xi = document.getElementById("xi").value;
   var s = new String(document.location);
   var aj = new ajax_get(s + '&i=' + b, function(res){
     var myRegexp = /(\d+)\*(\d+)⊔ \+ (\d+)\*(\d+)⊔ = (\d+)⊔$/;
@@ -1396,7 +1395,7 @@ function ajax_get(url, cb) {
 };"""
     return jscript.__doc__
 
-def simu(d, env, p1, pi, xi, graph=False):
+def simu(d, env, p1, pi, graph=False):
     "_"
     o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
@@ -1404,15 +1403,13 @@ def simu(d, env, p1, pi, xi, graph=False):
     if graph: o += '<script>' + jscript() + '</script>'
     o += '<p><form><table>'
     if graph:
-        dp1, dpf, dxi = 'value="%s"' % p1, 'value="%s"' % pi, 'value="%s"' % xi
+        dp1, dpf = 'value="%s"' % p1, 'value="%s"' % pi
     else:
-        dp1, dpf, dxi = 'placeholder="⊔"', 'placeholder="⊔"', 'placeholder="%"'
-    o += '<tr><td>Prix initial</td><td><input id="p1" class="simu" pattern="[0-9]+" name="p" title="(⊔)" %s></td></tr>' % dp1
-    o += '<tr><td>Revenu attendu</td><td><input id="pf" class="simu" pattern="[0-9]+" name="f" title="(⊔)" %s></td></tr>' % dpf
-    o += '<tr><td>Vitesse</td><td><input id="xi" class="simu" pattern="[0-9]{1,3}" name="x" title="(0%%-100%%)" %s></td></tr>' % dxi
+        dp1, dpf = 'placeholder="⊔"', 'placeholder="⊔"'
+    o += '<tr><td>Prix initial</td><td><input id="p1" class="simu" pattern="[0-9]+" name="p" title="(⊔)" %s></td>' % dp1
+    o += '<td>Revenu attendu</td><td><input id="pf" class="simu" pattern="[0-9]+" name="f" title="(⊔)" %s></td></tr>' % dpf
     o += '</table><input type="submit" value="Calculer"></form></p>'
     if graph:
-        o += '<p>Nb*(Prix+1) + (N°acheteur-Nb)*Prix = Revenu auteur(s) [⊔]</p>\n'
         o += '<p class="note">Sélectionnez le nombre d\'acheteurs avec le pointeur ou avec les touches "gauche"/"droite"</p>\n'
     l1, l2, dx, dy = '', '', 30, 10
     if graph:
@@ -1425,7 +1422,7 @@ def simu(d, env, p1, pi, xi, graph=False):
             else: sty = ''
             o += '<text id="t%d" y="%d"%s></text>' % (i, 50 + 30*i, sty)
         for i in range(0, pi+pi//10, pi//100):
-            p, k = fprice(p1, pi, xi, i)
+            p, k = func_price(p1, pi, i)
             tau = (i+1-k)*(p+1) +k*p
             pr = tau/(i+1)
             l1 += 'L%s,%s' % (dx + i*700/pi, 300+dy - tau*300/pi)
@@ -1437,6 +1434,8 @@ def simu(d, env, p1, pi, xi, graph=False):
         o += '<text x="840" y="310" style="fill:blue;font-size:10">0⊔</text>'
         o += '<circle id="c1" r="4" style="fill:blue"/><circle id="c2" r="4" style="fill:red"/><circle id="c3" r="4" style="fill:red"/>\n'  
         o += '</svg>\n'
+    if graph:
+        o += '<p>Nb*(Prix+1) + (N°acheteur-Nb)*Prix = Revenu auteur(s) [⊔]</p>\n'
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
 
@@ -1844,11 +1843,11 @@ def application(environ, start_response):
             elif raw == 'download': o, mime = open(__file__, 'r', encoding='utf-8').read(), 'application/octet-stream' 
             elif raw == 'bank': o, mime = bank(d, environ), 'text/html; charset=utf-8'
             elif raw == 'ibank': o, mime = ibank(), 'text/html; charset=utf-8'
-            elif raw == 'simu': o, mime = simu(d, environ, 10, 1000, 35), 'text/html; charset=utf-8'
-            elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)$', raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), True), 'text/html; charset=utf-8'
-            elif reg(re.match('p=(\d+)&f=(\d+)&x=(\d+)&i=(\d+)$', raw)): 
-                pu, pi, xi, i = int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)), int(reg.v.group(4)) 
-                p, k = fprice(pu, pi, xi, i)
+            elif raw == 'simu': o, mime = simu(d, environ, 10, 1000), 'text/html; charset=utf-8'
+            elif reg(re.match('p=(\d+)&f=(\d+)$', raw)): o, mime = simu(d, environ, int(reg.v.group(1)), int(reg.v.group(2)), True), 'text/html; charset=utf-8'
+            elif reg(re.match('p=(\d+)&f=(\d+)&i=(\d+)$', raw)): 
+                pu, pi, i = int(reg.v.group(1)), int(reg.v.group(2)), int(reg.v.group(3)) 
+                p, k = func_price(pu, pi, i)
                 t = (i+1-k)*(p+1) +k*p
                 o = '%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-k, p+1, k, p, t)
             else:
@@ -1901,12 +1900,11 @@ Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 
 def simulate():
     "_"
-    pu, pi, xi = 10, 1000, 0
-    #pu, pi, xi = 10, 200, 0
-    print ('%d⊔ %s⊔ %s%%' % (pu, pi, xi))
+    pu, pi = 500, 10000
+    print ('%d⊔ %s⊔' % (pu, pi))
     fo, po, ko, mo = False, 0, 0, 0 ## check double price ##   
-    for i in range(1*pi+10): 
-        p, k = fprice(pu, pi, xi, i)
+    for i in range(10*pi+10): 
+        p, k = func_price(pu, pi, i)
         t = (i+1-k)*(p+1) +k*p
         print ('%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-k, p+1, k, p, t))
         ## begin - check double price and increase income## 
@@ -1922,7 +1920,7 @@ def simulate():
         ## end check ##
     sys.exit()
 
-def simul_table():
+def simul_table(verif=True):
     "_"
     pu, pi, ta = 10, 1000, []
     for i in range(pi+2+1): ta.append(['%04s ' % i]) 
@@ -1930,20 +1928,23 @@ def simul_table():
         ta[0].append('%016s' % xi)
         fo, po, ko, mo = False, 0, 0, 0 ## check double price ##   
         for i in range(pi+2): 
-            p, k = fprice(pu, pi, xi, i)
+            p, k = func_price(pu, pi, i)
             t = (i+1-k)*(p+1) +k*p
             dp = '%s*%s+%s*%s=%s' % (i+1-k, p+1, k, p, t)
             #dp = '%s %s' % (p, k)
             ta[i+1].append('%16s' % dp)
             ## begin - check double price and increase income## 
-            if p==po:
-                if 1+ko > k:
-                    if fo and t <= pi: assert False
-                else: fo = True
-            else: fo = False
-            if t >= mo: mo = t
-            else: assert False
-            assert k>=0 and k<=i+1 and p>=0
+            if verif:
+                if p==po:
+                    if 1+ko > k:
+                        if fo and t <= pi: assert False
+                    else: fo = True
+                else: fo = False
+                if t >= mo: 
+                    mo = t
+                else: 
+                    assert False
+                assert k>=0 and k<=i+1 and p>=0
             po, ko = p, k   
             ## end check ##
     for l in ta: print (' '.join(l))
@@ -1957,22 +1958,21 @@ def get_proof(limite):
         #sys.stdout.flush()
         for pi in range(2*p1+1, limite):
             #print('<%s>' % pi)
-            for xi in range(0, 101):
-                fo, po, ko, mo = False, 0, 0, 0 ## check double price ##   
-                for i in range(3*pi):
-                    p, k = fprice(p1, pi, xi, i)
-                    t = (i+1-k)*(p+1) +k*p
-                    ## begin - check double price and increase income## 
-                    if p==po:
-                        if 1+ko > k:
-                            if fo and t <= pi: assert False
-                        else: fo = True
-                    else: fo = False
-                    if t >= mo: mo = t
-                    else: assert False
-                    assert k>=0 and k<=i+1 and p>=0
-                    po, ko = p, k   
-                    ## end check ##
+            fo, po, ko, mo = False, 0, 0, 0 ## check double price ##   
+            for i in range(3*pi):
+                p, k = func_price(p1, pi, i)
+                t = (i+1-k)*(p+1) +k*p
+                ## begin - check double price and increase income## 
+                if p==po:
+                    if 1+ko > k:
+                        if fo and t <= pi: assert False
+                    else: fo = True
+                else: fo = False
+                if t >= mo: mo = t
+                else: assert False
+                assert k>=0 and k<=i+1 and p>=0
+                po, ko = p, k   
+                ## end check ##
     print ('ok!')
     sys.exit()
 
@@ -2016,12 +2016,39 @@ def fprice(p1, pf, xi, i):
             k = (i+1)*(p1-j+1)-pf
             if k < i+1: return p1-j, k        #phase3 
 
+
+def func_price(p1, pf, i):
+    """ 
+    Return p, k 
+    Ensure p decreasing/i for all x in [0,i]
+    """
+    assert p1>0 and pf>=p1 and i>=0
+    if p1*(i+1)-pf < 0: return p1-1, 0
+    for j in range(p1):
+        k = (p1-j)*(i+1)-pf
+        if k < i+1: return p1-j-1, k
+
+def func_verif(p1, pf, i, l):
+    "Ensure return value p decreasing/i for all l, p1, pf "
+    assert p1>0 and pf>=p1 and i>=0 and l<=i and l>=0
+    if p1*(i+1)-pf < 0: return p1 if l <= i-k else p1-1
+    for j in range(p1):
+        k = (p1-j)*(i+1)-pf
+        if k < i+1: return p1-j if l <= i-k else p1-j-1
+
+def func_income(p1, pf, i):
+    "_"
+    assert p1>0 and pf>=p1 and i>=0
+    if p1*(i+1)-pf < 0: return (i+1)*p1
+    for j in range(p1): 
+        if k < i+1: return pf
+
 def price(digs, ig, l, nxt=False):
     "_"
     xi, p1, pf = valdecode(digs[ig][13:20])
     i = (len(digs[ig]) - 152)//9 if nxt else (len(digs[ig]) - 152)//9 - 1
     if nxt: l = i
-    p, k = fprice(p1, pf, xi, i)
+    p, k = func_price(p1, pf, i)
     return p+1 if l <= i-k else p
 
 def income(digs, ig):
@@ -2029,8 +2056,7 @@ def income(digs, ig):
     xi, p1, pf = valdecode(digs[ig][13:20])
     if (len(digs[ig]) - 152)//9 == 0: return 0
     i = (len(digs[ig]) - 152)//9 - 1
-    p, k = fprice(p1, pf, xi, i)
-    return (i+1-k)*(p+1) + k*p
+    return func_income(p1, pf, i)
 
 def get_random_ibank(dc):
     for x in dc.keys():
@@ -2270,7 +2296,7 @@ def gui():
     app.exec_()
 
 if __name__ == '__main__':
-    #simul_table()
+    simul_table()
     #simulate()
     #get_proof(50)
     node = get_host() if os.path.isfile('keys') else 'cup'
