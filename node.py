@@ -1095,7 +1095,8 @@ def header():
 
 def header():
     "_"
-    o = '<a href="./"><img title="Eurofranc 2015 pour l\'économie réelle !" src="%s" width="100"/></a>\n' % (get_image('www/logo.png'))
+    #o = '<a href="./"><img title="Eurofranc 2015 pour l\'économie réelle !" src="%s" width="100"/></a>\n' % (get_image('www/logo.png'))
+    o = '<h1>Eurofranc 2015 pour l\'économie réelle !</h1>'
     return o 
 
 def get_image(img):
