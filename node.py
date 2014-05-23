@@ -130,16 +130,7 @@ def valdecode1(code):
     "xi:7/p1:15/pf:26"
     e = int.from_bytes(code, 'big')
     return ((e>>41) & 0x7F), ((e>>26) & 0x7FFF), (e & 0x3FFFFFF)
-
-def valencode2(xi, rs, p1, pf):
-    "xi:7/rs:4/p1:18/pf:27"
-    assert (p1 <= pf or xi==0) and xi<=100 and p1<(1<<18) and pf<(1<<27)
-    return i2b((xi<<49) + (rs<<45) + (p1<<27) + pf, 7)
-
-def valdecode2(code):
-    "xi:7/rs:4/p1:18/pf:27"
-    e = int.from_bytes(code, 'big')
-    return ((e>>49) & 0x7F), ((e>>45) & 0xF), ((e>>27) & 0x3FFFF), (e & 0x7FFFFFF)
+###
 
 ##### ECDSA NIST CURVE P-521 #####
 
@@ -1102,6 +1093,11 @@ def header():
     o = '<a href="./"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % (get_image('www/header.png'))
     return o + '<p class="alpha" title="still in security test phase!">Beta</p>'
 
+def header():
+    "_"
+    o = '<a href="./"><img title="Eurofranc 2015 pour l\'économie réelle !" src="%s" width="100"/></a>\n' % (get_image('www/logo.png'))
+    return o 
+
 def get_image(img):
     "_"
     here = os.path.dirname(os.path.abspath(__file__))
@@ -1114,6 +1110,7 @@ def footer(dg=''):
 
 def report(d, cm):
     "_"
+    un = '&nbsp;€<small>f</small>'
     du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>Référence</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
@@ -1124,18 +1121,16 @@ def report(d, cm):
             src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
             if cm in (dst, src) and cry == b'A':
                 if src == cm: 
-                    one, t1, t2, bal = dst, '<td class="num">%7.2f&nbsp;€</td>' % (prc/100), '<td></td>', bal-prc 
+                    one, t1, t2, bal = dst, '<td class="num">%7.2f%s</td>' % (prc/100, un), '<td></td>', bal-prc 
                 else: 
-                    one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f&nbsp;€</td>' % (prc/100), bal+prc
+                    one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f%s</td>' % (prc/100, un), bal+prc
                 typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>'
                 desc = dt[t][13:-132].decode('utf8')
                 tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), desc, t1, t2)))
-    for i, (d, x) in enumerate(sorted(tmp)): o += '<tr><td class="num">%03d</td>' % (i+1) + x
+    size = len(tmp)
+    for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%03d</b></td>' % (size-i) + x
     o += '<tr><th colspan="2">%s</th><th colspan="3"><b>Nouveau solde</b></th>' % datdecode(datencode())
-    if bal < 0:
-        o += '<th></th><th class="num"><b>%7.2f&nbsp;€</b></th></tr>' % (-bal/100)
-    else:
-        o += '<th class="num"><b>%7.2f&nbsp;€</b></th><th></th></tr>' % (bal/100)
+    o += '<th></th><th class="num"><b>%7.2f%s</b></th></tr>' % (-bal/100, un) if bal<0 else '<th class="num"><b>%7.2f%s</b></th><th></th></tr>' % (bal/100, un)
     return o + '</table>\n', bal
 
 def report_cup(d, cm):
@@ -1376,9 +1371,8 @@ function draw (b) {
     c2.setAttribute('cx', xpos);
     c3.setAttribute('cx', xpos);
     c1.setAttribute('cy', 310 - m[5]*300/pf);
-    //c2.setAttribute('cy', 10 + 300*(1-m[5]/nba/p1));    
-    c2.setAttribute('cy', 10 + 300*(1-m[2]/p1));    
-    c3.setAttribute('cy', 10 + 300*(1-m[4]/p1));    
+    if (m[1] == 0) c2.setAttribute('cy', 10 + 300*(1-m[4]/p1)); else c2.setAttribute('cy', 10 + 300*(1-m[2]/p1));    
+    if (m[3] == 0) c3.setAttribute('cy', 10 + 300*(1-m[2]/p1)); else c3.setAttribute('cy', 10 + 300*(1-m[4]/p1));    
   });
   aj.doGet();
 };
@@ -1421,7 +1415,7 @@ def simu(d, env, p1, pi, graph=False):
             elif i in (2, 3): sty = ' style="fill:red"'
             else: sty = ''
             o += '<text id="t%d" y="%d"%s></text>' % (i, 50 + 30*i, sty)
-        for i in range(0, pi+pi//10, pi//100):
+        for i in range(0, pi+pi//10, pi//100 if pi>=100 else 1):
             p, k = func_price(p1, pi, i)
             tau = (i+1-k)*(p+1) +k*p
             pr = tau/(i+1)
@@ -1459,9 +1453,9 @@ def bank(d, env):
 
 def index(d, env, cm64='', prc=0):
     "_"
-    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o, mime, un = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8', '&nbsp;€<small>f</small>'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
-    o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
+    o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     #o1 = '<a title="moins de 2000 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i><br/>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i>' 
     o1 = '<p>Consultez un compte :<form method="post"><input class="txt" pattern="\S+" required="yes" name="cm" placeholder="...ID"/><input class="txt" pattern="\S+" required="yes" name="alias" placeholder="...alias"/><input type="submit" value="ok"/></form></p>\n'
     alias = ''
@@ -1477,18 +1471,20 @@ def index(d, env, cm64='', prc=0):
     cm = b64tob(bytes(cm64, 'ascii'))
     if cm in d['pub']:
         rpt, bal = report(d, cm)
-        rpt1, bal1 = report_cup(d, cm)
+        #rpt1, bal1 = report_cup(d, cm)
+        rpt1, bal1 = '', 0
         o += '<h1>Compte:&nbsp;<b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (alias, cm64)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
-        o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €"%s/></form>' % v
+        #o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €f"%s/></form>' % v
         dbt = debt(d, cm, b'U')
         if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d</b></h1>' % dbt   
-        o += '<h1>Solde:&nbsp;<b class="green">%7.2f&nbsp;€&nbsp;&nbsp;&nbsp;%7d&nbsp;⊔</b></h1>' % (bal/100, bal1) + rpt + rpt1
+        #o += '<h1>Soldes:&nbsp;<b class="green">%7.2f&nbsp;€</b>&nbsp;|<b class="green">0.00&nbsp;€f</b>&nbsp;|<b class="green">%7d&nbsp;⊔</b></h1>' % (bal/100, bal1) + rpt + rpt1
+        o += '<h1>Solde:&nbsp;<b class="green">%7.2f%s</b></h1>' % (bal/100, un) + rpt
         da = btob64(cm) + ':%d' % prc if prc else ''
-        o += report_ig(d, cm)
+        #o += report_ig(d, cm)
         o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
-        o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>'
+        #o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>'
     else:
         o += o1
     #o += '<p>%s</p>' % (env['HTTP_COOKIE'] if 'HTTP_COOKIE' in env else 'NONE')
@@ -1898,12 +1894,33 @@ Pour tout problème ou question, nous contacter à 'contact@cupfoundation.net'
 
 ##### MAIN #####
 
+def simulate2():
+    p1, pf = 10, 100
+    R = [(0,0)]*(pf+20)
+    T = p1
+    for i in range (pf+20):
+        m = 100000
+        r = int(p1*(1-i/pf))
+        pt = r if r>=0 else 0
+        tt = p1+i if i<pf else pf
+        for t in range(T, pf+1):
+            for k in range (i+2):
+                for p in range(p1+1):
+                    if (i+1-k)*(p+1) + k*p == t:
+                        v = (pt-p)*(pt-p) + (tt-t)*(tt-t)
+                        if v <= m and t>=T: 
+                            m, T, R[i] = v, t, (p, k)
+    for i, x in enumerate(R):
+        (p, k) = x
+        print (i, '%s*%s+%s*%s=%s' % (i+1-k, p+1, k, p , (i+1-k)*(p+1) + k*p))
+    sys.exit()
+
 def simulate():
     "_"
-    pu, pi = 500, 10000
+    pu, pi = 10, 100
     print ('%d⊔ %s⊔' % (pu, pi))
     fo, po, ko, mo = False, 0, 0, 0 ## check double price ##   
-    for i in range(10*pi+10): 
+    for i in range(pi+10): 
         p, k = func_price(pu, pi, i)
         t = (i+1-k)*(p+1) +k*p
         print ('%s*%s⊔ + %s*%s⊔ = %s⊔' % (i+1-k, p+1, k, p, t))
@@ -2023,10 +2040,35 @@ def func_price(p1, pf, i):
     Ensure p decreasing/i for all x in [0,i]
     """
     assert p1>0 and pf>=p1 and i>=0
-    if p1*(i+1)-pf < 0: return p1-1, 0
+    if p1*(i+1) < pf: return p1-1, 0
     for j in range(p1):
         k = (p1-j)*(i+1)-pf
         if k < i+1: return p1-j-1, k
+
+def func_price(p1, pf, j):
+    R, T = [(0,0)]*(j+1), p1
+    for i in range (j-1, j+1):
+        m, r, q = p1*p1+pf*pf, int(p1*(1-i/pf)), p1+5*i
+        pt, tt = r if r>=0 else 0, q if q<pf else pf
+        for t in range(T, pf+1):
+            for k in range (i+2):
+                for p in range(p1+1):
+                    if (i+1-k)*(p+1) + k*p == t:
+                        v = (pt-p)*(pt-p) + (tt-t)*(tt-t)
+                        if v <= m and t >= T: 
+                            m, T, R[i] = v, t, (p, k)
+    return R[j]
+
+def func_price1(p1, pf, i):
+    "_"
+    r = int(p1*(1-i/pf))
+    z = i if i<pf else pf
+    g = r if r>=0 else 0
+    for j in range(p1):
+        k = (p1-j)*(i+1)-pf
+        if   k < 0: p, k = p1-1, 0; print ((g-p)*(g-p)); return p, k
+        elif k < i+1: p = p1-1-j; print ((g-p)*(g-p)); return p, k
+    return p, k
 
 def func_verif(p1, pf, i, l):
     "Ensure return value p decreasing/i for all l, p1, pf "
@@ -2176,7 +2218,7 @@ def gui():
         vdev = wdev.currentText()
         vigi = wigi.text()
         node = get_host()
-        vip1, vipi, vixi, vurl = wip1.text(), wipi.text(), wixi.text(), wurl.text()
+        vip1, vipi, vixi, vurl = wip1.text(), wipi.text(), 0, wurl.text()
         if re.match('\d+$', vip1): postig2(node, vcmb, int(vip1), int(vipi), int(vixi), vurl, vpas) 
         elif vigi: buyig2(node, vcmb, vigi, vpas)
         else: buy2(node, vcmb, vdst, vprc, vdev, vpas)
@@ -2230,9 +2272,11 @@ def gui():
     wbt3 = PyQt4.QtGui.QPushButton('Enregistrer les comptes locaux', w)
     wbt3.clicked.connect(call_register)
     ligc = PyQt4.QtGui.QLabel('Nouvel IG', w)
-    wip1 = PyQt4.QtGui.QLineEdit('prix initial', w)
-    wipi = PyQt4.QtGui.QLineEdit('revenu maxi', w)
-    wixi = PyQt4.QtGui.QLineEdit('vitesse %', w)
+    lip1 = PyQt4.QtGui.QLabel('Prix init.', w)
+    wip1 = PyQt4.QtGui.QLineEdit(w)
+    lipi = PyQt4.QtGui.QLabel('Revenu max.', w)
+    wipi = PyQt4.QtGui.QLineEdit(w)
+    #wixi = PyQt4.QtGui.QLineEdit('vitesse %', w)
     wurl = PyQt4.QtGui.QLineEdit('http://', w)
     #
     gb = PyQt4.QtGui.QGroupBox('hello')
@@ -2271,9 +2315,11 @@ def gui():
     h6.addWidget(wurl)
     vb.addLayout(h6)
     h7 = PyQt4.QtGui.QHBoxLayout()
+    h7.addWidget(lip1)
     h7.addWidget(wip1)
+    h7.addWidget(lipi)
     h7.addWidget(wipi)
-    h7.addWidget(wixi)
+    #h7.addWidget(wixi)
     vb.addLayout(h7)
     h8 = PyQt4.QtGui.QHBoxLayout()
     h8.addWidget(lpas)    
@@ -2295,9 +2341,24 @@ def gui():
     w.show()
     app.exec_()
 
+def randrange(order):
+    "_"
+    byts = (1+len('%x' % order))//2
+    #print (b2i(os.urandom(10)))
+    cand = b2i(os.urandom(byts))
+    return cand//2 if cand >= order else cand
+
 if __name__ == '__main__':
-    simul_table()
-    #simulate()
+    #print (b64toi(_R))
+    #print (randrange(b64toi(_R)))
+    #k = ecdsa()
+    #k.generate()
+    #print (k.pt.x, k.pt.y, k.privkey)
+    #sys.exit()
+
+    #simulate2()
+    #simul_table()
+    simulate()
     #get_proof(50)
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
