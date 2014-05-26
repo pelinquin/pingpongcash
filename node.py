@@ -1112,7 +1112,7 @@ def footer(dg=''):
 def report(d, cm):
     "_"
     un = '&nbsp;€<small>f</small>'
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>Référence</th><th>Description</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>Réf.</th><th>Desc.</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -1127,7 +1127,7 @@ def report(d, cm):
                     one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f%s</td>' % (prc/100, un), bal+prc
                 typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>'
                 desc = dt[t][13:-132].decode('utf8')
-                tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="?%s">%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), desc, t1, t2)))
+                tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="?%s" title="%s">%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), btob64(one)[:4], desc, t1, t2)))
     size = len(tmp)
     for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%03d</b></td>' % (size-i) + x
     o += '<tr><th colspan="2">%s</th><th colspan="3"><b>Nouveau solde</b></th>' % datdecode(datencode())
@@ -1484,7 +1484,8 @@ def index(d, env, cm64='', prc=0):
         o += '<h1>Solde:&nbsp;<b class="green">%7.2f%s</b></h1>' % (bal/100, un) + rpt
         da = btob64(cm) + ':%d' % prc if prc else ''
         #o += report_ig(d, cm)
-        o += '<div class="qr" title="%s">%s</div>\n' % (da, QRCode(da, 2).svg(0, 0, 4))
+        qrurl = 'http://eurofranc.fr/?%s' % cm64
+        o += '<div class="qr" title="%s">%s</div>\n' % (qrurl, QRCode(qrurl, 2).svg(0, 0, 4))
         #o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>'
     else:
         o += o1
