@@ -1394,7 +1394,7 @@ function ajax_get(url, cb) {
 
 def simu(d, env, p1, pi, graph=False):
     "_"
-    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html(False) + header()
     if graph: o += '<script>' + jscript() + '</script>'
@@ -1566,7 +1566,7 @@ def dashboard(d, env):
 
 def rates(d, env):
     "_"
-    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     now, db = '%s' % datetime.datetime.now(), '/%s/rates' %__app__
@@ -1623,7 +1623,7 @@ def rates_old(d, env):
 
 def upload(env):
     "_"
-    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html(False) + header()
     o += '<form enctype="multipart/form-data" method="post"><input type="file"/><input type="submit" value="Go"/></form>'
@@ -1647,7 +1647,7 @@ def enurl(d, dr, ign, pos):
 
 def publish(d, dr, env, ign, pos):
     "_"
-    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html(False) 
     di = '/%s/%s_%s/%s' % (__app__, __app__, env['SERVER_PORT'], ign)
@@ -1748,6 +1748,7 @@ def valid_trx(d, r):
 
 def find_trx(d, r):
     o, un = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', '<euro>&thinsp;€</euro>'
+    o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     u, dat, src, v, cry, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:14], r[14:23], r[23:26], r[:-132], r[-132:], ecdsa()
     res = '<b class="huge red" title="Erreur !"">⚠</b>'
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
