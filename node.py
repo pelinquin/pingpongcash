@@ -986,6 +986,8 @@ def buy2(node, sc, rid, pc, cry, pp):
     if res: 
         prv, pub, dst = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii'))
         k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + i2b(pri, 3) 
+        print ('http://eurofranc.fr/?+' + btob64(msg + k.sign(msg)))
+        #+AWRRzpO_4wl-5VVC7EFDyksfDLGlbL8AAAIBYRamc4R7iwOc5slQnUkiO35ie_QUYDW804No2kxWhP-MfbSsYqCPd7uGbtY77thw1Q8dP0rdt2dJgJMVo519vN4BgVDeSeBI3AczC4xwR8EpPWr17Iuv6T9yFeo91NdFVeQZoxIhyYne5SQBUlcVDQ9qRg9D4lC5ZzClnh8dK1PWc80
         print (send(node, '+' + btob64(msg + k.sign(msg)))) 
     db.close()
 
@@ -1070,7 +1072,7 @@ def is_active(cm):
 
 def style_html(bg=True):
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80}div.qr,a.qr{position:absolute;top:0;right:0;margin:15}p.note{font-size:9}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333}b.red{color:red}b.green{color:green}b.blue{color:blue}b.bigorange{font-size:32;color:#F87217}b.biggreen{font-size:32;color:green}#wrap{overflow:hidden}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:1;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:2pt}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:25;margin:10 0 0 6}h2{color:#AAA;font-size:18;margin:5 0 0 30}svg{background-color:white}img.book{border:2px outset}text{font-size:18pt}body{margin:0}euro:after{font-size:50%;vertical-align:35%;content:"f";}'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80}div.qr,a.qr{position:absolute;top:0;right:0;margin:15}p.note{font-size:9}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333}b.red{color:red}b.green{color:green}b.blue{color:blue}b.bigorange{font-size:32;color:#F87217}b.biggreen{font-size:32;color:green}b.huge{font-size:90;}#wrap{overflow:hidden}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:1;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:2pt}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:25;margin:10 0 0 6}h2{color:#AAA;font-size:18;margin:5 0 0 30}svg{background-color:white}img.book{border:2px outset}text{font-size:18pt}body{margin:0}euro:after{font-size:60%;vertical-align:30%;content:"f";}'
     if bg:
         o += 'body{color:black;background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat}' 
     return o + '</style>'
@@ -1454,7 +1456,7 @@ def bank(d, env):
 
 def index(d, env, cm64='', prc=0):
     "_"
-    o, mime, un = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8', '<euro>&thinsp;€</euro>'
+    o, un = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', '<euro>&thinsp;€</euro>'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     #o1 = '<a title="moins de 2000 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i><br/>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i>' 
@@ -1474,14 +1476,14 @@ def index(d, env, cm64='', prc=0):
         rpt, bal = report(d, cm)
         #rpt1, bal1 = report_cup(d, cm)
         rpt1, bal1 = '', 0
-        o += '<h1>Compte:&nbsp;<b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (alias, cm64)
+        o += '<h1>Compte&nbsp;<b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (alias, cm64)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         #o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €f"%s/></form>' % v
         dbt = debt(d, cm, b'U')
         if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d</b></h1>' % dbt   
-        #o += '<h1>Soldes:&nbsp;<b class="green">%7.2f&nbsp;€</b>&nbsp;|<b class="green">0.00&nbsp;€f</b>&nbsp;|<b class="green">%7d&nbsp;⊔</b></h1>' % (bal/100, bal1) + rpt + rpt1
-        o += '<h1>Solde:&nbsp;<b class="green">%7.2f%s</b></h1>' % (bal/100, un) + rpt
+        #o += '<h1>Soldes&nbsp;<b class="green">%7.2f&nbsp;€</b>&nbsp;|<b class="green">0.00&nbsp;€f</b>&nbsp;|<b class="green">%7d&nbsp;⊔</b></h1>' % (bal/100, bal1) + rpt + rpt1
+        o += '<h1>Solde&nbsp;<b class="green">%7.2f%s</b></h1>' % (bal/100, un) + rpt
         da = btob64(cm) + ':%d' % prc if prc else ''
         #o += report_ig(d, cm)
         qrurl = 'http://eurofranc.fr/?%s' % cm64
@@ -1609,7 +1611,7 @@ def rates(d, env):
 
 def rates_old(d, env):
     "_"
-    o, mime = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', 'text/html; charset=utf-8'
+    o = '<?xml version="1.0" encoding="utf8"?>\n<html>\n'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html() + '<body><div class="bg"></div>' + header()
     now = '%s' % datetime.datetime.now()
@@ -1744,6 +1746,18 @@ def valid_trx(d, r):
             return True
     return False
 
+def find_trx(d, r):
+    o, un = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', '<euro>&thinsp;€</euro>'
+    u, dat, src, v, cry, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:14], r[14:23], r[23:26], r[:-132], r[-132:], ecdsa()
+    res = '<b class="huge red" title="Erreur !"">⚠</b>'
+    k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
+    if src in d['pub'] and dst in d['pub'] and src != dst and u in d['trx'] and k.verify(sig, msg):
+        if blc(d, src, cry) + debt(d, src, cry) > b2i(prc):
+            res = '<b class="huge green" title="Transaction validée">✔</b><p>Date: <i>%s</i></p><p>Montant: <big><b>%7.2f%s</b></big></p><p>Destinataire: <a class="mono" href="/?%s">%s</a></p><p>Emetteur: <a class="mono" href="/?%s">%s</b></p>' % (datdecode(dat), float(b2i(prc)/100), un, btob64(dst), btob64(dst), btob64(src), btob64(src))
+    o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
+    atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
+    return o + res + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
+
 def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname, port = 'text/plain; charset=utf8', 'Error:', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
@@ -1816,7 +1830,8 @@ def application(environ, start_response):
             o = 'OK upload %s %s %s' % (arg, len(arg), l2)
         else: o += 'not valid args |%s| %s' % (arg, len(arg))
     else: # get
-        if base == 'peers': # propagation
+        if re.match('\+\S{211,237}$', base): o, mime = find_trx(d, b64tob(bytes(base[1:], 'ascii'))), 'text/html; charset=utf-8'
+        elif base == 'peers': # propagation
             fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
             for p in d['prs'].keys(): li.update(peers_req(p.decode('utf8')))
             o = update_peers(environ, d['prs'], li)
@@ -2360,7 +2375,7 @@ if __name__ == '__main__':
 
     #simulate2()
     #simul_table()
-    simulate()
+    #simulate()
     #get_proof(50)
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
