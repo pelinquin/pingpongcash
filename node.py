@@ -1756,7 +1756,7 @@ def find_trx(d, r):
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
     if src in d['pub'] and dst in d['pub'] and src != dst and u in d['trx'] and k.verify(sig, msg):
         if blc(d, src, cry) + debt(d, src, cry) > b2i(prc):
-            res = '<br/><b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p>Montant: <big><b>%7.2f%s</b></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
+            res = '<br/><b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><b>%7.2f%s</b></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + res + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
@@ -1772,7 +1772,7 @@ def find_trx1(d, u):
         res = '<b class="huge red" title="Erreur !"">⚠</b>'
         k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
         if src in d['pub'] and dst in d['pub'] and src != dst:
-            res = '<b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p>Montant: <big><b>%7.2f%s</b></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
+            res = '<b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><b>%7.2f%s</b></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + res + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
