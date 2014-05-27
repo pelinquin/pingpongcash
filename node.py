@@ -1460,16 +1460,15 @@ def index(d, env, cm64='', prc=0):
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     #o1 = '<a title="moins de 2000 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i><br/>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i>' 
-    o1 = '<p>Consultez un compte<form method="post"><input class="txt" pattern="\S+" required="yes" name="cm" placeholder="...ID"/><input class="txt" pattern="\S+" required="yes" name="alias" placeholder="...alias"/><input type="submit" value="ok"/></form></p>\n'
+    o1 = '<p><i>Consultez un compte</i><form method="post"><input class="txt" pattern="\S+" required="yes" name="cm" placeholder="...ID"/><input class="txt" pattern="\S+" required="yes" name="alias" placeholder="...alias"/><input type="submit" value="ok"/></form></p>\n'
     alias = ''
     if 'HTTP_COOKIE' in env:
-        o1 += '<ol>'
         for x in env['HTTP_COOKIE'].split(';'):
             t = x.split('=')
-            if t[1] == cm64:
-                alias = t[0]
-            o1 += '<li><a href="./%s" title="%s">%s</a></li>' % (t[1], t[1], t[0])
-        o1 += '</ol>'
+            if t[1] == cm64: alias = t[0]
+            cm = b64tob(bytes(t[1], 'ascii'))
+            typ ='admin' if cm == d['crt'][b'_'] else 'bank' if cm in d['crt'] else 'user'
+            o1 += '<p><a href="./%s" title="%s"><img src="%s"/> %s</a></p>' % (t[1], t[1], get_image('www/%s32.png' % typ), t[0])
         o1 += '<p><form method="post"><input type="submit" name="rem" value="Effacer les cookies"/></form></p>\n'
     qrurl = 'http://eurofranc.fr' 
     cm = b64tob(bytes(cm64, 'ascii'))
@@ -1479,7 +1478,8 @@ def index(d, env, cm64='', prc=0):
         rpt, bal = report(d, cm)
         #rpt1, bal1 = report_cup(d, cm)
         rpt1, bal1 = '', 0
-        o += '<h1><br/><img src="%s"/><b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (get_image('www/user32.png'), alias, cm64)
+        typ ='admin' if cm == d['crt'][b'_'] else 'bank' if cm in d['crt'] else 'user'
+        o += '<h1><br/><img src="%s"/> <b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (get_image('www/%s32.png' % typ), alias, cm64)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         #o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €f"%s/></form>' % v
@@ -1756,7 +1756,7 @@ def find_trx(d, r):
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
     if src in d['pub'] and dst in d['pub'] and src != dst and u in d['trx'] and k.verify(sig, msg):
         if blc(d, src, cry) + debt(d, src, cry) > b2i(prc):
-            res = '<br/><b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><b>%7.2f%s</b></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
+            res = '<br/><b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><b>%7.2f%s</b></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message: <b>%s</b></p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst), r[13:-132].decode('utf8'))
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + res + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
@@ -1766,13 +1766,14 @@ def find_trx1(d, u):
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     if u in d['trx']:
         r = d['trx'][u] 
-        dat, src, v, cry, dst, prc, msg, sig, k = u[:4], u[4:13], r[:-132], r[:1], r[1:10], r[10:13], r[:-132], r[-132:], ecdsa()
+        dat, src, dst, prc = u[:4], u[4:13], r[1:10], r[10:13]
         qrurl = 'http://eurofranc.fr/' + btob64(u)
         o += '<div class="qr" title="%s">%s</div>\n' % (qrurl, QRCode(qrurl, 2).svg(0, 0, 4))
         res = '<b class="huge red" title="Erreur !"">⚠</b>'
-        k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
         if src in d['pub'] and dst in d['pub'] and src != dst:
-            res = '<b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><big><b>%7.2f%s</b></big></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
+            typs ='admin' if src == d['crt'][b'_'] else 'bank' if src in d['crt'] else 'user'
+            typd ='admin' if dst == d['crt'][b'_'] else 'bank' if dst in d['crt'] else 'user'
+            res = '<b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><big><b>%7.2f%s</b></big></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message: <b>%s</b></p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/%s32.png' % typs), btob64(src), btob64(src), get_image('www/%s32.png' % typd), btob64(dst), btob64(dst), r[13:-132].decode('utf8'))
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + res + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
