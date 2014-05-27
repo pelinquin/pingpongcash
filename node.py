@@ -1114,7 +1114,7 @@ def footer(dg=''):
 def report(d, cm):
     "_"
     un = '<euro>&thinsp;€</euro>'
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="32"></th><th>Date</th><th width="32">Type</th><th>Réf.</th><th>Msg</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="32"></th><th>Date</th><th width="32"></th><th>Réf.</th><th>Msg</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -1127,9 +1127,9 @@ def report(d, cm):
                     one, t1, t2, bal = dst, '<td class="num">%7.2f%s</td>' % (prc/100, un), '<td></td>', bal-prc 
                 else: 
                     one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f%s</td>' % (prc/100, un), bal+prc
-                typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant"><img src="%s"/></td>' % (get_image('www/user32.png'))
+                typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet"><img src="%s"/></td>' % get_image('www/bank32.png') if one in dc else '<td title="particulier ou commerçant"><img src="%s"/></td>' % get_image('www/user32.png')
                 desc = dt[t][13:-132].decode('utf8')
-                tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="%s" title="%s">%s %s %s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:12], desc, t1, t2)))
+                tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="%s" title="%s">%s&thinsp;%s&thinsp;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:12], desc, t1, t2)))
     size = len(tmp)
     for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%03d</b></td>' % (size-i) + x
     o += '<tr><th colspan="2">%s</th><th colspan="3"><b>Nouveau solde</b></th>' % datdecode(datencode())
@@ -1460,7 +1460,7 @@ def index(d, env, cm64='', prc=0):
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     #o1 = '<a title="moins de 2000 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i><br/>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i>' 
-    o1 = '<p>Consultez un compte :<form method="post"><input class="txt" pattern="\S+" required="yes" name="cm" placeholder="...ID"/><input class="txt" pattern="\S+" required="yes" name="alias" placeholder="...alias"/><input type="submit" value="ok"/></form></p>\n'
+    o1 = '<p>Consultez un compte<form method="post"><input class="txt" pattern="\S+" required="yes" name="cm" placeholder="...ID"/><input class="txt" pattern="\S+" required="yes" name="alias" placeholder="...alias"/><input type="submit" value="ok"/></form></p>\n'
     alias = ''
     if 'HTTP_COOKIE' in env:
         o1 += '<ol>'
@@ -1485,7 +1485,7 @@ def index(d, env, cm64='', prc=0):
         #o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €f"%s/></form>' % v
         dbt = debt(d, cm, b'U')
         if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d</b></h1>' % dbt   
-        o += '<h1><img src="%s"/><b class="green">%7.2f%s</b></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt
+        o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt
         da = btob64(cm) + ':%d' % prc if prc else ''
         #o += report_ig(d, cm)
         #o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>'
