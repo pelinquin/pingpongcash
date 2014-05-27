@@ -1124,9 +1124,9 @@ def report(d, cm):
             src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
             if cm in (dst, src) and cry == b'A':
                 if src == cm: 
-                    one, t1, t2, bal = dst, '<td class="num">%7.2f%s</td>' % (prc/100, un), '<td></td>', bal-prc 
+                    one, t1, t2, bal = dst, '<td class="num"><b><a href="./%s">%7.2f%s</a></b></td>' % (btob64(t), prc/100, un), '<td></td>', bal-prc 
                 else: 
-                    one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f%s</td>' % (prc/100, un), bal+prc
+                    one, t1, t2, bal = src, '<td></td>', '<td class="num"><b><a href="/%s">%7.2f%s</a></b></td>' % (btob64(t), prc/100, un), bal+prc
                 typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet"><img src="%s"/></td>' % get_image('www/bank32.png') if one in dc else '<td title="particulier ou commerçant"><img src="%s"/></td>' % get_image('www/user32.png')
                 desc = dt[t][13:-132].decode('utf8')
                 tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="%s" title="%s">%s&thinsp;%s&thinsp;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:12], desc, t1, t2)))
@@ -1750,12 +1750,28 @@ def find_trx(d, r):
     o, un = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', '<euro>&thinsp;€</euro>'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     u, dat, src, v, cry, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:14], r[14:23], r[23:26], r[:-132], r[-132:], ecdsa()
-    qrurl = 'http://eurofranc.fr/' + btob64(r)
+    qrurl = 'http://eurofranc.fr/' + btob64(u)
     o += '<div class="qr" title="%s">%s</div>\n' % (qrurl, QRCode(qrurl, 2).svg(0, 0, 4))
     res = '<b class="huge red" title="Erreur !"">⚠</b>'
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
     if src in d['pub'] and dst in d['pub'] and src != dst and u in d['trx'] and k.verify(sig, msg):
         if blc(d, src, cry) + debt(d, src, cry) > b2i(prc):
+            res = '<b class="huge green" title="Transaction validée">✔</b><p>Date: <i>%s</i></p><p>Montant: <big><b>%7.2f%s</b></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
+    o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
+    atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
+    return o + res + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
+
+def find_trx1(d, u):
+    o, un = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', '<euro>&thinsp;€</euro>'
+    o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    if u in d['trx']:
+        r = d['trx'][u] 
+        dat, src, v, cry, dst, prc, msg, sig, k = u[:4], u[4:13], r[:-132], r[:1], r[1:10], r[10:13], r[:-132], r[-132:], ecdsa()
+        qrurl = 'http://eurofranc.fr/' + btob64(u)
+        o += '<div class="qr" title="%s">%s</div>\n' % (qrurl, QRCode(qrurl, 2).svg(0, 0, 4))
+        res = '<b class="huge red" title="Erreur !"">⚠</b>'
+        k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
+        if src in d['pub'] and dst in d['pub'] and src != dst:
             res = '<b class="huge green" title="Transaction validée">✔</b><p>Date: <i>%s</i></p><p>Montant: <big><b>%7.2f%s</b></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
@@ -1834,6 +1850,7 @@ def application(environ, start_response):
         else: o += 'not valid args |%s| %s' % (arg, len(arg))
     else: # get
         if re.match('\S{12}$', base): o, mime = index(d, environ, base), 'text/html; charset=utf-8'
+        elif re.match('\S{18}$', base): o, mime = find_trx1(d, b64tob(bytes(base, 'ascii'))), 'text/html; charset=utf-8'
         elif re.match('\+\S{211,237}$', base): o, mime = find_trx(d, b64tob(bytes(base[1:], 'ascii'))), 'text/html; charset=utf-8'
         elif base == 'peers': # propagation
             fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
