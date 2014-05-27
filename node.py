@@ -1479,7 +1479,7 @@ def index(d, env, cm64='', prc=0):
         rpt, bal = report(d, cm)
         #rpt1, bal1 = report_cup(d, cm)
         rpt1, bal1 = '', 0
-        o += '<h1><img src="%s"/><b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (get_image('www/user32.png'), alias, cm64)
+        o += '<h1><br/><img src="%s"/><b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (get_image('www/user32.png'), alias, cm64)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         #o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €f"%s/></form>' % v
@@ -1772,7 +1772,7 @@ def find_trx1(d, u):
         res = '<b class="huge red" title="Erreur !"">⚠</b>'
         k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
         if src in d['pub'] and dst in d['pub'] and src != dst:
-            res = '<b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><b>%7.2f%s</b></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
+            res = '<b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><big><b>%7.2f%s</b></big></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + res + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
