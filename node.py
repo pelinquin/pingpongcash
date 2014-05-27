@@ -1138,9 +1138,9 @@ def report(d, cm):
             src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
             if cm in (dst, src) and cry == b'A':
                 if src == cm: 
-                    one, t1, t2, bal = dst, '<td class="num"><b><a href="./%s">%7.2f%s</a></b></td>' % (btob64(t), prc/100, un), '<td></td>', bal-prc 
+                    one, t1, t2, bal = dst, '<td class="num" title="%s"><b><a href="./%s">%7.2f%s</a></b></td>' % (btob64(t), btob64(t), prc/100, un), '<td></td>', bal-prc 
                 else: 
-                    one, t1, t2, bal = src, '<td></td>', '<td class="num"><b><a href="/%s">%7.2f%s</a></b></td>' % (btob64(t), prc/100, un), bal+prc
+                    one, t1, t2, bal = src, '<td></td>', '<td class="num" title="%s"><b><a href="/%s">%7.2f%s</a></b></td>' % (btob64(t), btob64(t), prc/100, un), bal+prc
                 typ = 'admin' if one == root else 'bank' if one in dc else 'user'
                 desc = dt[t][13:-132].decode('utf8')
                 tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], desc, t1, t2)))
@@ -1474,16 +1474,17 @@ def index(d, env, cm64='', prc=0):
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     #o1 = '<a title="moins de 2000 lignes Python3!" href="?src">Téléchargez</a> et <a title="sur GitHub" href="https://github.com/pelinquin/pingpongcash">analysez</a> le code du client <i>pair-à-pair</i><br/>Installez un <a href="?install">serveur</a> <i>Linux</i> ou <a href="?ios">l\'application</a> <i>iOS</i>' 
-    o1 = '<p><i>Consultez un compte</i><form method="post"><input class="txt" pattern="\S+" required="yes" name="cm" placeholder="...ID"/><input class="txt" pattern="\S+" required="yes" name="alias" placeholder="...alias"/><input type="submit" value="ok"/></form></p>\n'
+    o1 = '<p><i>Consultez un compte</i><form method="post"><input class="txt" pattern="\S+" required="yes" name="cm" placeholder="...ID"/><input class="txt" pattern=".+" required="yes" name="alias" placeholder="...alias"/><input type="submit" value="ok"/></form></p>\n'
     alias = ''
     if 'HTTP_COOKIE' in env:
         for x in env['HTTP_COOKIE'].split(';'):
             t = x.split('=')
-            if t[1] == cm64: alias = t[0]
+            if t[1] == cm64: alias = urllib.parse.unquote(t[0])
             cm = b64tob(bytes(t[1], 'ascii'))
             dt = debt(d, cm)
             typ ='admin' if cm == d['crt'][b'_'] else 'bank' if cm in d['crt'] and dt else 'maire' if cm in d['crt'] else 'user'
-            o1 += '<p><a href="./%s" title="%s"><img src="%s"/> %s</a></p>' % (t[1], t[1], get_image('www/%s32.png' % typ), t[0])
+            alia = urllib.parse.unquote(t[0])
+            o1 += '<p><a href="./%s" title="%s"><img src="%s"/> %s</a></p>' % (t[1], t[1], get_image('www/%s32.png' % typ), alia)
         o1 += '<p><form method="post"><input type="submit" name="rem" value="Effacer les cookies"/></form></p>\n'
     qrurl = 'http://eurofranc.fr' 
     cm = b64tob(bytes(cm64, 'ascii'))
@@ -1829,16 +1830,18 @@ def application(environ, start_response):
             prc = int(float(re.sub(',', '.', reg.v.group(3)))*100)
             r = capture_id(d, reg.v.group(2))
             o, mime = index(d, environ, r, prc), 'text/html; charset=utf-8'
-        elif reg(re.match('cm=(\S{1,12})&alias=(\S+)$', arg)):
+        elif reg(re.match('cm=(\S{1,12})&alias=(.+)$', arg)):
             r, ok = capture_id(d, reg.v.group(1)), True
             if r:
                 if 'HTTP_COOKIE' in environ:
                     for x in environ['HTTP_COOKIE'].split(';'):
                         t = x.split('=')
                         if reg.v.group(2) == t[0] or r == t[1]: ok = False
+                        #if reg.v.group(2) == t[0]: ok = False # revoir pour changement alias!
                 if ok:
                     xprs = time.time() + 100 * 24 * 3600 # 100 days from now
-                    ncok.append(('set-cookie', '%s=%s;expires=%s GMT' % (reg.v.group(2), r, time.strftime('%a, %d-%b-%Y %T', time.gmtime(xprs)))))
+                    alia = urllib.parse.quote(reg.v.group(2))
+                    ncok.append(('set-cookie', '%s=%s;expires=%s GMT' % (alia, r, time.strftime('%a, %d-%b-%Y %T', time.gmtime(xprs)))))
                 o, mime = index(d, environ, r), 'text/html; charset=utf-8'
             else:
                 o += 'Id not found! |%s|' % arg 
@@ -2418,6 +2421,7 @@ if __name__ == '__main__':
     #simul_table()
     #simulate()
     #get_proof(50)
+
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
