@@ -964,6 +964,19 @@ def get_host():
     db.close()
     return host.decode('utf8')
 
+def certif(mid, uid):
+    "maire id, user id"
+    out, dk, dc, du = [], dbm.open('keys'), dbm.open(__base__+'crt', 'c'), dbm.open(__base__+'pub')
+    mair = get_unique(dk, mid)
+    mair = get_unique(dk, mid)
+    root, dat, k = dc[b'_'], datencode(365), ecdsa()
+    pp = getpass.getpass('Root passphrase to generate certificat for root \'%s\' ? ' % btob64(root))
+    k.privkey = int(AES().decrypt(dk[root][132:], hashlib.sha256(pp.encode('utf8')).digest())) 
+    msg = dat + i2b(0, 8)
+    dc[bnk] = msg + k.sign(bnk + msg)
+    #print ('main account set on id: %s' % btob64(bnk))
+    dk.close(), dc.close(), du.close()
+
 def buy(node, rid, prc):
     "_"
     db, k, dat = dbm.open('keys'), ecdsa(), datencode()
@@ -1047,7 +1060,7 @@ def register(node):
     db.close()
 
 def is_future(da):
-    return int(time.mktime(time.gmtime())) < b2i(da)
+    return int(time.mktime(time.gmtime())) < b2i(da)*60
 
 def debt(d, cm, cry=b'A'):
     "_"
@@ -1056,7 +1069,8 @@ def debt(d, cm, cry=b'A'):
         root, k = dc[b'_'], ecdsa()
         k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
         if is_future(dc[cm][:4]) and k.verify(dc[cm][12:], cm + dc[cm][:12]): dbt = b2i(dc[cm][4:12])
-    return dbt if cry == b'U' else dbt*100
+        #if k.verify(dc[cm][12:], cm + dc[cm][:12]): dbt = b2i(dc[cm][4:12])
+    return dbt
 
 def is_active(cm):
     "_"
@@ -1114,7 +1128,7 @@ def footer(dg=''):
 def report(d, cm):
     "_"
     un = '<euro>&thinsp;€</euro>'
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="32"></th><th>Date</th><th width="32"></th><th>Réf.</th><th>Msg</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="32"></th><th>Date</th></th><th>Réf.</th><th>Msg</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -1127,12 +1141,12 @@ def report(d, cm):
                     one, t1, t2, bal = dst, '<td class="num"><b><a href="./%s">%7.2f%s</a></b></td>' % (btob64(t), prc/100, un), '<td></td>', bal-prc 
                 else: 
                     one, t1, t2, bal = src, '<td></td>', '<td class="num"><b><a href="/%s">%7.2f%s</a></b></td>' % (btob64(t), prc/100, un), bal+prc
-                typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet"><img src="%s"/></td>' % get_image('www/bank32.png') if one in dc else '<td title="particulier ou commerçant"><img src="%s"/></td>' % get_image('www/user32.png')
+                typ = 'admin' if one == root else 'bank' if one in dc else 'user'
                 desc = dt[t][13:-132].decode('utf8')
-                tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="%s" title="%s">%s&thinsp;%s&thinsp;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:12], desc, t1, t2)))
+                tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], desc, t1, t2)))
     size = len(tmp)
     for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%03d</b></td>' % (size-i) + x
-    o += '<tr><th colspan="2">%s</th><th colspan="3"><b>Nouveau solde</b></th>' % datdecode(datencode())
+    o += '<tr><th colspan="2">%s</th><th colspan="2"><b>Nouveau solde</b></th>' % datdecode(datencode())
     o += '<th></th><th class="num"><b>%7.2f%s</b></th></tr>' % (-bal/100, un) if bal<0 else '<th class="num"><b>%7.2f%s</b></th><th></th></tr>' % (bal/100, un)
     return o + '</table>\n', bal
 
@@ -1467,7 +1481,8 @@ def index(d, env, cm64='', prc=0):
             t = x.split('=')
             if t[1] == cm64: alias = t[0]
             cm = b64tob(bytes(t[1], 'ascii'))
-            typ ='admin' if cm == d['crt'][b'_'] else 'bank' if cm in d['crt'] else 'user'
+            dt = debt(d, cm)
+            typ ='admin' if cm == d['crt'][b'_'] else 'bank' if cm in d['crt'] and dt else 'maire' if cm in d['crt'] else 'user'
             o1 += '<p><a href="./%s" title="%s"><img src="%s"/> %s</a></p>' % (t[1], t[1], get_image('www/%s32.png' % typ), t[0])
         o1 += '<p><form method="post"><input type="submit" name="rem" value="Effacer les cookies"/></form></p>\n'
     qrurl = 'http://eurofranc.fr' 
@@ -1478,13 +1493,17 @@ def index(d, env, cm64='', prc=0):
         rpt, bal = report(d, cm)
         #rpt1, bal1 = report_cup(d, cm)
         rpt1, bal1 = '', 0
-        typ ='admin' if cm == d['crt'][b'_'] else 'bank' if cm in d['crt'] else 'user'
+        dt = debt(d, cm)
+        typ ='admin' if cm == d['crt'][b'_'] else 'bank' if cm in d['crt'] and dt else 'maire' if cm in d['crt'] else 'user'
         o += '<h1><br/><img src="%s"/> <b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (get_image('www/%s32.png' % typ), alias, cm64)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         #o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €f"%s/></form>' % v
-        dbt = debt(d, cm, b'U')
-        if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d</b></h1>' % dbt   
+        #dbt = debt(d, cm, b'U')
+        dbt = debt(d, cm)
+        if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d%s</b></h1>' % (dbt, un)   
+        if cm in d['crt']:
+            o += '<h1>Expire:&nbsp;<b class="green">%s</b></h1>' % datdecode(d['crt'][cm][:4])   
         o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt
         da = btob64(cm) + ':%d' % prc if prc else ''
         #o += report_ig(d, cm)
