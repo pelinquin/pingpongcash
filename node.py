@@ -1072,7 +1072,7 @@ def is_active(cm):
 
 def style_html(bg=True):
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80}div.qr,a.qr{position:absolute;top:0;right:0;margin:15}p.note{font-size:9}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333}b.red{color:red}b.green{color:green}b.blue{color:blue}b.bigorange{font-size:32;color:#F87217}b.biggreen{font-size:32;color:green}b.huge{font-size:90;}#wrap{overflow:hidden}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:1;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:2pt}th{background-color:#DDD}td.num{font-size:11;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:25;margin:10 0 0 6}h2{color:#AAA;font-size:18;margin:5 0 0 30}svg{background-color:white}img.book{border:2px outset}text{font-size:18pt}body{margin:0}euro:after{font-size:60%;vertical-align:30%;content:"f";}'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80}div.qr,a.qr{position:absolute;top:0;right:0;margin:15}p.note{font-size:9}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333}b.red{color:red}b.green{color:green}b.blue{color:blue}b.bigorange{font-size:32;color:#F87217}b.biggreen{font-size:32;color:green}b.huge{font-size:90;}#wrap{overflow:hidden}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:1;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:2pt}th{background-color:#DDD}td.num{font-size:12;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:25;margin:10 0 0 6}h2{color:#AAA;font-size:18;margin:5 0 0 30}svg{background-color:white}img.book{border:2px outset}text{font-size:18pt}body{margin:0}euro:after{font-size:60%;vertical-align:30%;content:"f";}'
     if bg:
         o += 'body{color:black;background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat}' 
     return o + '</style>'
@@ -1114,7 +1114,7 @@ def footer(dg=''):
 def report(d, cm):
     "_"
     un = '<euro>&thinsp;€</euro>'
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table><tr><th colspan="2">Date</th><th>Type</th><th>Réf.</th><th>Msg</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="32"></th><th>Date</th><th width="32">Type</th><th>Réf.</th><th>Msg</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -1127,9 +1127,9 @@ def report(d, cm):
                     one, t1, t2, bal = dst, '<td class="num">%7.2f%s</td>' % (prc/100, un), '<td></td>', bal-prc 
                 else: 
                     one, t1, t2, bal = src, '<td></td>', '<td class="num">%7.2f%s</td>' % (prc/100, un), bal+prc
-                typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant">part.</td>'
+                typ = '<td title="Autorité">admin.</td>' if one == root else '<td title="banque Internet">ibank</td>' if one in dc else '<td title="particulier ou commerçant"><img src="%s"/></td>' % (get_image('www/user32.png'))
                 desc = dt[t][13:-132].decode('utf8')
-                tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="?%s" title="%s">%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), btob64(one)[:4], desc, t1, t2)))
+                tmp.append((t[:4], '<td class="num">%s</td>%s<td><a class="mono" href="%s" title="%s">%s %s %s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), typ, btob64(one), btob64(one), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:12], desc, t1, t2)))
     size = len(tmp)
     for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%03d</b></td>' % (size-i) + x
     o += '<tr><th colspan="2">%s</th><th colspan="3"><b>Nouveau solde</b></th>' % datdecode(datencode())
@@ -1468,26 +1468,26 @@ def index(d, env, cm64='', prc=0):
             t = x.split('=')
             if t[1] == cm64:
                 alias = t[0]
-            o1 += '<li><a href="./?%s" title="%s">%s</a></li>' % (t[1], t[1], t[0])
+            o1 += '<li><a href="./%s" title="%s">%s</a></li>' % (t[1], t[1], t[0])
         o1 += '</ol>'
         o1 += '<p><form method="post"><input type="submit" name="rem" value="Effacer les cookies"/></form></p>\n'
+    qrurl = 'http://eurofranc.fr' 
     cm = b64tob(bytes(cm64, 'ascii'))
+    if cm in d['pub']: qrurl += '/' + cm64
+    o += '<div class="qr" title="%s">%s</div>\n' % (qrurl, QRCode(qrurl, 2).svg(0, 0, 4))
     if cm in d['pub']:
         rpt, bal = report(d, cm)
         #rpt1, bal1 = report_cup(d, cm)
         rpt1, bal1 = '', 0
-        o += '<h1>Compte&nbsp;<b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (alias, cm64)
+        o += '<h1><img src="%s"/><b class="green">%s<br/><b class="mono">%s</b></b></h1>' % (get_image('www/user32.png'), alias, cm64)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         #o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €f"%s/></form>' % v
         dbt = debt(d, cm, b'U')
         if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d</b></h1>' % dbt   
-        #o += '<h1>Soldes&nbsp;<b class="green">%7.2f&nbsp;€</b>&nbsp;|<b class="green">0.00&nbsp;€f</b>&nbsp;|<b class="green">%7d&nbsp;⊔</b></h1>' % (bal/100, bal1) + rpt + rpt1
-        o += '<h1>Solde&nbsp;<b class="green">%7.2f%s</b></h1>' % (bal/100, un) + rpt
+        o += '<h1><img src="%s"/><b class="green">%7.2f%s</b></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt
         da = btob64(cm) + ':%d' % prc if prc else ''
         #o += report_ig(d, cm)
-        qrurl = 'http://eurofranc.fr/?%s' % cm64
-        o += '<div class="qr" title="%s">%s</div>\n' % (qrurl, QRCode(qrurl, 2).svg(0, 0, 4))
         #o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>'
     else:
         o += o1
@@ -1750,11 +1750,13 @@ def find_trx(d, r):
     o, un = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', '<euro>&thinsp;€</euro>'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
     u, dat, src, v, cry, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:14], r[14:23], r[23:26], r[:-132], r[-132:], ecdsa()
+    qrurl = 'http://eurofranc.fr/' + btob64(r)
+    o += '<div class="qr" title="%s">%s</div>\n' % (qrurl, QRCode(qrurl, 2).svg(0, 0, 4))
     res = '<b class="huge red" title="Erreur !"">⚠</b>'
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
     if src in d['pub'] and dst in d['pub'] and src != dst and u in d['trx'] and k.verify(sig, msg):
         if blc(d, src, cry) + debt(d, src, cry) > b2i(prc):
-            res = '<b class="huge green" title="Transaction validée">✔</b><p>Date: <i>%s</i></p><p>Montant: <big><b>%7.2f%s</b></big></p><p>Destinataire: <a class="mono" href="/?%s">%s</a></p><p>Emetteur: <a class="mono" href="/?%s">%s</b></p>' % (datdecode(dat), float(b2i(prc)/100), un, btob64(dst), btob64(dst), btob64(src), btob64(src))
+            res = '<b class="huge green" title="Transaction validée">✔</b><p>Date: <i>%s</i></p><p>Montant: <big><b>%7.2f%s</b></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message:</p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst))
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + res + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
@@ -1831,7 +1833,8 @@ def application(environ, start_response):
             o = 'OK upload %s %s %s' % (arg, len(arg), l2)
         else: o += 'not valid args |%s| %s' % (arg, len(arg))
     else: # get
-        if re.match('\+\S{211,237}$', base): o, mime = find_trx(d, b64tob(bytes(base[1:], 'ascii'))), 'text/html; charset=utf-8'
+        if re.match('\S{12}$', base): o, mime = index(d, environ, base), 'text/html; charset=utf-8'
+        elif re.match('\+\S{211,237}$', base): o, mime = find_trx(d, b64tob(bytes(base[1:], 'ascii'))), 'text/html; charset=utf-8'
         elif base == 'peers': # propagation
             fullbase, li = urllib.parse.unquote(environ['REQUEST_URI'])[1:], {}
             for p in d['prs'].keys(): li.update(peers_req(p.decode('utf8')))
@@ -2354,7 +2357,7 @@ def gui():
     vb.addLayout(h10)
     #gb.setLayout(vb)
     w.setLayout(vb)
-    w.setWindowTitle('PingPongCash')
+    w.setWindowTitle('Eurofranc')
     w.setGeometry(50, 50, 320, 480)
     w.show()
     app.exec_()
