@@ -1496,7 +1496,7 @@ def index(d, env, cm64='', prc=0):
         rpt1, bal1 = '', 0
         dt = debt(d, cm)
         typ ='admin' if cm == d['crt'][b'_'] else 'bank' if cm in d['crt'] and dt else 'maire' if cm in d['crt'] else 'user'
-        o += '<h1><img src="%s"/> <b class="mono">%s</b><br/><b class="green">%s</b></h1>' % (get_image('www/%s32.png' % typ), cm64, alias)
+        o += '<h1><br/><img src="%s"/> <b class="mono">%s</b><br/><b class="green">%s</b></h1>' % (get_image('www/%s32.png' % typ), cm64, alias)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         #o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €f"%s/></form>' % v
