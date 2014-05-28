@@ -993,13 +993,13 @@ def buy(node, rid, prc):
         print('unknown recipient')
     db.close()
 
-def buy2(node, sc, rid, pc, cry, pp):
+def buy2(node, sc, rid, pc, cry, pp, mes=''):
     "gui call"
     prc, src, db, k, dat, cry = float(pc), b64tob(bytes(sc, 'ascii')), dbm.open('keys'), ecdsa(), datencode(), _cur[cry]
     pri, res = int(prc*100) if cry == b'A' else int(prc), send(node, '?' + rid)
     if res: 
         prv, pub, dst = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii'))
-        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + i2b(pri, 3) 
+        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + i2b(pri, 3) + bytes(mes, 'utf8')[:20]
         print ('http://eurofranc.fr/?+' + btob64(msg + k.sign(msg)))
         #+AWRRzpO_4wl-5VVC7EFDyksfDLGlbL8AAAIBYRamc4R7iwOc5slQnUkiO35ie_QUYDW804No2kxWhP-MfbSsYqCPd7uGbtY77thw1Q8dP0rdt2dJgJMVo519vN4BgVDeSeBI3AczC4xwR8EpPWr17Iuv6T9yFeo91NdFVeQZoxIhyYne5SQBUlcVDQ9qRg9D4lC5ZzClnh8dK1PWc80
         print (send(node, '+' + btob64(msg + k.sign(msg)))) 
@@ -1124,7 +1124,9 @@ def get_image(img):
 def footer(dg=''):
     "_"
     dg = ' %s' % dg if dg else ''
-    return '<footer><a href="host.png">Host</a> - Contact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</footer>' % (__email__, __email__, dg)
+    here = os.path.dirname(os.path.abspath(__file__))
+    hh = '<a href="host.png">Host</a> - ' if os.path.isfile(here + '/host.png') else ''
+    return '<footer>%sContact: <a href="mailto:%s">%s</a>%s<br/><a href="http://cupfoundation.net">⊔FOUNDATION</a> is registered in Toulouse/France SIREN: 399 661 602 00025</footer>' % (hh, __email__, __email__, dg)
 
 def report(d, cm):
     "_"
@@ -1146,7 +1148,7 @@ def report(d, cm):
                 desc = dt[t][13:-132].decode('utf8')
                 tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], desc, t1, t2)))
     size = len(tmp)
-    for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%03d</b></td>' % (size-i) + x
+    for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (size-i) + x
     o += '<tr><th colspan="2">%s</th><th colspan="2"><b>Nouveau solde</b></th>' % datdecode(datencode())
     o += '<th></th><th class="num"><b>%7.2f%s</b></th></tr>' % (-bal/100, un) if bal<0 else '<th class="num"><b>%7.2f%s</b></th><th></th></tr>' % (bal/100, un)
     return o + '</table>\n', bal
@@ -1513,7 +1515,7 @@ def index(d, env, cm64='', prc=0):
         dbt = debt(d, cm)
         if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d%s</b></h1>' % (dbt, un)   
         if cm in d['crt']:
-            if len(d['crt'][cm]) == 157: o += '<p>Année de Naissance:&nbsp;<b class="green">%s</b></p>' % b2i(d['crt'][cm][13:15])   
+            if len(d['crt'][cm]) == 157: o += '<p>Année de naissance:&nbsp;<b class="green">%s</b></p>' % b2i(d['crt'][cm][13:15])   
             o += '<h1>Expire:&nbsp;<b class="green">%s</b></h1>' % datdecode(d['crt'][cm][:4])   
         o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt
         da = btob64(cm) + ':%d' % prc if prc else ''
@@ -1662,7 +1664,7 @@ def upload(env):
     o += favicon() + style_html(False) + header()
     o += '<form enctype="multipart/form-data" method="post"><input type="file"/><input type="submit" value="Go"/></form>'
     o += '<p>%s</p>' % env
-    return o + footer('') + '</body></html>\n'
+    return o + footer() + '</body></html>\n'
 
 def enurl(d, dr, ign, pos):
     "_"
@@ -2296,11 +2298,12 @@ def gui():
         vpas = wpas.text()
         vdev = wdev.currentText()
         vigi = wigi.text()
+        vmes = wmes.text()
         node = get_host()
         vip1, vipi, vixi, vurl = wip1.text(), wipi.text(), 0, wurl.text()
         if re.match('\d+$', vip1): postig2(node, vcmb, int(vip1), int(vipi), int(vixi), vurl, vpas) 
         elif vigi: buyig2(node, vcmb, vigi, vpas)
-        else: buy2(node, vcmb, vdst, vprc, vdev, vpas)
+        else: buy2(node, vcmb, vdst, vprc, vdev, vpas, vmes)
     def call_create():
         vpas, vpw2 = wpas.text(), wpw2.text()
         if vpas == vpw2: add_local_id2(vpas) 
