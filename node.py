@@ -964,18 +964,19 @@ def get_host():
     db.close()
     return host.decode('utf8')
 
-def certif(mid, uid):
-    "maire id, user id"
-    out, dk, dc, du = [], dbm.open('keys'), dbm.open(__base__+'crt', 'c'), dbm.open(__base__+'pub')
-    mair = get_unique(dk, mid)
-    mair = get_unique(dk, mid)
-    root, dat, k = dc[b'_'], datencode(365), ecdsa()
-    pp = getpass.getpass('Root passphrase to generate certificat for root \'%s\' ? ' % btob64(root))
-    k.privkey = int(AES().decrypt(dk[root][132:], hashlib.sha256(pp.encode('utf8')).digest())) 
-    msg = dat + i2b(0, 8)
-    dc[bnk] = msg + k.sign(bnk + msg)
-    #print ('main account set on id: %s' % btob64(bnk))
-    dk.close(), dc.close(), du.close()
+def certif(node, rid):
+    "_"
+    db, k, dat = dbm.open('keys'), ecdsa(), datencode()
+    src, res = db['user'], send(node, '?' + rid)
+    if res: 
+        prv, pub, dst, pp = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii')), getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+        print ('...please wait')
+        age = 1967
+        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), dst + datencode() + src + i2b(age, 2) + hcode('%s 167071927202809' % age)
+        print (send(node, '.' + btob64(msg + k.sign(msg))))
+    else:
+        print('unknown recipient')
+    db.close()
 
 def buy(node, rid, prc):
     "_"
@@ -1065,7 +1066,7 @@ def is_future(da):
 def debt(d, cm, cry=b'A'):
     "_"
     du, dc, dbt = d['pub'], d['crt'], 0
-    if cm in dc:
+    if cm in dc and len(dc[cm]) == 144:
         root, k = dc[b'_'], ecdsa()
         k.pt = Point(c521, b2i(du[root][:66]), b2i(du[root][66:]+root))
         if is_future(dc[cm][:4]) and k.verify(dc[cm][12:], cm + dc[cm][:12]): dbt = b2i(dc[cm][4:12])
@@ -1141,7 +1142,7 @@ def report(d, cm):
                     one, t1, t2, bal = dst, '<td class="num" title="%s"><b><a href="./%s">%7.2f%s</a></b></td>' % (btob64(t), btob64(t), prc/100, un), '<td></td>', bal-prc 
                 else: 
                     one, t1, t2, bal = src, '<td></td>', '<td class="num" title="%s"><b><a href="/%s">%7.2f%s</a></b></td>' % (btob64(t), btob64(t), prc/100, un), bal+prc
-                typ = 'admin' if one == root else 'bank' if one in dc else 'user'
+                typ = get_type(d, one)
                 desc = dt[t][13:-132].decode('utf8')
                 tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], desc, t1, t2)))
     size = len(tmp)
@@ -1468,6 +1469,14 @@ def bank(d, env):
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
 
+def get_type(d, cm):
+    if cm == d['crt'][b'_']: return 'admin'
+    if cm in d['crt']:
+        if len(d['crt'][cm]) == 144: return 'bank'
+        if len(d['crt'][cm]) == 136: return 'maire'
+        if len(d['crt'][cm]) == 157: return 'userp'
+    else: return 'user'
+
 def index(d, env, cm64='', prc=0):
     "_"
     o, un = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', '<euro>&thinsp;€</euro>'
@@ -1482,7 +1491,7 @@ def index(d, env, cm64='', prc=0):
             if t[1] == cm64: alias = urllib.parse.unquote(t[0])
             cm = b64tob(bytes(t[1], 'ascii'))
             dt = debt(d, cm)
-            typ ='admin' if cm == d['crt'][b'_'] else 'bank' if cm in d['crt'] and dt else 'maire' if cm in d['crt'] else 'user'
+            typ = get_type(d, cm)
             alia = urllib.parse.unquote(t[0])
             o1 += '<p><a href="./%s" title="%s"><img src="%s"/> %s</a></p>' % (t[1], t[1], get_image('www/%s32.png' % typ), alia)
         o1 += '<p><form method="post"><input type="submit" name="rem" value="Effacer les cookies"/></form></p>\n'
@@ -1495,7 +1504,7 @@ def index(d, env, cm64='', prc=0):
         #rpt1, bal1 = report_cup(d, cm)
         rpt1, bal1 = '', 0
         dt = debt(d, cm)
-        typ ='admin' if cm == d['crt'][b'_'] else 'bank' if cm in d['crt'] and dt else 'maire' if cm in d['crt'] else 'user'
+        typ = get_type(d, cm)
         o += '<h1><br/><img src="%s"/> <b class="mono">%s</b><br/><b class="green">%s</b></h1>' % (get_image('www/%s32.png' % typ), cm64, alias)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
@@ -1504,6 +1513,7 @@ def index(d, env, cm64='', prc=0):
         dbt = debt(d, cm)
         if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d%s</b></h1>' % (dbt, un)   
         if cm in d['crt']:
+            if len(d['crt'][cm]) == 157: o += '<p>Année de Naissance:&nbsp;<b class="green">%s</b></p>' % b2i(d['crt'][cm][13:15])   
             o += '<h1>Expire:&nbsp;<b class="green">%s</b></h1>' % datdecode(d['crt'][cm][:4])   
         o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt
         da = btob64(cm) + ':%d' % prc if prc else ''
@@ -1530,11 +1540,15 @@ def dashboard(d, env):
     o += '</table>'
     o += '<table><tr><th>Certificat</th><th>Date</th><th>Dette</th></tr>'
     for c in d['crt'].keys():
-        if len(c) == 9:
+        if len(c) == 9 and len(d['crt'][c]) == 144:
             dat, dbt = datdecode(d['crt'][c][:4]), b2i(d['crt'][c][4:12])
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%9d&nbsp;€</td></tr>' % (btob64(c), dat, dbt)
-        else:
+        elif len(c) == 1:
             o += '<tr><td class="mono">%s</td><td colspan="2">Autorité</td></tr>' % btob64(d['crt'][c])
+        elif len(c) == 9 and len(d['crt'][c]) == 157:
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td>citizen</td></tr>' % (btob64(c), dat)            
+        else:
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td>maire</td></tr>' % (btob64(c), dat)
     o += '</table>'
     o += '<table><tr><th>IG</th><th>Auteur</th><th>Date</th><th>Prix</th><th>N</th></tr>'
     for i in d['igs'].keys():
@@ -1766,6 +1780,16 @@ def valid_trx(d, r):
             return True
     return False
 
+def valid_crt(d, r):
+    "_"
+    dst, dat, src, hsh, msg, sig, k = r[:9], r[9:13], r[13:22], r[22:34], r[:-132], r[-132:], ecdsa()
+    k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
+    if src in d['crt'] and len(d['crt'][src]) == 136: # check root signature
+        if src in d['pub'] and dst in d['pub'] and src != dst and k.verify(sig, msg):
+            d['crt'][dst] = dat + src + hsh + sig
+            return True
+    return False
+
 def find_trx(d, r):
     o, un = '<?xml version="1.0" encoding="utf8"?>\n<html>\n', '<euro>&thinsp;€</euro>'
     o += '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
@@ -1776,8 +1800,7 @@ def find_trx(d, r):
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
     if src in d['pub'] and dst in d['pub'] and src != dst and u in d['trx'] and k.verify(sig, msg):
         if blc(d, src, cry) + debt(d, src, cry) > b2i(prc):
-            typs ='admin' if src == d['crt'][b'_'] else 'bank' if src in d['crt'] else 'user'
-            typd ='admin' if dst == d['crt'][b'_'] else 'bank' if dst in d['crt'] else 'user'
+            typs, typd = get_type(d, src), get_type(d, dst)
             res = '<br/><b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><b>%7.2f%s</b></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message: <b>%s</b></p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst), m)
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
@@ -1827,6 +1850,10 @@ def application(environ, start_response):
                     xprs = time.time() + 100 * 24 * 3600 # 100 days from now
                     alia = urllib.parse.quote(reg.v.group(2))
                     ncok.append(('set-cookie', '%s=%s;expires=%s GMT' % (alia, r, time.strftime('%a, %d-%b-%Y %T', time.gmtime(xprs)))))
+                    if 'HTTP_COOKIE' in environ:
+                        environ['HTTP_COOKIE'] += ';%s=%s' % (alia, r)
+                    else:
+                        environ['HTTP_COOKIE'] = '%s=%s' % (alia, r)
                 o, mime = index(d, environ, r), 'text/html; charset=utf-8'
             else:
                 o += 'Id not found! |%s|' % arg 
@@ -1851,13 +1878,16 @@ def application(environ, start_response):
         elif re.match('\+\S{211,237}$', arg): 
             if valid_trx(d, b64tob(bytes(arg[1:], 'ascii'))) : o = 'New transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid transaction !'
+        elif re.match('\.\S{222}$', arg): 
+            if valid_crt(d, b64tob(bytes(arg[1:], 'ascii'))) : o = 'New certificat recorded [%s]' % len(d['crt'])
+            else: o += 'not valid certification !'
         elif arg[:10] == '-'*10:
             l2 = environ['wsgi.input'].read()
             l2 = environ.get('wsgi.post_form').read()
             o = 'OK upload %s %s %s' % (arg, len(arg), l2)
         else: o += 'not valid args |%s| %s' % (arg, len(arg))
     else: # get
-        if re.match('\S{12}$', base): o, mime = index(d, environ, base), 'text/html; charset=utf-8'
+        if re.match('[A-Za-z\d\-_]{12}$', base): o, mime = index(d, environ, base), 'text/html; charset=utf-8'
         elif re.match('\S{18}$', base):
             u = b64tob(bytes(base, 'ascii'))
             o, mime = find_trx(d, u + d['trx'][u]), 'text/html; charset=utf-8'
@@ -2420,7 +2450,7 @@ if __name__ == '__main__':
         elif sys.argv[1] == 'add': add_local_id()
         elif sys.argv[1] == 'reg': register(node)
         elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1])
-        else: buyig(node, sys.argv[1]) 
+        else: certif(node, sys.argv[1]) #buyig(node, sys.argv[1]) 
     elif len(sys.argv) == 3:
         if sys.argv[1] in ('host', 'user', 'cry'): set(sys.argv[1], sys.argv[2])
         elif re.match('[\d\.\,]+', sys.argv[2]): buy(node, sys.argv[1], float(sys.argv[2]))
