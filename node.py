@@ -46,7 +46,7 @@ _b58char   = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
 _root_id   = 'AdminJqjFdcY'
 _root_pkey = 'AdMctT3bXbwrTBGkB5eKAG74qIqShRRy1nHa_NWCHsxmKhmZeE_aWgo_S251td8d6C5uti6TymQSSZvhmO1b19pI/AYYPFxkKL_13dnhBGXdFdmDQhQEZZbc1P7GDDrZZwU0FSGuwc53_AxHk1vVRte7bdmhzIcOUMUvO' 
 
-_cur = {'€':b'A', '£':b'P', '$':b'D', '⊔':b'U'}
+_cur = {'€':b'A', '£':b'P', '$':b'D', '⊔':b'U', 'C':b'C'}
 
 ##### ENCODING #####
 PAD = lambda s:(len(s)%2)*'0'+s[2:]
@@ -993,6 +993,21 @@ def buy(node, rid, prc):
         print('unknown recipient')
     db.close()
 
+def message(node, rid):
+    "_"
+    db, k, dat = dbm.open('keys'), ecdsa(), datencode()
+    cry = b'C'
+    src, res = db['user'], send(node, '?' + rid)
+    if res: 
+        prv, pub, dst, pp = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii')), getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
+        m = input('Message (3 chars mini 23 chars maxi)? ')
+        print ('...please wait')
+        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + bytes(m, 'utf8')[:23]
+        print (send(node, '+' + btob64(msg + k.sign(msg)))) 
+    else:
+        print('unknown recipient')
+    db.close()
+
 def buy2(node, sc, rid, pc, cry, pp, mes=''):
     "gui call"
     prc, src, db, k, dat, cry = float(pc), b64tob(bytes(sc, 'ascii')), dbm.open('keys'), ecdsa(), datencode(), _cur[cry]
@@ -1000,8 +1015,7 @@ def buy2(node, sc, rid, pc, cry, pp, mes=''):
     if res: 
         prv, pub, dst = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii'))
         k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + i2b(pri, 3) + bytes(mes, 'utf8')[:20]
-        print ('http://eurofranc.fr/?+' + btob64(msg + k.sign(msg)))
-        #+AWRRzpO_4wl-5VVC7EFDyksfDLGlbL8AAAIBYRamc4R7iwOc5slQnUkiO35ie_QUYDW804No2kxWhP-MfbSsYqCPd7uGbtY77thw1Q8dP0rdt2dJgJMVo519vN4BgVDeSeBI3AczC4xwR8EpPWr17Iuv6T9yFeo91NdFVeQZoxIhyYne5SQBUlcVDQ9qRg9D4lC5ZzClnh8dK1PWc80
+        print ('http://eurofranc.fr/+' + btob64(msg + k.sign(msg)))
         print (send(node, '+' + btob64(msg + k.sign(msg)))) 
     db.close()
 
@@ -1131,7 +1145,7 @@ def footer(dg=''):
 def report(d, cm):
     "_"
     un = '<euro>&thinsp;€</euro>'
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="32"></th><th>Date</th></th><th>Réf.</th><th>Msg</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th>Réf.</th><th>Msg</th><th>Débit</th><th>Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -1152,6 +1166,23 @@ def report(d, cm):
     o += '<tr><th colspan="2">%s</th><th colspan="2"><b>Nouveau solde</b></th>' % datdecode(datencode())
     o += '<th></th><th class="num"><b>%7.2f%s</b></th></tr>' % (-bal/100, un) if bal<0 else '<th class="num"><b>%7.2f%s</b></th><th></th></tr>' % (bal/100, un)
     return o + '</table>\n', bal
+
+def reportC(d, cm):
+    "_"
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="20"></th><th width="90">Réf.</th><th>Message</th></tr>'
+    root, dar, n , tmp = dc[b'_'], None, 0, []
+    for t in dt.keys():
+        if len(t) == 13 and (dar==None or is_after(t[:4], dar)):
+            src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
+            if cm in (dst, src) and cry == b'C':
+                one = dst if src == cm else src
+                dir = '⇒' if src == cm else '⇐'
+                typ = get_type(d, one)
+                desc = dt[t][13:-132].decode('utf8')
+                tmp.append((t[:4], '<td class="num">%s</td><td><b class="biggreen">%s</b></td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s</a></td><td>%s</td></tr>' % (datdecode(t[:4]), dir, btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], desc)))
+    size = len(tmp)
+    for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (size-i) + x
+    return o + '</table>\n'
 
 def report_cup(d, cm):
     "_"
@@ -1517,7 +1548,7 @@ def index(d, env, cm64='', prc=0):
         if cm in d['crt']:
             if len(d['crt'][cm]) == 157: o += '<p>Année de naissance:&nbsp;<b class="green">%s</b></p>' % b2i(d['crt'][cm][13:15])   
             o += '<h1>Expire:&nbsp;<b class="green">%s</b></h1>' % datdecode(d['crt'][cm][:4])   
-        o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt
+        o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt + reportC(d, cm)
         da = btob64(cm) + ':%d' % prc if prc else ''
         #o += report_ig(d, cm)
         #o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>'
@@ -1775,6 +1806,9 @@ def valid_trx(d, r):
     u, dat, src, v, cry, dst, prc, msg, sig, k = r[:13], r[:4], r[4:13], r[13:-132], r[13:14], r[14:23], r[23:26], r[:-132], r[-132:], ecdsa()
     k.pt, ddst = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src)), b'%'+dst
     if src in d['pub'] and dst in d['pub'] and src != dst and u not in d['trx'] and k.verify(sig, msg):
+        if cry == b'C':
+            d['trx'][u] = v + sig
+            return True
         if ((cry == b'U' and (src in d['crt'] or dst in d['crt'])) or cry == b'A') and (blc(d, src, cry) + debt(d, src, cry) > b2i(prc)):
             d['trx'][u] = v + sig
             d['trx'][src] = d['trx'][src] + dat if src in d['trx'] else dat # shortcut
@@ -1877,7 +1911,7 @@ def application(environ, start_response):
         elif re.match('\*\S{207}$', arg): 
             if valid_big(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New IG(⊔) transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid ig transaction !'
-        elif re.match('\+\S{211,237}$', arg): 
+        elif re.match('\+\S{211,237}$', arg):
             if valid_trx(d, b64tob(bytes(arg[1:], 'ascii'))) : o = 'New transaction recorded [%s]' % len(d['trx'])
             else: o += 'not valid transaction !'
         elif re.match('\.\S{222}$', arg): 
@@ -2349,7 +2383,7 @@ def gui():
     lpw2 = PyQt4.QtGui.QLabel('Confirmer', w)
     wpw2 = PyQt4.QtGui.QLineEdit(w)
     wpw2.setEchoMode(PyQt4.QtGui.QLineEdit.Password)
-    wdev.addItems(['€', '⊔'])
+    wdev.addItems(['€', '⊔', 'C'])
     wprc.setText('0.00' if wdev.currentText() == '€' else '0') 
     wbt3 = PyQt4.QtGui.QPushButton('Enregistrer les comptes locaux', w)
     wbt3.clicked.connect(call_register)
