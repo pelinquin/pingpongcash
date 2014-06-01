@@ -38,8 +38,8 @@ __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding=
 __app__    = os.path.basename(__file__)[:-3]
 __dfprt__  = 80
 __base__   = '/%s/%s_%s/' % (__app__, __app__, __dfprt__)
-__ppc__    = 'pingpongcash'
-__email__  = 'info@%s.fr' % __ppc__
+__ppc__    = 'eurofranc'
+__email__  = 'contact@%s.fr' % __ppc__
 
 _SVGNS     = 'xmlns="http://www.w3.org/2000/svg"'
 _b58char   = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'
@@ -1145,7 +1145,7 @@ def footer(dg=''):
 def report(d, cm):
     "_"
     un = '<euro>&thinsp;€</euro>'
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th>Réf.</th><th>Msg</th><th>Débit</th><th>Crédit</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="148">Réf.</th><th>Msg</th><th width="60">Débit</th><th width="60">Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -1160,7 +1160,7 @@ def report(d, cm):
                     one, t1, t2, bal = src, '<td></td>', '<td class="num" title="%s"><b><a href="/%s">%7.2f%s</a></b></td>' % (btob64(t), btob64(t), prc/100, un), bal+prc
                 typ = get_type(d, one)
                 desc = dt[t][13:-132].decode('utf8')
-                tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], desc, t1, t2)))
+                tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:], desc, t1, t2)))
     size = len(tmp)
     for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (size-i) + x
     o += '<tr><th colspan="2">%s</th><th colspan="2"><b>Nouveau solde</b></th>' % datdecode(datencode())
@@ -1169,7 +1169,7 @@ def report(d, cm):
 
 def reportC(d, cm):
     "_"
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="20"></th><th width="90">Réf.</th><th>Message</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="20"></th><th width="148">Réf.</th><th>Message</th></tr>'
     root, dar, n , tmp = dc[b'_'], None, 0, []
     for t in dt.keys():
         if len(t) == 13 and (dar==None or is_after(t[:4], dar)):
@@ -1179,7 +1179,7 @@ def reportC(d, cm):
                 dir = '⇒' if src == cm else '⇐'
                 typ = get_type(d, one)
                 desc = dt[t][13:-132].decode('utf8')
-                tmp.append((t[:4], '<td class="num">%s</td><td><b class="biggreen">%s</b></td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s</a></td><td>%s</td></tr>' % (datdecode(t[:4]), dir, btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], desc)))
+                tmp.append((t[:4], '<td class="num">%s</td><td><b class="biggreen">%s</b></td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s</td></tr>' % (datdecode(t[:4]), dir, btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:], desc)))
     size = len(tmp)
     for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (size-i) + x
     return o + '</table>\n'
@@ -1547,7 +1547,12 @@ def index(d, env, cm64='', prc=0):
         if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d%s</b></h1>' % (dbt, un)   
         if cm in d['crt']:
             if len(d['crt'][cm]) == 157: o += '<p>Année de naissance:&nbsp;<b class="green">%s</b></p>' % b2i(d['crt'][cm][13:15])   
-            o += '<h1>Expire:&nbsp;<b class="green">%s</b></h1>' % datdecode(d['crt'][cm][:4])   
+
+            o += '<p>Expire:&nbsp;<b class="green">%s</b><p>' % datdecode(d['crt'][cm][:4])
+            auto = btob64(d['crt'][cm][4:13]) if len(d['crt'][cm]) == 157 else btob64(d['crt']['_'])
+            autb = d['crt'][cm][4:13] if len(d['crt'][cm]) == 157 else d['crt']['_']
+            typc = get_type(d, autb)
+            o += '<p>Certifié: <a href="%s"><img src="%s"/>&nbsp;<b class="mono">%s</b></a></p>' % (auto, get_image('www/%s32.png' % typc), auto)   
         o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt + reportC(d, cm)
         da = btob64(cm) + ':%d' % prc if prc else ''
         #o += report_ig(d, cm)
