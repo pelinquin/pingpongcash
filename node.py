@@ -993,14 +993,12 @@ def buy(node, rid, prc):
         print('unknown recipient')
     db.close()
 
-def message(node, rid):
+def message(node, rid, m=''):
     "_"
     db, k, dat = dbm.open('keys'), ecdsa(), datencode()
-    cry = b'C'
-    src, res = db['user'], send(node, '?' + rid)
+    cry, src, res = b'C', db['user'], send(node, '?' + rid)
     if res: 
         prv, pub, dst, pp = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii')), getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
-        m = input('Message (3 chars mini 23 chars maxi)? ')
         print ('...please wait')
         k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + bytes(m, 'utf8')[:23]
         print (send(node, '+' + btob64(msg + k.sign(msg)))) 
@@ -1178,19 +1176,41 @@ def report(d, cm):
 
 def reportC(d, cm):
     "_"
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="20"></th><th width="148">Réf.</th><th>Message</th></tr>'
-    root, dar, n , tmp = dc[b'_'], None, 0, []
+    o = '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="148">Réf.</th><th width="20"></th><th>Message</th></tr>'
+    dt, root, dar, n , tmp = d['trx'], d['crt'][b'_'], None, 0, []
     for t in dt.keys():
         if len(t) == 13 and (dar==None or is_after(t[:4], dar)):
-            src, cry, dst, prc = t[4:], dt[t][:1], dt[t][1:10], b2i(dt[t][10:13])
+            src, cry, dst = t[4:], dt[t][:1], dt[t][1:10]
             if cm in (dst, src) and cry == b'C':
                 one = dst if src == cm else src
-                dir = '⇒' if src == cm else '⇐'
+                dir = '⇐' if src == cm else '⇒'
                 typ = get_type(d, one)
-                desc = dt[t][13:-132].decode('utf8')
-                tmp.append((t[:4], '<td class="num">%s</td><td><b class="biggreen">%s</b></td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s</td></tr>' % (datdecode(t[:4]), dir, btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:], desc)))
-    size = len(tmp)
-    for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (size-i) + x
+                desc = dt[t][10:-132].decode('utf8')
+                tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td><b class="biggreen">%s</b></td><td>%s</td></tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:], dir, desc)))
+    if len(tmp) == 0: return ''
+    for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (len(tmp)-i) + x
+    return o + '</table>\n'
+
+def reportCRT(d, cm):
+    "_"
+    un = '<euro>&thinsp;€</euro>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Expire</th><th width="148">Réf.</th><th>Certificat</th></tr>'
+    root, dar, n , tmp = dc[b'_'], None, 0, []
+    for c in dc.keys():
+        if len(c) > 1 and len(dc[c]) == 157 and cm == dc[c][4:13]:
+            typ = get_type(d, c)
+            year, hh = b2i(dc[c][13:15]), btob64(dc[c][15:25])
+            tmp.append((dc[c][:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s %s</td></tr>' % (datdecode(dc[c][:4]), btob64(c), btob64(c), get_image('www/%s32.png' % typ), btob64(c)[:4], btob64(c)[4:8], btob64(c)[8:], year, hh )))
+        elif len(c) > 1 and cm == root:
+            if len(dc[c]) == 144:
+                typ = get_type(d, c)
+                dbt = b2i(dc[c][4:12])
+                tmp.append((dc[c][:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s%s</td></tr>' % (datdecode(dc[c][:4]), btob64(c), btob64(c), get_image('www/%s32.png' % typ), btob64(c)[:4], btob64(c)[4:8], btob64(c)[8:], dbt, un)))
+            elif len(dc[c]) == 136:
+                typ = get_type(d, c)
+                tmp.append((dc[c][:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>MAIRIE</td></tr>' % (datdecode(dc[c][:4]), btob64(c), btob64(c), get_image('www/%s32.png' % typ), btob64(c)[:4], btob64(c)[4:8], btob64(c)[8:])))
+    if len(tmp) == 0: return ''
+    for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (len(tmp)-i) + x
     return o + '</table>\n'
 
 def report_cup(d, cm):
@@ -1561,7 +1581,7 @@ def index(d, env, cm64='', prc=0):
             autb = d['crt'][cm][4:13] if len(d['crt'][cm]) == 157 else d['crt']['_']
             typc = get_type(d, autb)
             o += '<p>Certifié: <a href="%s"><img src="%s"/>&nbsp;<b class="mono">%s</b></a></p>' % (auto, get_image('www/%s32.png' % typc), auto)   
-        o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt + reportC(d, cm)
+        o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt + reportC(d, cm) + reportCRT(d, cm)
         da = btob64(cm) + ':%d' % prc if prc else ''
         #o += report_ig(d, cm)
         #o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>'
@@ -1604,14 +1624,25 @@ def dashboard(d, env):
             xi, p1, pf = valdecode(d['igs'][i][13:20])
             o += '<tr><td><a class="mono" href="http://%s">%s</a></td><td class="mono">%s</td><td class="num">%s</td><td class="num">%d/%d&nbsp;⊔ (%d%%)</td><td class="num">%s</td></tr>' % (url.decode('utf8'), btob64(i), src, dat, p1, pf, xi, (len(d['igs'][i])-152)//9)
     o += '</table>'
+
     o += '<table><tr><th>Trans. src</th><th>Date</th><th>Destinataire</th><th>Message</th><th>Montant</th></tr>'
     for t in d['trx'].keys():
-        if len(t) == 13:
-            dat, src, cry, dst, val = datdecode(t[:4]), btob64(t[4:13]), d['trx'][t][:1], btob64(d['trx'][t][1:10]), b2i(d['trx'][t][10:13])
+        if len(t) == 13 and d['trx'][t][:1] == b'A':
+            cry = btob64(d['trx'][t][:1])
+            dat, src, dst, val = datdecode(t[:4]), btob64(t[4:13]), btob64(d['trx'][t][1:10]), b2i(d['trx'][t][10:13])
             desc = d['trx'][t][13:-132].decode('utf8')
             value = '%9d&nbsp;⊔' % val if cry == b'U' else '%7.2f&nbsp;€' % (val/100)
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td>%s</td><td class="num">%s</td></tr> ' % (src, dat, dst, desc, value)
     o += '</table>'
+
+    o += '<table><tr><th>Trans. src</th><th>Date</th><th>Destinataire</th><th>Message</th></tr>'
+    for t in d['trx'].keys():
+        if len(t) == 13 and d['trx'][t][:1] == b'C':
+            dat, src, dst = datdecode(t[:4]), btob64(t[4:13]), btob64(d['trx'][t][1:10])
+            desc = d['trx'][t][10:-132].decode('utf8')
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="mono">%s</td><td>%s</td></tr> ' % (src, dat, dst, desc)
+    o += '</table>'
+
     o += '<table><tr><th>Trans. src</th><th>Date</th><th>No</th><th>IG</th><th>Destinataire</th><th>Montant</th></tr>'
     for t in d['trx'].keys():
         if len(t) == 14:
@@ -1621,7 +1652,8 @@ def dashboard(d, env):
             o += '<tr><td class="mono">%s</td><td class="num">%s</td><td class="num">%05d</td><td class="mono">%s</td><td class="mono">%s</td><td class="num">%d&nbsp;⊔</td></tr> ' % (src, dat, nb, hig, dst, prc)
     o += '</table>'
     o += '<table><tr><th>Errors</th></tr>'
-    su =  sum([blc(d, u) + blc(d, u, b'U') for u in d['pub'].keys()])     
+    #su =  sum([blc(d, u) + blc(d, u, b'U') for u in d['pub'].keys()])     
+    su =  sum([blc(d, u) for u in d['pub'].keys()])     
     if su != 0: o += '<tr><td class="num">Balances: %s</td></tr> ' % su
     k = ecdsa()
     for t in d['trx'].keys():
@@ -1633,7 +1665,7 @@ def dashboard(d, env):
                     o += '<tr><td class="mono">%s %s</td></tr>' % (datdecode(t[:4]), btob64(t[4:]))
             else:
                 '<tr><td class="mono">Pb!</td></tr>'
-    if b'_' in d['crt']:
+    if b'_' in d['crt']: # REFAIRE
         root = d['crt'][b'_']
         if root in d['pub']:
             k.pt = Point(c521, b2i(d['pub'][root][:66]), b2i(d['pub'][root][66:]+root))
@@ -2651,6 +2683,7 @@ if __name__ == '__main__':
         if sys.argv[1] in ('host', 'user', 'cry'): set(sys.argv[1], sys.argv[2])
         elif re.match('[\d\.\,]+', sys.argv[2]): buy(node, sys.argv[1], float(sys.argv[2]))
         elif os.path.isfile(sys.argv[1]): readdb(sys.argv[1], True)
+        else: message(node, sys.argv[1], sys.argv[2])
     elif len(sys.argv) == 4:
         postig(node, int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
     sys.exit()    
