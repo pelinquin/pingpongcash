@@ -90,9 +90,9 @@ def H(*tab):
     "hash"
     return int(hashlib.sha1(b''.join(tab)).hexdigest(), 16)
 
-def datencode():
+def datencode(n=0):
     "4 chars (minute precision)"
-    return i2b(int(time.mktime(time.gmtime())/60), 4)
+    return i2b(int(time.mktime(time.gmtime())/60 + 60*24*n), 4)
 
 def datdecode(tt):
     "4 chars (minute precision)"
@@ -972,7 +972,7 @@ def certif(node, rid):
         prv, pub, dst, pp = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii')), getpass.getpass('Passphrase for \'%s\'? ' % btob64(src))
         print ('...please wait')
         age = 1967
-        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), dst + datencode() + src + i2b(age, 2) + hcode('%s 167071927202809' % age)
+        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), dst + datencode(365) + src + i2b(age, 2) + hcode('%s 167071927202809' % age)
         print (send(node, '.' + btob64(msg + k.sign(msg))))
     else:
         print('unknown recipient')
@@ -1115,9 +1115,13 @@ def ibank():
     o = '<div class="page dd"><h1>1- Créez un ID</h1><p>Par sécurité, un identifiant (ID) n\'est jamais créé en ligne mais toujours localement<sup>1</sup></p><p><a href="zzzz">Téléchargez</a> pour cela l\'application gratuite. Choisissez un mot de passe et ne le communiquez à personne</p><p>Vous pouvez créer autant d\'IDs que vous le desirez, leur solde initial est toujours nul</p><p> Ne faites confiance à personne, même pas à nous ! Inspectez notre <a href="dsd">code</a></p><p>————</p><p><i>Nous créditons sur votre demande 1€ et 1⊔ pour tester l\'application<sup>2</sup></i></p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> de préférence déconnecté du réseau.</p><p class="note"><sup>2</sup> offre limitée à un crédit par individu et pour un compte créé en 2014...la communication de votre nom est nécessaire seulement pour éviter les doublons.</p><p class="note">&nbsp;&nbsp;&nbsp;La base de donnée qui lie votre nom à votre ID n\'est pas accessible en ligne. Nous pouvons effacer ce lien si vous nous remboursez cet euro.</p></div><div class="page aa"><h1>2- Provisionnez</h1><p>Nous n\'utilisons que les virements <a href="http://fr.wikipedia.org/wiki/Single_Euro_Payments_Area">SEPA</a> (€)</p><p>Effectuez un virement<sup>1</sup> de la somme que vous désirez sur le compte bancaire:</p><p><b>CUP-FOUNDATION</b> <i>BIC</i>: CMCIFR2A <i>IBAN</i>: <b>FR76 1027 8022 3300 0202 8350 157</b> <i>ID</i>: <a class="id" href="dsds">IbankVBixRIm</a></p><p>N\'oubliez pas d\'indiquer en message l\'ID de votre compte à créditer</p><p>Ce compte sera provisioné sous moins de 24 heures</p><p>————</p><p>Aucune commission n\'est retenue, ni à l\'achat, ni à la vente</p><p>Les comptes ne sont pas rémunérés et jamais débiteurs</p><p>Indiquez nous si vous désirez des ⊔<sup>2</sup> à la place des €</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> Vous pouvez aussi fournir un de vos ID à vos débiteurs pour régler directement sur ce compte.</p><p class="note"><sup>2</sup> La conversion € vers ⊔ ou de ⊔ vers € est soumise à une TVA de 3,5% reversée au Trésor-Public. Le taux de change nominal est consultable <a href="df">ici</a></p></div><div class="page bb"><h1>3- Echangez</h1><p>Tous les échanges sont possibles tant que le solde reste positif</p><p>Echangez entre vos comptes, sans limite</p><p>Echangez aussi avec des tiers qui possèdent un ID<sup>1</sup></p><p>Achetez des biens immatériels culturels et vendez vos créations numériques, en ⊔<sup>2</sup></p><p>Consultez à tout moment vos soldes et opérations sur <a href="hh">Internet</a></p><p>————</p><p>Si vous désirez vous retirer, transmettez nous votre IBAN et créditez du solde l\'ID <a class="id" href="dsddd">IbankVBixRIm</a></p> <p>Le virement SEPA sera effectué sous 24 heures</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> insitez vos contacts à créer leur propre ID. Nous ne faisons aucune publicité.</p><p class="note"><sup>2</sup> Les échanges directs en ⊔ entre personnes ne sont pas autorisés, seulement avec une <b>i-Bank</b>.</p><p class="note"><sup>3</sup> Nous proposerons en 2015 de chèques électronique et de billets électronique à usage unique.</p></div><div class="page cc"><h1>Une question ?</h1><h1>⥥</h1><p>Pas d\'hésitation, contactez nous !</p><p>————————</p><h2>&nbsp;</h2></div><div class="page foot"><p>Contact: <a href="mailto:laurent.fournier@cupfoundation.net">⊔Foundation</a>&nbsp;&nbsp;&nbsp;<i>SIREN:</i> 399 661 602 00025&nbsp;&nbsp;&nbsp;<i>Tel:</i> 06 19 29 14 85</p><p>&nbsp;</p></div><h1 class="header"><a class="header" href="http://cupfoundation.net">⊔</a></h1>'
     return '<?xml version="1.0" encoding="utf8"?>\n<html>%s%s<meta charset="utf-8"/>%s</html>' % (favicon(), style(), o)
 
-def favicon():
+def favicon_ppc():
     "_"
     return '<link rel="shortcut icon" type="www/image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAIAAAABc2X6AAAABmJLR0QA/wD/AP+gvaeTAAAAoklEQVR4nO3csQ0CMRAAQR6R0wk1URo1UYnpgA4M0iNA65n0kltdankbYxxWcvz1At8muE5wneA6wXWn+fhyO0+m9+vjo8u8a89Wy11YcJ3gOsF1gusE1wmuE1wnuE5wneA6wXWC6wTXCa4TXCe4TnCd4DrBdYLrBNcJrhNcJ7juxYv4ufnL9P+03IUF1wmuE1wnuG7zy0Oc4DrBdYLrBNc9AUj0DSD4QMJ7AAAAAElFTkSuQmCC"/>'
+
+def favicon():
+    "_"
+    return '<link rel="shortcut icon" type="www/image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAXFQTFRF/wCA/wOC/wF//wB5/wB3/wB+/wKB/wqD/0Cg/1+v/z+g/wqF/wWC/wSC/1ms/+Px//////7///v9/2e0/wB0/wR4/wB1/wB8/wCB/wB4/2qz/+32/7fb/7nc//r9/zmb/xiL/4XC/5bL/y6X/wB7/yOP//L4/8fj/xaL/x+P/xKH/9Lp/+Ty/0ul/4LB//3+/ziZ/wmF/7ze/wJ//wB6/6/X//b7//j8//X6/w+I/zOZ/9/v/9rs/0mk/0ym/0um/02m/1ut/222/9Xq/1Kp/weE/wB//wB9/2Gw//D3/+by/ofD/onE/4zG/4fD/wp9/xB//7jZ/wBw/wOB/4/H/c/m/M3l/77f/wuF/7rc/wSD/wBx/3W3/ziV/wBu/wN7/wF6/xOG//3//7Xa/x2N/+v1/9Lo/ySS/yuW/1Co/7rd/1ys//H4/8Lh/8Ph/3y+/3a7/2az/wGB/06m/9zu//z+/wBv/wR7/weB/zmd/1SqcikTHwAAAAFiS0dEEJWyDSwAAAAJcEhZcwAACxMAAAsTAQCanBgAAADvSURBVBjTY2AAAkYmZhYWZlYGGGBjZufg5OTiZuDhZYPw+fgFBIUEhEVExcQlgOolpQQEpGVk5eQVFJWUxRnYVFTVBNQ1JJk1tbQFdHSZGXiZ9QT0DZi5DcUVBIxYjBkYTEwF9PXNhMzNzSz0BfgtWRlYrawFbGzt7B0cnQScXVzdGNw9PAW8vH18/fwDBAKDghkYVEIsBIRCw5zDIzQEIlWAAlHRMQKCsXHxCZKJScnMQAE21pRUgbR0cfeMTPMskADQYdkCAjm5eQL5BYXiRRCnF5cICJYKeJSVS8A8V1FZ5aLMxssI8y7Y+yYQNgBQWiTEKkSv3QAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAxNC0wNS0yNlQxMDozMDoxMCswMjowMP2x9zQAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMTQtMDUtMjZUMTA6MzA6MTArMDI6MDCM7E+IAAAAAElFTkSuQmCC"/>'
 
 def header():
     "_"
@@ -1134,6 +1138,11 @@ def get_image(img):
     "_"
     here = os.path.dirname(os.path.abspath(__file__))
     return 'data:image/png;base64,%s' % base64.b64encode(open('%s/%s' % (here, img), 'rb').read()).decode('ascii')
+
+def print_image(img):
+    "_"
+    here = os.path.dirname(os.path.abspath(__file__))
+    print ('data:image/png;base64,%s' % base64.b64encode(open('%s/%s' % (here, img), 'rb').read()).decode('ascii'))
 
 def footer(dg=''):
     "_"
@@ -1547,7 +1556,6 @@ def index(d, env, cm64='', prc=0):
         if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d%s</b></h1>' % (dbt, un)   
         if cm in d['crt']:
             if len(d['crt'][cm]) == 157: o += '<p>Année de naissance:&nbsp;<b class="green">%s</b></p>' % b2i(d['crt'][cm][13:15])   
-
             o += '<p>Expire:&nbsp;<b class="green">%s</b><p>' % datdecode(d['crt'][cm][:4])
             auto = btob64(d['crt'][cm][4:13]) if len(d['crt'][cm]) == 157 else btob64(d['crt']['_'])
             autb = d['crt'][cm][4:13] if len(d['crt'][cm]) == 157 else d['crt']['_']
@@ -1584,9 +1592,9 @@ def dashboard(d, env):
         elif len(c) == 1:
             o += '<tr><td class="mono">%s</td><td colspan="2">Autorité</td></tr>' % btob64(d['crt'][c])
         elif len(c) == 9 and len(d['crt'][c]) == 157:
-            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td>citizen</td></tr>' % (btob64(c), dat)            
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td>citizen</td></tr>' % (btob64(c), datdecode(d['crt'][c][:4]))
         else:
-            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td>maire</td></tr>' % (btob64(c), dat)
+            o += '<tr><td class="mono">%s</td><td class="num">%s</td><td>maire</td></tr>' % (btob64(c), datdecode(d['crt'][c][:4]))
     o += '</table>'
     o += '<table><tr><th>IG</th><th>Auteur</th><th>Date</th><th>Prix</th><th>N</th></tr>'
     for i in d['igs'].keys():
@@ -2328,6 +2336,152 @@ PROTOCOL: POST\n
 """
     print (usage.__doc__)
 
+def gui_mairie():
+    def call_create():
+        vpw1, vpw2 = wpw1.text(), wpw2.text()
+        if vpw1 == vpw2: 
+            add_local_id2(vpw1) 
+            set('host', 'cup')
+    def call_validate():
+        msg.showMessage('Erreur!')
+        msg.show()
+    def call_request():
+        msg.showMessage('Votre demande a été envoyée. Elle sera traité par l\'autorité de certification', 'ee')
+        msg.show()
+    app = PyQt4.QtGui.QApplication(sys.argv)
+    w = PyQt4.QtGui.QWidget()
+    vb = PyQt4.QtGui.QVBoxLayout()
+    msg = PyQt4.QtGui.QErrorMessage(w)
+    #msg = PyQt4.QtGui.QMessageBox(w)
+    
+    if False:
+        toto = random_b64().decode('ascii')[:8]
+        lpsw = PyQt4.QtGui.QLabel('Validation de compte principal\nMessage à faire signer sur place:', w)
+        f = PyQt4.QtGui.QFont('courier', 30)
+        lale = PyQt4.QtGui.QLabel(toto, w)
+        lale.setFont(f)   
+        lide = PyQt4.QtGui.QLabel('Identifiant', w)
+        wide = PyQt4.QtGui.QLineEdit(w)
+        lana = PyQt4.QtGui.QLabel('Année de naissance', w)
+        wana = PyQt4.QtGui.QLineEdit('0000', w)
+        wana.setMaximumWidth(50)
+        lscu = PyQt4.QtGui.QLabel('N° Sécurité Sociale', w)
+        wscu = PyQt4.QtGui.QLineEdit('', w)
+        lpw1 = PyQt4.QtGui.QLabel('Votre Mot de passe', w)
+        wpw1 = PyQt4.QtGui.QLineEdit(w)
+        wpw1.setEchoMode(PyQt4.QtGui.QLineEdit.Password)
+        wval = PyQt4.QtGui.QPushButton('Validez', w)
+        wval.clicked.connect(call_validate)
+
+        h0 = PyQt4.QtGui.QHBoxLayout()
+        h0.addWidget(lpsw)
+        vb.addLayout(h0)
+
+        h0 = PyQt4.QtGui.QHBoxLayout()
+        h0.addWidget(lale)
+        vb.addLayout(h0)
+        
+        h1 = PyQt4.QtGui.QHBoxLayout()
+        h1.addWidget(lide)
+        h1.addWidget(wide)
+        vb.addLayout(h1)
+
+        h11 = PyQt4.QtGui.QHBoxLayout()
+        h11.addWidget(lana)
+        h11.addWidget(wana)
+        vb.addLayout(h11)
+
+        h2 = PyQt4.QtGui.QHBoxLayout()
+        h2.addWidget(lscu)
+        h2.addWidget(wscu)
+        vb.addLayout(h2)
+        vb.addStretch(1)
+
+        h3 = PyQt4.QtGui.QHBoxLayout()
+        h3.addWidget(lpw1)
+        h3.addWidget(wpw1)
+        vb.addLayout(h3)
+
+        h4 = PyQt4.QtGui.QHBoxLayout()
+        h4.addWidget(wval)
+        vb.addLayout(h4)
+
+    elif os.path.isfile('keys'):
+        db = dbm.open('keys', 'c')
+        nb = len(db.keys())
+        cm = 'none'
+        for x in db.keys():
+            if len(x) == 9:
+                cm = btob64(x)
+        db.close()
+        lpsw = PyQt4.QtGui.QLabel('Connectez vous à Internet\nDemande de certification\nde votre identifiant:', w)
+
+        f = PyQt4.QtGui.QFont('courier', 20)
+        lacm = PyQt4.QtGui.QLabel(cm, w)
+        lacm.setFont(f)   
+
+        wnam = PyQt4.QtGui.QLineEdit('Votre nom', w)
+        wcom = PyQt4.QtGui.QLineEdit('Le nom de votre commune', w)
+        wcrt = PyQt4.QtGui.QPushButton('Envoyez la demande', w)
+        wcrt.clicked.connect(call_request)
+
+        h0 = PyQt4.QtGui.QHBoxLayout()
+        h0.addWidget(lpsw)
+        vb.addLayout(h0)
+
+        h01 = PyQt4.QtGui.QHBoxLayout()
+        h01.addWidget(lacm)
+        vb.addLayout(h01)
+
+        h1 = PyQt4.QtGui.QHBoxLayout()
+        h1.addWidget(wnam)
+        vb.addLayout(h1)
+        h2 = PyQt4.QtGui.QHBoxLayout()
+        h2.addWidget(wcom)
+        vb.addLayout(h2)
+        vb.addStretch(1)
+
+        h3 = PyQt4.QtGui.QHBoxLayout()
+        h3.addWidget(wcrt)
+        vb.addLayout(h3)
+
+    else:
+        lpsw = PyQt4.QtGui.QLabel('Création de votre Identifiant Mairie\nutilisez un ordinateur dédié\nde préférence déconnecté d\'Internet\nvos clés seront dans le fichier \'keys\'\nne diffusez pas ce fichier', w)
+        lpw1 = PyQt4.QtGui.QLabel('Choisisez un mot de passe:', w)
+        wpw1 = PyQt4.QtGui.QLineEdit(w)
+        wpw1.setEchoMode(PyQt4.QtGui.QLineEdit.Password)
+        lpw2 = PyQt4.QtGui.QLabel('Confirmez ce mot de passe:', w)
+        wpw2 = PyQt4.QtGui.QLineEdit(w)
+        wpw2.setEchoMode(PyQt4.QtGui.QLineEdit.Password)
+        wbpw = PyQt4.QtGui.QPushButton('Générer les clés localement', w)
+        wbpw.clicked.connect(call_create)
+
+        h0 = PyQt4.QtGui.QHBoxLayout()
+        h0.addWidget(lpsw)
+        vb.addLayout(h0)
+        vb.addStretch(1)
+
+        h1 = PyQt4.QtGui.QHBoxLayout()
+        h1.addWidget(lpw1)
+        h1.addWidget(wpw1)
+        vb.addLayout(h1)
+
+        h2 = PyQt4.QtGui.QHBoxLayout()
+        h2.addWidget(lpw2)
+        h2.addWidget(wpw2)
+        vb.addLayout(h2)
+
+        h3 = PyQt4.QtGui.QHBoxLayout()
+        h3.addWidget(wbpw)
+        vb.addLayout(h3)
+
+    w.setLayout(vb)
+    w.setWindowTitle('Eurofranc')
+    w.setGeometry(50, 50, 320, 480)
+    w.show()
+    app.exec_()
+    
+
 def gui():
     "Qt4"
     def call_buy():
@@ -2485,7 +2639,7 @@ if __name__ == '__main__':
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
         forex()
-        gui()
+        gui_mairie()
     elif len(sys.argv) == 2:
         if sys.argv[1] in ('list', 'l'): list_local_ids(node)
         elif sys.argv[1] in ('usage', 'help'): usage()
