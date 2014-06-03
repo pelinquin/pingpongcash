@@ -952,7 +952,8 @@ def readdb(arg, ascii=False):
     "_"
     d = dbm.open(arg)
     if ascii:
-        for x in d.keys(): print (x.decode('ascii'), '->', d[x].decode('ascii'))
+        #for x in d.keys(): print (x.decode('ascii'), '->', d[x].decode('ascii'))
+        for x in d.keys(): print (x.decode('utf8'), '->', d[x].decode('utf8'))
         #for x in d.keys(): print (x, '->', d[x])
     else:
         for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x), '->', btob64(d[x]))
@@ -1106,11 +1107,32 @@ def style_html(bg=True):
 
 def style():
     "_"
-    return '<style>@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1{font-size:64pt;text-align:center;font-family:Schoolbell}div,body{margin:0}p{font-family:arial;font-size:16pt;text-align:center;margin:0;margin-top:5}.page{position:relative;padding-top:60;padding-bottom:20}.aa{background-color:#22AA22;color:#FFFFFF}.bb{background-color:#22AAAA;color:#AA2222}.cc{background-color:#EEEE22;color:#2222AA}.dd{background-color:#AAEEEE;color:#555555}.foot{background-color:#555555;color:#CCCCCC}.note{font-family:arial;font-size:8pt;margin:0;margin-left:20;text-align:left}a{color:DodgerBlue;text-decoration:none}a.id{font-family:"Lucida Concole",Courier;font-weight:bold;color:White;text-decoration:none;background:black;padding:5;border-radius:7px}.header{position:fixed;top:0;left:10;margin:0;color:white}</style>'
+    return '<style>@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1{font-size:64pt;text-align:center;font-family:Schoolbell}div,body{margin:0}p{font-family:arial;font-size:16pt;text-align:center;margin:0;margin-top:5}.page{position:relative;padding-top:60;padding-bottom:20}.aa{background-color:#22AA22;color:#FFFFFF}.bb{background-color:#22AAAA;color:#AA2222}.cc{background-color:#EEEE22;color:#2222AA}.dd{background-color:#AAEEEE;color:#555555}.foot{background-color:#555555;color:#CCCCCC}.note{font-family:arial;font-size:8pt;margin:0;margin-left:20;text-align:left}a{color:DodgerBlue;text-decoration:none}a.id{font-family:"Lucida Concole",Courier;font-weight:bold;color:White;text-decoration:none;background:black;padding:5;border-radius:7px}.header{position:fixed;top:0;left:0;margin:0;color:white}</style>'
 
 def ibank():
     "_"
     o = '<div class="page dd"><h1>1- Créez un ID</h1><p>Par sécurité, un identifiant (ID) n\'est jamais créé en ligne mais toujours localement<sup>1</sup></p><p><a href="zzzz">Téléchargez</a> pour cela l\'application gratuite. Choisissez un mot de passe et ne le communiquez à personne</p><p>Vous pouvez créer autant d\'IDs que vous le desirez, leur solde initial est toujours nul</p><p> Ne faites confiance à personne, même pas à nous ! Inspectez notre <a href="dsd">code</a></p><p>————</p><p><i>Nous créditons sur votre demande 1€ et 1⊔ pour tester l\'application<sup>2</sup></i></p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> de préférence déconnecté du réseau.</p><p class="note"><sup>2</sup> offre limitée à un crédit par individu et pour un compte créé en 2014...la communication de votre nom est nécessaire seulement pour éviter les doublons.</p><p class="note">&nbsp;&nbsp;&nbsp;La base de donnée qui lie votre nom à votre ID n\'est pas accessible en ligne. Nous pouvons effacer ce lien si vous nous remboursez cet euro.</p></div><div class="page aa"><h1>2- Provisionnez</h1><p>Nous n\'utilisons que les virements <a href="http://fr.wikipedia.org/wiki/Single_Euro_Payments_Area">SEPA</a> (€)</p><p>Effectuez un virement<sup>1</sup> de la somme que vous désirez sur le compte bancaire:</p><p><b>CUP-FOUNDATION</b> <i>BIC</i>: CMCIFR2A <i>IBAN</i>: <b>FR76 1027 8022 3300 0202 8350 157</b> <i>ID</i>: <a class="id" href="dsds">IbankVBixRIm</a></p><p>N\'oubliez pas d\'indiquer en message l\'ID de votre compte à créditer</p><p>Ce compte sera provisioné sous moins de 24 heures</p><p>————</p><p>Aucune commission n\'est retenue, ni à l\'achat, ni à la vente</p><p>Les comptes ne sont pas rémunérés et jamais débiteurs</p><p>Indiquez nous si vous désirez des ⊔<sup>2</sup> à la place des €</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> Vous pouvez aussi fournir un de vos ID à vos débiteurs pour régler directement sur ce compte.</p><p class="note"><sup>2</sup> La conversion € vers ⊔ ou de ⊔ vers € est soumise à une TVA de 3,5% reversée au Trésor-Public. Le taux de change nominal est consultable <a href="df">ici</a></p></div><div class="page bb"><h1>3- Echangez</h1><p>Tous les échanges sont possibles tant que le solde reste positif</p><p>Echangez entre vos comptes, sans limite</p><p>Echangez aussi avec des tiers qui possèdent un ID<sup>1</sup></p><p>Achetez des biens immatériels culturels et vendez vos créations numériques, en ⊔<sup>2</sup></p><p>Consultez à tout moment vos soldes et opérations sur <a href="hh">Internet</a></p><p>————</p><p>Si vous désirez vous retirer, transmettez nous votre IBAN et créditez du solde l\'ID <a class="id" href="dsddd">IbankVBixRIm</a></p> <p>Le virement SEPA sera effectué sous 24 heures</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> insitez vos contacts à créer leur propre ID. Nous ne faisons aucune publicité.</p><p class="note"><sup>2</sup> Les échanges directs en ⊔ entre personnes ne sont pas autorisés, seulement avec une <b>i-Bank</b>.</p><p class="note"><sup>3</sup> Nous proposerons en 2015 de chèques électronique et de billets électronique à usage unique.</p></div><div class="page cc"><h1>Une question ?</h1><h1>⥥</h1><p>Pas d\'hésitation, contactez nous !</p><p>————————</p><h2>&nbsp;</h2></div><div class="page foot"><p>Contact: <a href="mailto:laurent.fournier@cupfoundation.net">⊔Foundation</a>&nbsp;&nbsp;&nbsp;<i>SIREN:</i> 399 661 602 00025&nbsp;&nbsp;&nbsp;<i>Tel:</i> 06 19 29 14 85</p><p>&nbsp;</p></div><h1 class="header"><a class="header" href="http://cupfoundation.net">⊔</a></h1>'
+    return '<?xml version="1.0" encoding="utf8"?>\n<html>%s%s<meta charset="utf-8"/>%s</html>' % (favicon(), style(), o)
+
+def membership():
+    "_"
+    o = """<div class="page dd"><h1>Adhérez à l\'association <br/>dès 2014 !</h1>
+<p>L\'association <a href="http://eurofranc.fr">Eurofranc</a> soutient la mise en oeuvre d`un moyen de <b>paiement numérique citoyen</b></p>
+<p>dont la masse monétaire créée en €f est équitablement répartie sur <b>50 Millions</b> de personnes vivant en France.</p> 
+<p>Le premier versement prévu en <b>Janvier 2015</b>, atteindra un montant de <b>150€f/mois</b> fin 2015</p>
+<p>L\'association forme une <b>autorité indépendante</b> et auditable, chargée de la sécurité informatique</p>
+<p>Le montant de l\'adhésion est minimum de 10€ pour les personnes et de 100€ pour les organisations</p>
+<p>50%%<sup>2</sup> de l\'adhésion est converti en €f crédités sur un compte numérique de l'adhérant, utilisable dès 2015,<p>
+<p>le reste de est dévolu aux frais de fonctionnement de l\'association</p>
+<h1>⥥</h1>
+<p class="note">————————————</p>
+<p class="note"><sup>1</sup>Les comptes de l\'association sont visibles sur Internet</p>
+<p class="note"><sup>2</sup>Le bureau de l\'association peut décider par assemblée générale de modifier le taux de cette répartition, mais sans effet rétroactif</p>
+</div>
+<div class="page aa"><h1>2- Provisionnez</h1><p>Nous n\'utilisons que les virements <a href="http://fr.wikipedia.org/wiki/Single_Euro_Payments_Area">SEPA</a> (€)</p><p>Effectuez un virement<sup>1</sup> de la somme que vous désirez sur le compte bancaire:</p><p><b>CUP-FOUNDATION</b> <i>BIC</i>: CMCIFR2A <i>IBAN</i>: <b>FR76 1027 8022 3300 0202 8350 157</b> <i>ID</i>: <a class="id" href="dsds">IbankVBixRIm</a></p><p>N\'oubliez pas d\'indiquer en message l\'ID de votre compte à créditer</p><p>Ce compte sera provisioné sous moins de 24 heures</p><p>————</p><p>Aucune commission n\'est retenue, ni à l\'achat, ni à la vente</p><p>Les comptes ne sont pas rémunérés et jamais débiteurs</p>
+<h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> Vous pouvez aussi fournir un de vos ID à vos débiteurs pour régler directement sur ce compte.</p></div><div class="page bb"><h1>3- Echangez</h1><p>Tous les échanges sont possibles tant que le solde reste positif</p><p>Echangez entre vos comptes, sans limite</p><p>Echangez aussi avec des tiers qui possèdent un ID<sup>1</sup></p>
+<p>Consultez à tout moment vos soldes et opérations sur <a href="hh">Internet</a></p><p>————</p><p>Si vous désirez vous retirer, transmettez nous votre IBAN et créditez du solde l\'ID <a class="id" href="dsddd">IbankVBixRIm</a></p> <p>Le virement SEPA sera effectué sous 24 heures</p><h1>⥥</h1><p class="note">————————————</p><p class="note"><sup>1</sup> insitez vos contacts à créer leur propre ID. Nous ne faisons aucune publicité.</p></div>
+<div class="page cc"><h1>Une question ?</h1><h1>⥥</h1><p>Pas d\'hésitation, contactez nous !</p><p>————————</p><h2>&nbsp;</h2></div><div class="page foot"><p>Contact: <a href="mailto:laurent.fournier@cupfoundation.net">⊔Foundation</a>&nbsp;&nbsp;&nbsp;<i>SIREN:</i> 399 661 602 00025&nbsp;&nbsp;&nbsp;<i>Tel:</i> 06 19 29 14 85</p><p>&nbsp;</p></div><h1 class="header"><a class="header" href="http://eurofranc.fr"><img src="%s" width="100"/></a></h1>""" % get_image('www/logo.png')
     return '<?xml version="1.0" encoding="utf8"?>\n<html>%s%s<meta charset="utf-8"/>%s</html>' % (favicon(), style(), o)
 
 def favicon_ppc():
@@ -1123,7 +1145,7 @@ def favicon():
 
 def header():
     "_"
-    o = '<a href="./"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % (get_image('www/header.png'))
+    o = '<a href="./"><img title="Enfin un moyen de paiement numérique, simple, gratuit et sécurisé !" src="%s"/></a>\n' % get_image('www/header.png')
     return o + '<p class="alpha" title="still in security test phase!">Beta</p>'
 
 def header():
@@ -1968,7 +1990,8 @@ def application(environ, start_response):
             o = 'OK upload %s %s %s' % (arg, len(arg), l2)
         else: o += 'not valid args |%s| %s' % (arg, len(arg))
     else: # get
-        if re.match('[A-Za-z\d\-_]{12}$', base): o, mime = index(d, environ, base), 'text/html; charset=utf-8'
+        if base == '2015': o, mime = membership(), 'text/html; charset=utf-8'
+        elif re.match('[A-Za-z\d\-_]{12}$', base): o, mime = index(d, environ, base), 'text/html; charset=utf-8'
         elif re.match('\S{18}$', base):
             u = b64tob(bytes(base, 'ascii'))
             o, mime = find_trx(d, u + d['trx'][u]), 'text/html; charset=utf-8'
@@ -2655,18 +2678,38 @@ def randrange(order):
     cand = b2i(os.urandom(byts))
     return cand//2 if cand >= order else cand
 
+
+def list_mairies():
+    "_"
+    host = 'lannuaire.service-public.fr'
+    deps = ('ain', 'aisne', 'allier', 'hautes-alpes', 'alpes-de-haute-provence', 'alpes-maritimes', 'ardeche', 'ardennes', 'ariege', 'aube', 'aude', 'aveyron', 'bouches-du-rhone', 'calvados', 'cantal', 'charente', 'charente-maritime', 'cher', 'correze', 'corse-du-sud', 'haute-corse', 'cote-dor', 'cotes-darmor', 'creuse', 'dordogne', 'doubs', 'drome', 'eure', 'eure-et-loir', 'finistere', 'gard', 'haute-garonne', 'gers', 'gironde', 'herault', 'ile-et-vilaine', 'indre', 'indre-et-loire', 'isere', 'jura', 'landes', 'loir-et-cher', 'loire', 'haute-loire', 'loire-atlantique', 'loiret', 'lot', 'lot-et-garonne', 'lozere', 'maine-et-loire', 'manche', 'marne', 'haute-marne', 'mayenne', 'meurthe-et-moselle', 'meuse', 'morbihan', 'moselle', 'nievre', 'nord', 'oise', 'orne', 'pas-de-calais', 'puy-de-dome', 'pyrenees-atlantiques', 'hautes-pyrenees', 'pyrenees-orientales', 'bas-rhin', 'haut-rhin', 'rhone', 'haute-saone', 'saone-et-loire', 'sarthe', 'savoie', 'haute-savoie', 'paris', 'seine-maritime', 'seine-et-marne', 'yvelines', 'deux-sevres', 'somme', 'tarn', 'tarn-et-garonne', 'var', 'vaucluse', 'vendee', 'vienne', 'haute-vienne', 'vosges', 'yonne', 'territoire-de-belfort', 'essonne', 'hauts-de-seine', 'seine-saint-denis', 'val-de-marne', 'val-doise', 'mayotte', 'guadeloupe', 'guyane', 'martinique', 'reunion')
+    serv = '/navigation/'
+    co = http.client.HTTPConnection(host)
+    d = dbm.open('communes', 'c')
+    for x in deps:
+        print (x)
+        co.request('GET', serv + x + '-mairie.html')
+        raw = co.getresponse().read().decode('utf8')
+        for m in re.finditer( r'<li><a href="(../mairies/.+)">(.+)</a></li>', raw ):
+            co.request('GET', serv + m.group(1) )
+            raw2 = co.getresponse().read().decode('latin1')
+            if reg(re.search(r'<p class="valeur"><span class="value">(.+)Â \[ Ã  \]Â (.+)</span></p>', raw2)):
+                #print ('%s : %s@%s' % (m.group(2), reg.v.group(1), reg.v.group(2)))
+                d[m.group(2)] = '%s@%s' % (reg.v.group(1), reg.v.group(2))
+    d.close()
+
 if __name__ == '__main__':
     #print (b64toi(_R))
     #print (randrange(b64toi(_R)))
     #k = ecdsa()
     #k.generate()
     #print (k.pt.x, k.pt.y, k.privkey)
-    #sys.exit()
-
     #simulate2()
     #simul_table()
     #simulate()
     #get_proof(50)
+    #list_mairies()
+    #sys.exit()
 
     node = get_host() if os.path.isfile('keys') else 'cup'
     if len(sys.argv) == 1:
