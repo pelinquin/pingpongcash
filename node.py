@@ -31,6 +31,13 @@
 #    * Encryption with ECC use an idea of jackjack-jj on github
 #-----------------------------------------------------------------------------
 
+# Short todo list
+# - shift sha1 to sha256 in for signing
+# - Frontend for 'Maires' (add change password, user reset)
+# - Fix mairies list (380 errors)
+# - Finish eurofranc/2015 pages
+# - Prepare letter (both text and PDF) for Maires
+
 import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, random, getpass
 import PyQt4.QtGui # only for GUI
 
@@ -1186,7 +1193,7 @@ def footer(dg=''):
 def report(d, cm):
     "_"
     un = '<euro>&thinsp;€</euro>'
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="148">Réf.</th><th>Msg</th><th width="60">Débit</th><th width="60">Crédit</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="130">Réf.</th><th>Msg</th><th width="60">Débit</th><th width="60">Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -1201,7 +1208,7 @@ def report(d, cm):
                     one, t1, t2, bal = src, '<td></td>', '<td class="num" title="%s"><b><a href="/%s">%7.2f%s</a></b></td>' % (btob64(t), btob64(t), prc/100, un), bal+prc
                 typ = get_type(d, one)
                 desc = dt[t][13:-132].decode('utf8')
-                tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:], desc, t1, t2)))
+                tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s16.png' % typ), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:], desc, t1, t2)))
     size = len(tmp)
     for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (size-i) + x
     o += '<tr><th colspan="2">%s</th><th colspan="2"><b>Nouveau solde</b></th>' % datdecode(datencode())
@@ -1210,7 +1217,7 @@ def report(d, cm):
 
 def reportC(d, cm):
     "_"
-    o = '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="148">Réf.</th><th width="20"></th><th>Message</th></tr>'
+    o = '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="130">Réf.</th><th width="15"></th><th>Message</th></tr>'
     dt, root, dar, n , tmp = d['trx'], d['crt'][b'_'], None, 0, []
     for t in dt.keys():
         if len(t) == 13 and (dar==None or is_after(t[:4], dar)):
@@ -1220,7 +1227,7 @@ def reportC(d, cm):
                 dir = '⇐' if src == cm else '⇒'
                 typ = get_type(d, one)
                 desc = dt[t][10:-132].decode('utf8')
-                tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td><b class="biggreen">%s</b></td><td>%s</td></tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s32.png' % typ), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:], dir, desc)))
+                tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td><b class="green">%s</b></td><td>%s</td></tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s16.png' % typ), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:], dir, desc)))
     if len(tmp) == 0: return ''
     for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (len(tmp)-i) + x
     return o + '</table>\n'
@@ -1228,21 +1235,21 @@ def reportC(d, cm):
 def reportCRT(d, cm):
     "_"
     un = '<euro>&thinsp;€</euro>'
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Expire</th><th width="148">Réf.</th><th>Certificat</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Expire</th><th width="130">Réf.</th><th>Certificat</th></tr>'
     root, dar, n , tmp = dc[b'_'], None, 0, []
     for c in dc.keys():
         if len(c) > 1 and len(dc[c]) == 157 and cm == dc[c][4:13]:
             typ = get_type(d, c)
             year, hh = b2i(dc[c][13:15]), btob64(dc[c][15:25])
-            tmp.append((dc[c][:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s %s</td></tr>' % (datdecode(dc[c][:4]), btob64(c), btob64(c), get_image('www/%s32.png' % typ), btob64(c)[:4], btob64(c)[4:8], btob64(c)[8:], year, hh )))
+            tmp.append((dc[c][:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s %s</td></tr>' % (datdecode(dc[c][:4]), btob64(c), btob64(c), get_image('www/%s16.png' % typ), btob64(c)[:4], btob64(c)[4:8], btob64(c)[8:], year, hh )))
         elif len(c) > 1 and cm == root:
             if len(dc[c]) == 144:
                 typ = get_type(d, c)
                 dbt = b2i(dc[c][4:12])
-                tmp.append((dc[c][:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s%s</td></tr>' % (datdecode(dc[c][:4]), btob64(c), btob64(c), get_image('www/%s32.png' % typ), btob64(c)[:4], btob64(c)[4:8], btob64(c)[8:], dbt, un)))
+                tmp.append((dc[c][:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s%s</td></tr>' % (datdecode(dc[c][:4]), btob64(c), btob64(c), get_image('www/%s16.png' % typ), btob64(c)[:4], btob64(c)[4:8], btob64(c)[8:], dbt, un)))
             elif len(dc[c]) == 136:
                 typ = get_type(d, c)
-                tmp.append((dc[c][:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>MAIRIE</td></tr>' % (datdecode(dc[c][:4]), btob64(c), btob64(c), get_image('www/%s32.png' % typ), btob64(c)[:4], btob64(c)[4:8], btob64(c)[8:])))
+                tmp.append((dc[c][:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>MAIRIE</td></tr>' % (datdecode(dc[c][:4]), btob64(c), btob64(c), get_image('www/%s16.png' % typ), btob64(c)[:4], btob64(c)[4:8], btob64(c)[8:])))
     if len(tmp) == 0: return ''
     for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (len(tmp)-i) + x
     return o + '</table>\n'
@@ -1589,7 +1596,7 @@ def index(d, env, cm64='', prc=0):
             dt = debt(d, cm)
             typ = get_type(d, cm)
             alia = urllib.parse.unquote(t[0])
-            o1 += '<p><a href="./%s" title="%s"><img src="%s"/> %s</a></p>' % (t[1], t[1], get_image('www/%s32.png' % typ), alia)
+            o1 += '<p><a href="./%s" title="%s"><img src="%s"/> %s</a></p>' % (t[1], t[1], get_image('www/%s16.png' % typ), alia)
         o1 += '<p><form method="post"><input type="submit" name="rem" value="Effacer les cookies"/></form></p>\n'
     qrurl = 'http://eurofranc.fr' 
     cm = b64tob(bytes(cm64, 'ascii'))
@@ -1601,7 +1608,7 @@ def index(d, env, cm64='', prc=0):
         rpt1, bal1 = '', 0
         dt = debt(d, cm)
         typ = get_type(d, cm)
-        o += '<h1><br/><img src="%s"/> <b class="mono">%s</b><br/><b class="green">%s</b></h1>' % (get_image('www/%s32.png' % typ), cm64, alias)
+        o += '<h1><br/><img src="%s"/>&thinsp;<b class="mono">%s</b><br/><b class="green">%s</b></h1>' % (get_image('www/%s16.png' % typ), cm64, alias)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         #o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €f"%s/></form>' % v
@@ -1614,7 +1621,7 @@ def index(d, env, cm64='', prc=0):
             auto = btob64(d['crt'][cm][4:13]) if len(d['crt'][cm]) == 157 else btob64(d['crt']['_'])
             autb = d['crt'][cm][4:13] if len(d['crt'][cm]) == 157 else d['crt']['_']
             typc = get_type(d, autb)
-            o += '<p>Certifié: <a href="%s"><img src="%s"/>&nbsp;<b class="mono">%s</b></a></p>' % (auto, get_image('www/%s32.png' % typc), auto)   
+            o += '<p>Certifié: <a href="%s"><img src="%s"/>&nbsp;<b class="mono">%s</b></a></p>' % (auto, get_image('www/%s16.png' % typc), auto)   
         o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt + reportC(d, cm) + reportCRT(d, cm)
         da = btob64(cm) + ':%d' % prc if prc else ''
         #o += report_ig(d, cm)
@@ -1916,7 +1923,7 @@ def find_trx(d, r):
     if src in d['pub'] and dst in d['pub'] and src != dst and u in d['trx'] and k.verify(sig, msg):
         if blc(d, src, cry) + debt(d, src, cry) > b2i(prc):
             typs, typd = get_type(d, src), get_type(d, dst)
-            res = '<br/><b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><b>%7.2f%s</b></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message: <b>%s</b></p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user32.png'), btob64(src), btob64(src), get_image('www/user32.png'), btob64(dst), btob64(dst), m)
+            res = '<br/><b class="huge green" title="Transaction validée">✔</b><p><b>%s</b></p><p><big><big><b>%7.2f%s</b></big></big></p><p>De: <img src="%s"/> <a class="mono" href="/%s">%s</a></p><p>&nbsp;&nbsp;À: <img src="%s"/> <a class="mono" href="/?%s">%s</a></p><p>Message: <b>%s</b></p>' % (datdecode(dat), float(b2i(prc)/100), un, get_image('www/user16.png'), btob64(src), btob64(src), get_image('www/user16.png'), btob64(dst), btob64(dst), m)
     o += favicon() + style_html(False) + '<body><div class="bg"></div>' + header()
     atrt = btob64(d['crt'][b'_'])[:5] if b'_' in d['crt'] else 'None'
     return o + res + footer('Authority: %s' % (atrt) ) + '</body></html>\n'
@@ -2741,19 +2748,6 @@ def list_mairies():
                 d[commune] = '%s:%s:%s' % (email, typ, name)
     d.close()
 
-# 01
-# beard-geovreissiat -> geovreissiat
-# bereziat -> bereyziat
-# hostiaz -> hostias
-# saint-martin-du-frene -> saint-martin-du-fresne
-# 02     
-# bazoches-sur-vesles -> bazoches-sur-vesle
-# croix-fonsomme -> croix-fonsommes
-# fonsomme -> fonsommes
-# fresnes -> fresnes-sous-coucy
-# leschelle -> leschelles
-
-
 def normalize(s, x):
     import unicodedata
     s = s.replace('œ', 'oe')
@@ -2772,6 +2766,8 @@ def normalize(s, x):
             code = '972'
         elif x == 'reunion':
             code = '974'
+        elif x == 'mayotte':
+            code = '976'
         return '/%s/' % code + ''.join(c for c in unicodedata.normalize('NFD', reg.v.group(1)) if unicodedata.category(c) != 'Mn').lower().replace(' ','-').replace("'",'-')
 
 if __name__ == '__main__':
