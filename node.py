@@ -1007,6 +1007,18 @@ def message(node, rid, m=''):
         print('unknown recipient')
     db.close()
 
+def message2(node, sc, rid, m, pp):
+    "_"
+    db, k, dat = dbm.open('keys'), ecdsa(), datencode()
+    cry, src, res = b'C', b64tob(bytes(sc, 'ascii')), send(node, '?' + rid)
+    if res: 
+        prv, pub, dst = db[src][132:], db[src][:132], b64tob(bytes(res, 'ascii'))
+        k.privkey, msg = int(AES().decrypt(prv, hashlib.sha256(pp.encode('utf8')).digest())), datencode() + src + cry + dst + bytes(m, 'utf8')[:23]
+        print (send(node, '+' + btob64(msg + k.sign(msg)))) 
+    else:
+        print('unknown recipient')
+    db.close()
+
 def buy2(node, sc, rid, pc, cry, pp, mes=''):
     "gui call"
     prc, src, db, k, dat, cry = float(pc), b64tob(bytes(sc, 'ascii')), dbm.open('keys'), ecdsa(), datencode(), _cur[cry]
@@ -2397,12 +2409,21 @@ def gui_mairie():
         if vpw1 == vpw2: 
             add_local_id2(vpw1) 
             set('host', 'cup')
+            msg.showMessage('Merci de relancer ce programme, cette foi avec Internet connecté !')
+            sys.exit()
+        else:
+            msg.showMessage('Vos mots de passe sont différents !')
     def call_validate():
         msg.showMessage('Erreur!')
         msg.show()
     def call_request():
-        msg.showMessage('Votre demande a été envoyée. Elle sera traité par l\'autorité de certification', 'ee')
-        msg.show()
+        register('cup')
+        if len(wcom.text()) == 5:
+            message2('cup', cm, _root_id, wcom.text() + ' ' + wnam.text(), wpw1.text())
+            msg.showMessage('Votre demande a été envoyée. Consultez http://eurofranc/%s' %cm)
+            sys.exit()
+        else:
+            msg.showMessage('Erreur sur le code postal \'%s\' !' % wcom.text())
     app = PyQt4.QtGui.QApplication(sys.argv)
     w = PyQt4.QtGui.QWidget()
     vb = PyQt4.QtGui.QVBoxLayout()
@@ -2468,15 +2489,22 @@ def gui_mairie():
         for x in db.keys():
             if len(x) == 9:
                 cm = btob64(x)
+                db['user'] = cm
         db.close()
-        lpsw = PyQt4.QtGui.QLabel('Connectez vous à Internet\nDemande de certification\nde votre identifiant:', w)
+        lpsw = PyQt4.QtGui.QLabel('Vérifiez que cet ordinateur est bien connecté à Internet\nDemande de certification\nde votre identifiant:', w)
 
         f = PyQt4.QtGui.QFont('courier', 20)
         lacm = PyQt4.QtGui.QLabel(cm, w)
         lacm.setFont(f)   
 
-        wnam = PyQt4.QtGui.QLineEdit('Votre nom', w)
-        wcom = PyQt4.QtGui.QLineEdit('Le nom de votre commune', w)
+        wnam = PyQt4.QtGui.QLineEdit('Le nom de votre commune', w)
+        wcom = PyQt4.QtGui.QLineEdit('CodePostal', w)
+        wcom.setMaximumWidth(86)
+
+        lpw1 = PyQt4.QtGui.QLabel('Votre Mot de passe', w)
+        wpw1 = PyQt4.QtGui.QLineEdit(w)
+        wpw1.setEchoMode(PyQt4.QtGui.QLineEdit.Password)
+
         wcrt = PyQt4.QtGui.QPushButton('Envoyez la demande', w)
         wcrt.clicked.connect(call_request)
 
@@ -2490,15 +2518,18 @@ def gui_mairie():
 
         h1 = PyQt4.QtGui.QHBoxLayout()
         h1.addWidget(wnam)
+        h1.addWidget(wcom)
         vb.addLayout(h1)
-        h2 = PyQt4.QtGui.QHBoxLayout()
-        h2.addWidget(wcom)
-        vb.addLayout(h2)
         vb.addStretch(1)
 
         h3 = PyQt4.QtGui.QHBoxLayout()
-        h3.addWidget(wcrt)
+        h3.addWidget(lpw1)
+        h3.addWidget(wpw1)
         vb.addLayout(h3)
+
+        h4 = PyQt4.QtGui.QHBoxLayout()
+        h4.addWidget(wcrt)
+        vb.addLayout(h4)
 
     else:
         lpsw = PyQt4.QtGui.QLabel('Création de votre Identifiant Mairie\nutilisez un ordinateur dédié\nde préférence déconnecté d\'Internet\nvos clés seront dans le fichier \'keys\'\nne diffusez pas ce fichier', w)
@@ -2508,7 +2539,7 @@ def gui_mairie():
         lpw2 = PyQt4.QtGui.QLabel('Confirmez ce mot de passe:', w)
         wpw2 = PyQt4.QtGui.QLineEdit(w)
         wpw2.setEchoMode(PyQt4.QtGui.QLineEdit.Password)
-        wbpw = PyQt4.QtGui.QPushButton('Générer les clés localement', w)
+        wbpw = PyQt4.QtGui.QPushButton('Générer les clés', w)
         wbpw.clicked.connect(call_create)
 
         h0 = PyQt4.QtGui.QHBoxLayout()
@@ -2682,7 +2713,9 @@ def randrange(order):
 def list_mairies():
     "_"
     host = 'lannuaire.service-public.fr'
-    deps = ('ain', 'aisne', 'allier', 'hautes-alpes', 'alpes-de-haute-provence', 'alpes-maritimes', 'ardeche', 'ardennes', 'ariege', 'aube', 'aude', 'aveyron', 'bouches-du-rhone', 'calvados', 'cantal', 'charente', 'charente-maritime', 'cher', 'correze', 'corse-du-sud', 'haute-corse', 'cote-dor', 'cotes-darmor', 'creuse', 'dordogne', 'doubs', 'drome', 'eure', 'eure-et-loir', 'finistere', 'gard', 'haute-garonne', 'gers', 'gironde', 'herault', 'ile-et-vilaine', 'indre', 'indre-et-loire', 'isere', 'jura', 'landes', 'loir-et-cher', 'loire', 'haute-loire', 'loire-atlantique', 'loiret', 'lot', 'lot-et-garonne', 'lozere', 'maine-et-loire', 'manche', 'marne', 'haute-marne', 'mayenne', 'meurthe-et-moselle', 'meuse', 'morbihan', 'moselle', 'nievre', 'nord', 'oise', 'orne', 'pas-de-calais', 'puy-de-dome', 'pyrenees-atlantiques', 'hautes-pyrenees', 'pyrenees-orientales', 'bas-rhin', 'haut-rhin', 'rhone', 'haute-saone', 'saone-et-loire', 'sarthe', 'savoie', 'haute-savoie', 'paris', 'seine-maritime', 'seine-et-marne', 'yvelines', 'deux-sevres', 'somme', 'tarn', 'tarn-et-garonne', 'var', 'vaucluse', 'vendee', 'vienne', 'haute-vienne', 'vosges', 'yonne', 'territoire-de-belfort', 'essonne', 'hauts-de-seine', 'seine-saint-denis', 'val-de-marne', 'val-doise', 'mayotte', 'guadeloupe', 'guyane', 'martinique', 'reunion')
+    host2 = 'www.annuaire-des-mairies.com'
+    deps = ( 'ain', 'aisne', 'allier', 'hautes-alpes', 'alpes-de-haute-provence', 'alpes-maritimes', 'ardeche', 'ardennes', 'ariege', 'aube', 'aude', 'aveyron', 'bouches-du-rhone', 'calvados', 'cantal', 'charente', 'charente-maritime', 'cher', 'correze', 'corse-du-sud', 'haute-corse', 'cote-dor', 'cotes-darmor', 'creuse', 'dordogne', 'doubs', 'drome', 'eure', 'eure-et-loir', 'finistere', 'gard', 'haute-garonne', 'gers', 'gironde', 'herault', 'ile-et-vilaine', 'indre', 'indre-et-loire', 'isere', 'jura', 'landes', 'loir-et-cher', 'loire', 'haute-loire', 'loire-atlantique', 'loiret', 'lot', 'lot-et-garonne', 'lozere', 'maine-et-loire', 'manche', 'marne', 'haute-marne', 'mayenne', 'meurthe-et-moselle', 'meuse', 'morbihan', 'moselle', 'nievre', 'nord', 'oise', 'orne', 'pas-de-calais', 'puy-de-dome', 'pyrenees-atlantiques', 'hautes-pyrenees', 'pyrenees-orientales', 'bas-rhin', 'haut-rhin', 'rhone', 'haute-saone', 'saone-et-loire', 'sarthe', 'savoie', 'haute-savoie', 'paris', 'seine-maritime', 'seine-et-marne', 'yvelines', 'deux-sevres', 'somme', 'tarn', 'tarn-et-garonne', 'var', 'vaucluse', 'vendee', 'vienne', 'haute-vienne', 'vosges', 'yonne', 'territoire-de-belfort', 'essonne', 'hauts-de-seine', 'seine-saint-denis', 'val-de-marne', 'val-doise', 'mayotte', 'guadeloupe', 'guyane', 'martinique', 'reunion'
+)
     serv = '/navigation/'
     co = http.client.HTTPConnection(host)
     d = dbm.open('communes', 'c')
@@ -2694,9 +2727,52 @@ def list_mairies():
             co.request('GET', serv + m.group(1) )
             raw2 = co.getresponse().read().decode('latin1')
             if reg(re.search(r'<p class="valeur"><span class="value">(.+)Â \[ Ã  \]Â (.+)</span></p>', raw2)):
-                #print ('%s : %s@%s' % (m.group(2), reg.v.group(1), reg.v.group(2)))
-                d[m.group(2)] = '%s@%s' % (reg.v.group(1), reg.v.group(2))
+                commune, email = m.group(2), '%s@%s' % (reg.v.group(1), reg.v.group(2))
+                toto = normalize (commune, x)
+                co2 = http.client.HTTPConnection(host2)
+                print ('%s -> %s' % (commune, email))                
+                co2.request('GET', toto + '.html')
+                raw3 = co2.getresponse().read().decode('latin1')
+                if reg(re.search(r'Le maire de (.+) se nomme (Monsieur|Madame)(.+)\.', raw3)):
+                    typ, name = reg.v.group(2), reg.v.group(3)
+                else:
+                    typ, name =  'ERREUR', toto
+                    print ('%s -> %s:%s:%s' % (commune, email, typ, name))
+                d[commune] = '%s:%s:%s' % (email, typ, name)
     d.close()
+
+# 01
+# beard-geovreissiat -> geovreissiat
+# bereziat -> bereyziat
+# hostiaz -> hostias
+# saint-martin-du-frene -> saint-martin-du-fresne
+# 02     
+# bazoches-sur-vesles -> bazoches-sur-vesle
+# croix-fonsomme -> croix-fonsommes
+# fonsomme -> fonsommes
+# fresnes -> fresnes-sous-coucy
+# leschelle -> leschelles
+
+
+def normalize(s, x):
+    import unicodedata
+    s = s.replace('œ', 'oe')
+    if reg(re.match(r'(.+) - (\d{4,5})', s)):
+        cp = reg.v.group(2) if len(reg.v.group(2)) == 5 else '0' + reg.v.group(2)
+        code = cp[:2]
+        if x == 'corse-du-sud': 
+            code = '2A'
+        elif x == 'haute-corse':
+            code = '2B'
+        elif x == 'guadeloupe':
+            code = '971'
+        elif x == 'guyane':
+            code = '973'
+        elif x == 'martinique':
+            code = '972'
+        elif x == 'reunion':
+            code = '974'
+        return '/%s/' % code + ''.join(c for c in unicodedata.normalize('NFD', reg.v.group(1)) if unicodedata.category(c) != 'Mn').lower().replace(' ','-').replace("'",'-')
 
 if __name__ == '__main__':
     #print (b64toi(_R))
