@@ -1119,7 +1119,7 @@ def is_active(cm):
 
 def style_html(bg=True):
     "_"
-    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier;font-weight:bold}a.name{margin:50}a{color:DodgerBlue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80}div.qr,a.qr{position:absolute;top:0;right:0;margin:15}p.note{font-size:9}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333}b.red{color:red}b.green{color:green}b.blue{color:blue}b.bigorange{font-size:32;color:#F87217}b.biggreen{font-size:32;color:green}b.huge{position:absolute;top:15;left:76;font-size:90;}#wrap{overflow:hidden}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:1;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:2pt}th{background-color:#DDD}td.num{font-size:12;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:25;margin:10 0 0 6}h2{color:#AAA;font-size:18;margin:5 0 0 30}svg{background-color:white}img.book{border:2px outset}text{font-size:18pt}body{margin:0}euro:after{font-size:60%;vertical-align:30%;content:"f";}'
+    o = '<style type="text/css">@import url(http://fonts.googleapis.com/css?family=Schoolbell);h1,h2,p,li,i,b,a,div,input,td,th,footer,svg{font-family:"Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, Verdana, sans-serif}a.mono,p.mono,td.mono,b.mono{font-family:"Lucida Concole",Courier}a.name{margin:50}a{color:blue;text-decoration:none}p.alpha{font-family:Schoolbell;color:#F87217;font-size:26pt;position:absolute;top:115;left:80}div.qr,a.qr{position:absolute;top:0;right:0;margin:15}p.note{font-size:9}p.msg{font-size:12;position:absolute;top:0;right:120;color:#F87217}p.stat{font-size:9;position:absolute;top:0;right:20;color:#999}input{font-size:28;margin:3}input.txt{width:200}input.digit{width:120;text-align:right}input.simu{width:120;text-align:right}input[type=checkbox]{width:50}input[type=submit]{color:white;background-color:#AAA;border:none;border-radius:8px;padding:3}p,li{margin:10;font-size:18;color:#333}b.red{color:red}b.green{color:green}b.blue{color:blue}b.bigorange{font-size:32;color:#F87217}b.biggreen{font-size:32;color:green}b.huge{position:absolute;top:15;left:76;font-size:90;}#wrap{overflow:hidden}a.ppc{font-weight:bold;font-size:.9em}a.ppc:after{font-weight:normal;content:"Cash"}#lcol{float:left;width:360;padding:4}#rcol{margin-left:368;padding:4}footer{bottom:0;color:#444;font-size:10;padding:4}table{margin:1;border:2px solid #999;border-collapse:collapse; background-color:white; opacity:.7}td,th{font-size:11pt;border:1px solid #666;padding:2pt}th{background-color:#DDD}td.num{font-size:12;text-align:right}#c1{float:left;width:23%;padding:1%}#c2{float:left;width:23%;padding:1%}#c3{float:left;width:23%;padding:1%}#c4{float:left;width:23%;padding:1%}h1{color:#888;font-size:25;margin:10 0 0 6}h2{color:#AAA;font-size:18;margin:5 0 0 30}svg{background-color:white}img.book{border:2px outset}text{font-size:18pt}body{margin:0}euro:after{font-size:60%;vertical-align:30%;content:"f";}'
     if bg:
         o += 'body{color:black;background-color:white;background-image:url(http://cupfoundation.net/fond.png);background-repeat:no-repeat}' 
     return o + '</style>'
@@ -1193,7 +1193,7 @@ def footer(dg=''):
 def report(d, cm):
     "_"
     un = '<euro>&thinsp;€</euro>'
-    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="30"></th><th width="82">Date</th><th width="130">Réf.</th><th>Msg</th><th width="60">Débit</th><th width="60">Crédit</th></tr>'
+    du, dt, dc, bal, o = d['pub'], d['trx'], d['crt'], 0, '<table width="100%"><tr><th width="10"></th><th width="82">Date</th><th width="130">Réf.</th><th>Msg</th><th width="60">Débit</th><th width="60">Crédit</th></tr>'
     z, root, dar, n , tmp = b'%'+cm, dc[b'_'], None, 0, []
     if z in dc: 
         dar, bal = dc[z][:4], b2s(dc[z][4:8], 4)
@@ -1210,7 +1210,7 @@ def report(d, cm):
                 desc = dt[t][13:-132].decode('utf8')
                 tmp.append((t[:4], '<td class="num">%s</td><td><a class="mono" href="%s" title="%s"><img src="%s"/>&thinsp;%s&#8203;%s&#8203;%s</a></td><td>%s</td>%s%s</tr>' % (datdecode(t[:4]), btob64(one), btob64(one), get_image('www/%s16.png' % typ), btob64(one)[:4], btob64(one)[4:8], btob64(one)[8:], desc, t1, t2)))
     size = len(tmp)
-    for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%04d</b></td>' % (size-i) + x
+    for i, (d, x) in enumerate(sorted(tmp, reverse=True)): o += '<tr><td class="num"><b>%d</b></td>' % (size-i) + x
     o += '<tr><th colspan="2">%s</th><th colspan="2"><b>Nouveau solde</b></th>' % datdecode(datencode())
     o += '<th></th><th class="num"><b>%7.2f%s</b></th></tr>' % (-bal/100, un) if bal<0 else '<th class="num"><b>%7.2f%s</b></th><th></th></tr>' % (bal/100, un)
     return o + '</table>\n', bal
@@ -1608,7 +1608,7 @@ def index(d, env, cm64='', prc=0):
         rpt1, bal1 = '', 0
         dt = debt(d, cm)
         typ = get_type(d, cm)
-        o += '<h1><br/><img src="%s"/>&thinsp;<b class="mono">%s</b><br/><b class="green">%s</b></h1>' % (get_image('www/%s16.png' % typ), cm64, alias)
+        o += '<h1><br/><img src="%s"/>&thinsp;<b class="mono">%s</b><br/><b class="green">%s</b></h1>' % (get_image('www/%s32.png' % typ), cm64, alias)
         v = ' value="%7.2f€"' % (prc/100) if prc else '' 
         o += '<form method="post"><input type="hidden" name="cm" value="%s"/>' % cm64
         #o += '<input class="digit" name="prc" pattern="[0-9]{1,4}([\.\,][0-9]{2}|)\s*€?" placeholder="---,-- €f"%s/></form>' % v
@@ -1616,13 +1616,13 @@ def index(d, env, cm64='', prc=0):
         dbt = debt(d, cm)
         if dbt: o += '<h1>Dette:&nbsp;<b class="green">%9d%s</b></h1>' % (dbt, un)   
         if cm in d['crt']:
-            if len(d['crt'][cm]) == 157: o += '<p>Année de naissance:&nbsp;<b class="green">%s</b></p>' % b2i(d['crt'][cm][13:15])   
-            o += '<p>Expire:&nbsp;<b class="green">%s</b><p>' % datdecode(d['crt'][cm][:4])
+            if len(d['crt'][cm]) == 157: o += '<p>Naissance:&nbsp;<b class="green">%s</b></p>' % b2i(d['crt'][cm][13:15])   
+            o += '<p>Expire:&nbsp;<b class="green">%s</b><p>' % datdecode(d['crt'][cm][:4])[:-6]
             auto = btob64(d['crt'][cm][4:13]) if len(d['crt'][cm]) == 157 else btob64(d['crt']['_'])
             autb = d['crt'][cm][4:13] if len(d['crt'][cm]) == 157 else d['crt']['_']
             typc = get_type(d, autb)
-            o += '<p>Certifié: <a href="%s"><img src="%s"/>&nbsp;<b class="mono">%s</b></a></p>' % (auto, get_image('www/%s16.png' % typc), auto)   
-        o += '<h1><img src="%s"/><big><big><b class="green">%7.2f%s</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100, un) + rpt + reportC(d, cm) + reportCRT(d, cm)
+            o += '<p>Certifié: <a href="%s" class="mono"><img src="%s"/>&thinsp;%s</a></p>' % (auto, get_image('www/%s16.png' % typc), auto)   
+        o += '<h1><img src="%s"/><big><big><b class="green">%7.2f</b></big></big></h1>' % (get_image('www/balance32.png'), bal/100) + rpt + reportC(d, cm) + reportCRT(d, cm)
         da = btob64(cm) + ':%d' % prc if prc else ''
         #o += report_ig(d, cm)
         #o += '<p class="note">Découvrez notre <a href="?bank">iBanque</a> pour mieux profiter de ce moyen de paiement</p>'
@@ -2716,59 +2716,56 @@ def randrange(order):
     cand = b2i(os.urandom(byts))
     return cand//2 if cand >= order else cand
 
-
 def list_mairies():
     "_"
-    host = 'lannuaire.service-public.fr'
-    host2 = 'www.annuaire-des-mairies.com'
-    deps = ( 'ain', 'aisne', 'allier', 'hautes-alpes', 'alpes-de-haute-provence', 'alpes-maritimes', 'ardeche', 'ardennes', 'ariege', 'aube', 'aude', 'aveyron', 'bouches-du-rhone', 'calvados', 'cantal', 'charente', 'charente-maritime', 'cher', 'correze', 'corse-du-sud', 'haute-corse', 'cote-dor', 'cotes-darmor', 'creuse', 'dordogne', 'doubs', 'drome', 'eure', 'eure-et-loir', 'finistere', 'gard', 'haute-garonne', 'gers', 'gironde', 'herault', 'ile-et-vilaine', 'indre', 'indre-et-loire', 'isere', 'jura', 'landes', 'loir-et-cher', 'loire', 'haute-loire', 'loire-atlantique', 'loiret', 'lot', 'lot-et-garonne', 'lozere', 'maine-et-loire', 'manche', 'marne', 'haute-marne', 'mayenne', 'meurthe-et-moselle', 'meuse', 'morbihan', 'moselle', 'nievre', 'nord', 'oise', 'orne', 'pas-de-calais', 'puy-de-dome', 'pyrenees-atlantiques', 'hautes-pyrenees', 'pyrenees-orientales', 'bas-rhin', 'haut-rhin', 'rhone', 'haute-saone', 'saone-et-loire', 'sarthe', 'savoie', 'haute-savoie', 'paris', 'seine-maritime', 'seine-et-marne', 'yvelines', 'deux-sevres', 'somme', 'tarn', 'tarn-et-garonne', 'var', 'vaucluse', 'vendee', 'vienne', 'haute-vienne', 'vosges', 'yonne', 'territoire-de-belfort', 'essonne', 'hauts-de-seine', 'seine-saint-denis', 'val-de-marne', 'val-doise', 'mayotte', 'guadeloupe', 'guyane', 'martinique', 'reunion'
-)
-    serv = '/navigation/'
-    co = http.client.HTTPConnection(host)
-    d = dbm.open('communes', 'c')
-    for x in deps:
-        print (x)
-        co.request('GET', serv + x + '-mairie.html')
-        raw = co.getresponse().read().decode('utf8')
-        for m in re.finditer( r'<li><a href="(../mairies/.+)">(.+)</a></li>', raw ):
-            co.request('GET', serv + m.group(1) )
-            raw2 = co.getresponse().read().decode('latin1')
-            if reg(re.search(r'<p class="valeur"><span class="value">(.+)Â \[ Ã  \]Â (.+)</span></p>', raw2)):
-                commune, email = m.group(2), '%s@%s' % (reg.v.group(1), reg.v.group(2))
-                toto = normalize (commune, x)
-                co2 = http.client.HTTPConnection(host2)
-                print ('%s -> %s' % (commune, email))                
-                co2.request('GET', toto + '.html')
-                raw3 = co2.getresponse().read().decode('latin1')
-                if reg(re.search(r'Le maire de (.+) se nomme (Monsieur|Madame)(.+)\.', raw3)):
-                    typ, name = reg.v.group(2), reg.v.group(3)
-                else:
-                    typ, name =  'ERREUR', toto
-                    print ('%s -> %s:%s:%s' % (commune, email, typ, name))
-                d[commune] = '%s:%s:%s' % (email, typ, name)
+    host1, host2, serv1, serv2 = 'elections.interieur.gouv.fr', 'lannuaire.service-public.fr', '/MN2014/', '/navigation/'
+    dep = {
+        1:('ain', 458), 2:('aisne', 835), 3:('allier', 322), 4:('hautes-alpes', 246), 5:('alpes-de-haute-provence', 185), 6:('alpes-maritimes', 164), 7:('ardeche', 348), 8:('ardennes', 503), 9:('ariege', 343), 10:('aube', 446), 11:('aude', 442), 12:('aveyron', 308), 13:('bouches-du-rhone', 120), 14:('calvados', 765), 15:('cantal', 270), 16:('charente', 426), 17:('charente-maritime', 485), 18:('cher', 291), 19:('correze', 291), '2A':('corse-du-sud', 364), '2B':('haute-corse', 367), 21:('cote-d-or', 718), 22:('cotes-d-armor', 392), 23:('creuse', 264), 24:('dordogne', 588), 25:('doubs', 636), 26:('drome', 383), 27:('eure', 702), 28:('eure-et-loir', 427), 29:('finistere', 303), 30:('gard', 457), 31:('haute-garonne', 594), 32:('gers', 469), 33:('gironde', 556), 34:('herault', 344), 35:('ile-et-vilaine', 364), 36:('indre', 249), 37:('indre-et-loire', 283), 38:('isere', 568), 39:('jura', 587), 40:('landes', 335), 41:('loir-et-cher', 298), 42:('loire', 340), 43:('haute-loire', 269), 44:('loire-atlantique', 224), 45:('loiret', 349), 46:('lot', 341), 47:('lot-et-garonne', 329), 48:('lozere', 199), 49:('maine-et-loire', 382), 50:('manche', 649), 51:('marne', 664), 52:('haute-marne', 551), 53:('mayenne', 277), 54:('meurthe-et-moselle', 603), 55:('meuse', 587), 56:('morbihan', 265), 57:('moselle', 768), 58:('nievre', 314), 59:('nord', 671), 60:('oise', 703), 61:('orne', 514), 62:('pas-de-calais', 990), 63:('puy-de-dome', 474), 64:('pyrenees-atlantiques', 561), 65:('hautes-pyrenees', 483), 66:('pyrenees-orientales', 234), 67:('bas-rhin', 561), 68:('haut-rhin', 387), 69:('rhone', 300), 70:('haute-saone', 584), 71:('saone-et-loire', 592), 72:('sarthe', 387), 73:('savoie', 331), 74:('haute-savoie', 316), 75:('paris', 57), 76:('seine-maritime', 760), 77:('seine-et-marne', 535), 78:('yvelines', 689), 79:('deux-sevres', 358), 80:('somme', 837), 81:('tarn', 327), 82:('tarn-et-garonne', 196), 83:('var', 155), 84:('vaucluse', 152), 85:('vendee', 307), 86:('vienne', 301), 87:('haute-vienne', 207), 88:('vosges', 533), 89:('yonne', 487), 90:('territoire-de-belfort', 106), 91:('essonne', 692), 92:('hauts-de-seine', 79), 93:('seine-saint-denis', 80), 94:('val-de-marne', 82), 95:('val-d-oise', 691), 972:('mayotte', 235), 973:('guadeloupe', 363), 974:('guyane', 100), 975:('martinique', 100), 976:('reunion', 100)} 
+    co1, co2 = http.client.HTTPConnection(host1), http.client.HTTPConnection(host2)
+    d = dbm.open('communes1', 'c')
+    for x in dep:
+        M, MA = dep[x][1], 0
+        co2.request('GET', serv2 + dep[x][0] + '-mairie.html')
+        rlist = co2.getresponse().read().decode('utf8')
+        for c in range(1, M):
+            code = '%03d' % x if x not in ('2A', '2B') else '0' + x
+            co1.request('GET', serv1 + '%s/%s%03d.html' % ( code, code, c))
+            juste, apres = False, False
+            maxelec = 0
+            commune, maire, iscand, candidat, email = None, None, False, None, None
+            for l in co1.getresponse().readlines():
+                ll = l.decode('latin1')
+                if reg(re.match(r'\s{4}(\S+)</h3>', ll)):
+                    commune = reg.v.group(1)
+                    if reg(re.search(r'<li><a href="(../mairies/.+)">\s*%s\s* - \d+</a></li>' % commune, rlist)):
+                        co2.request('GET', serv2 + reg.v.group(1) )
+                        raw2 = co2.getresponse().read().decode('latin1')
+                        if reg(re.search(r'<p class="valeur"><span class="value">(.+)Â \[ Ã  \]Â (.+)</span></p>', raw2)):
+                            email = '%s@%s' % (reg.v.group(1), reg.v.group(2))
+                    #co2.request('GET', serv2 + commune )
+                    #raw2 = co2.getresponse().read().decode('latin1')
+                    if c > MA: MA = c
+                elif re.search('<h3>Résultats du 2<sup>d</sup> tour</h3>', ll):
+                    maire = '2 tours'
+                elif apres and reg(re.search('<td>((Mme|M.) ([^<]+))</td>', ll)):
+                    maire, apres = reg.v.group(1), False
+                elif re.search('<h4>Résultats du 2<sup>d</sup> tour</h4>', ll):
+                    apres = True
+                elif candidat and reg(re.match('<td>(\d+)</td>', ll)):
+                    res = int(reg.v.group(1))
+                    if res > maxelec: maxelec, maire = res, candidat 
+                    iscand = False
+                elif reg(re.search('<td><a href="[^"]+">((Mme|M.) (.+)) \([^\)]+\)</a></td>', ll)):
+                    candidat, iscand = reg.v.group(1), True
+                elif re.match('<h4>Résultats du 1', ll):
+                    juste = True
+                elif juste and reg(re.match('<td>(.+)</td>', ll)):
+                    maire, juste = reg.v.group(1), False
+            if commune:
+                print (code, '%03d' % c, commune,':', maire, ':', email)
+                d['%s %s' % (code, commune)] = '%s:%s' % (email, maire)
+        #print (x, MA+1)
     d.close()
-
-def normalize(s, x):
-    import unicodedata
-    s = s.replace('œ', 'oe')
-    if reg(re.match(r'(.+) - (\d{4,5})', s)):
-        cp = reg.v.group(2) if len(reg.v.group(2)) == 5 else '0' + reg.v.group(2)
-        code = cp[:2]
-        if x == 'corse-du-sud': 
-            code = '2A'
-        elif x == 'haute-corse':
-            code = '2B'
-        elif x == 'guadeloupe':
-            code = '971'
-        elif x == 'guyane':
-            code = '973'
-        elif x == 'martinique':
-            code = '972'
-        elif x == 'reunion':
-            code = '974'
-        elif x == 'mayotte':
-            code = '976'
-        return '/%s/' % code + ''.join(c for c in unicodedata.normalize('NFD', reg.v.group(1)) if unicodedata.category(c) != 'Mn').lower().replace(' ','-').replace("'",'-')
 
 if __name__ == '__main__':
     #print (b64toi(_R))
