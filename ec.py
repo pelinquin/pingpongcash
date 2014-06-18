@@ -21,7 +21,7 @@ def b64toi(c):
 
 def H(*tab):
     "hash"
-    return int(hashlib.sha1(b''.join(tab)).hexdigest(), 16)
+    return int(hashlib.sha256(b''.join(tab)).hexdigest(), 16)
 
 def random_b64():
     "20 chars url safe"
@@ -153,6 +153,7 @@ if __name__ == '__main__':
     k = ecdsa()
     k.generate()
     msg = b'Hello World!'
+    print (b2i(k.sign(msg)))
     assert k.verify(k.sign(msg), msg) and msg == k.decrypt(k.encrypt(msg))
 
 # End ⊔net!
