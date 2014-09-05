@@ -142,20 +142,20 @@ class ecdsa:
     def verify(self, sig, data):
         r, s, G, n = b2i(sig[:66]), b2i(sig[66:]), self.pkgenerator, self.pkorder
         if r < 1 or r > n-1 or s < 1 or s > n-1: return False
-        c = self.inverse_mod(s, n)
+        c = inverse_mod(s, n)
         u1, u2 = (H(data) * c) % n, (r * c) % n
         z = u1 * G + u2 * self.pt
         return z.x % n == r
 
-    def inverse_mod(self, a, m):
-        if a < 0 or m <= a: a = a % m
-        c, d = a, m
-        uc, vc, ud, vd = 1, 0, 0, 1
-        while c != 0:
-            q, c, d = divmod(d, c) + (c,)
-            uc, vc, ud, vd = ud - q*uc, vd - q*vc, uc, vc
-        if ud > 0: return ud
-        else: return ud + m
+def inverse_mod(a, m):
+    if a < 0 or m <= a: a = a % m
+    c, d = a, m
+    uc, vc, ud, vd = 1, 0, 0, 1
+    while c != 0:
+        q, c, d = divmod(d, c) + (c,)
+        uc, vc, ud, vd = ud - q*uc, vd - q*vc, uc, vc
+    if ud > 0: return ud
+    else: return ud + m
 
 ##### API #####
 
