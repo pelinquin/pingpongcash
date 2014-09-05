@@ -147,7 +147,7 @@ class ecdsa:
         z = u1 * G + u2 * self.pt
         return z.x % n == r
 
-    def inverse_mod(a, m):
+    def inverse_mod(self, a, m):
         if a < 0 or m <= a: a = a % m
         c, d = a, m
         uc, vc, ud, vd = 1, 0, 0, 1
