@@ -197,7 +197,7 @@ def init_dbs(dbs, port):
 def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname, port = 'text/plain; charset=utf8', 'error', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
-    d = init_dbs(('prs', 'trx', 'pub', 'crt'), port)
+    d = init_dbs(('prs', 'trx', 'pub', 'crt', 'pbk', 'txn'), port)
     d['crt'][b'_'] = b64tob(bytes(_root_id, 'ascii'))
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base, ncok = environ['PATH_INFO'][1:], []
@@ -205,37 +205,36 @@ def application(environ, start_response):
         arg = urllib.parse.unquote_plus(raw.decode('utf8'))
         if re.match('(cm=(\S{1,12})&)prc=([\d\.\,]{1,7})\s*€?$', arg): o  = 'Hello post'
     else: # get
-        s = raw # use directory or argument
+        s = raw # use directory or arygument
         if s == '': o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez vous en excuser\nPour toute question: contact@eurofranc.fr %s'
         else:
             r = b64tob(bytes(s, 'ascii'))            
-            if re.match('\S{4}$', s): o = 'ICI'
-            elif re.match('\S{12}$', s) and r in d['pub']: # get balance
+            if re.match('\S{12}$', s) and r in d['pbk']: # get balance
                 o = '%d' % blc(d, r)
             elif re.match('\S{20}$', s): # check transaction (short)
                 u, dat, src, val = r[:13], r[:4], r[4:13], r[:-2]
-                if u in d['trx'] and d['trx'][9:11] == val: 
+                if u in d['txn'] and d['txn'][9:11] == val: 
                     o = 'valid'
             elif re.match('\S{32}$', s): # check transaction (long)
                 u, dst, val = r[:13], r[13:22], r[:-2]
-                if u in d['trx'] and d['trx'][:9] == dst and d['trx'][9:11] == val: 
+                if u in d['txn'] and d['txn'][:9] == dst and d['txn'][9:11] == val: 
                     o = 'valid'
             elif re.match('\S{176}$', s): # register publickey
-                pub, src, v = r, r[-9:], r[:-9]
-                if src in d['pub']: 
+                pbk, src, v = r, r[-9:], r[:-9]
+                if src in d['pbk']: 
                     o = 'old'
                 else: 
-                    d['pub'][src], o = v, 'new'
+                    d['pbk'][src], o = v, 'new'
             elif re.match('\S{208}$', s): # add transaction
                 u, v, src, dst, val, msg, sig, k = r[:13], r[13:-132], r[4:13], r[13:22], r[22:24], r[:-132], r[-132:], ecdsa()
-                if src in d['pub']:
-                    k.pt = Point(c521, b2i(d['pub'][src][:66]), b2i(d['pub'][src][66:]+src))
-                    #if dst in d['pub'] and src != dst: 
+                if src in d['pbk']:
+                    k.pt = Point(c521, b2i(d['pbk'][src][:66]), b2i(d['pbk'][src][66:]+src))
+                    #if dst in d['pbk'] and src != dst: 
                     if k.verify(sig, msg): 
-                        if u in d['trx']: 
+                        if u in d['txn']: 
                             o = 'old' 
                         else:
-                            d['trx'][u], o = v + sig, 'new'
+                            d['txn'][u], o = v + sig, 'new'
                     else:
                         o += ' signature!'
                 else:
