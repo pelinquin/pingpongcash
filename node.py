@@ -23,7 +23,7 @@
 #      code inspired from:
 #      Brian Warner  
 #    * The PyCrypt library is far too complex for our needs so we used a code 
-#      for AES inspired from:
+#      for AES (OFB) inspired from:
 #      Josh Davis ( http://www.josh-davis.org )
 #      Laurent Haan (http://www.progressive-coding.com)
 #    * QRcode is extented to PDF and SVG from the inspired code of:
@@ -100,6 +100,7 @@ def b64tob(c):
 
 def H(*tab):
     "hash"
+    #return b2i(hashlib.sha256(b''.join(tab)).digest()) 
     return int(hashlib.sha256(b''.join(tab)).hexdigest(), 16) 
 
 def datencode(n=0):
@@ -195,6 +196,12 @@ class Point():
 
 INFINITY = Point(None, None, None)  
 
+def dispt(label, tg, raw):
+    sr = b''.join([i2b(i,4) for i in raw])
+    rr = sum([(b2i(sr[4*i:4*(i+1)]) & 0xFFFFFFF)<<(i*28) for i in range(19)])
+    print ('Compare: %s ' % label, tg, rr)
+    return rr
+
 class ecdsa:
     def __init__(self):
         self.gen = Point(c521, b64toi(_GX), b64toi(_GY), b64toi(_R))
@@ -219,7 +226,13 @@ class ecdsa:
 
     def sign(self, data):
         rk, G, n = randrange(self.pkorder), self.pkgenerator, self.pkorder
+        #rk = 10
+        #n1 = [20472841,117141993,206024379,211519641,97532853,76509338,192924673,200472934,25593731,268435365,268435455,268435455,268435455,268435455,268435455,268435455,268435455,268435455,131071]
+        #sr = b''.join([i2b(i,4) for i in n1])
+        #rr = sum([(b2i(sr[4*i:4*(i+1)]) & 0xFFFFFFF)<<(i*28) for i in range(19)])
+        #print ('compare', n, rr)
         k = rk % n
+        #print ('k', k)
         p1 = k * G
         r = p1.x
         s = (inverse_mod(k, n) * (H(data) + (self.privkey * r) % n)) % n
@@ -264,11 +277,24 @@ def inverse_mod(a, m):
     if ud > 0: return ud
     else: return ud + m
 
+def randrange_old(order):
+    "_"
+    byts = (1+len('%x' % order))//2
+    #print (b2i(os.urandom(10)))
+    cand = b2i(os.urandom(byts))
+    return cand//2 if cand >= order else cand
+
 def randrange(order):
     "_"
     byts = (1+len('%x' % order))//2
     cand = b2i(os.urandom(byts))
-    return cand//2 if cand >= order else cand
+    #return b2i(bytes([i+1 for i in range(32)])) ############################################ TESTING !!!!!!!!!!!!!!!!
+    return b2i(bytes([1 for i in range(32)])) ############################################ TESTING !!!!!!!!!!!!!!!!
+    #return cand//2 if cand >= order else cand
+
+def randrangenull(order):
+    "_"
+    return b2i(bytes([0 for i in range(32)])) ############################################ TESTING !!!!!!!!!!!!!!!!
 
 ##### LOCAL AES-256 ##### (replace PyCrypto AES)
 _IV = b'ABCDEFGHIJKLMNOP'
@@ -1832,7 +1858,7 @@ def application(environ, start_response):
         elif re.match('\=\S{12}$', arg):
             u = b64tob(bytes(arg[1:], 'ascii'))
             o = '%s:%s:%s' % (blc(d, u)/100, blc(d, u, b'U'), debt(d, u))
-        elif re.match('@\S{174,176}$', arg): 
+        elif re.match('@\S{176}$', arg): # 2*66*4/3 
             if valid_pub(d, b64tob(bytes(arg[1:], 'ascii'))): o = 'New public key registered [%s]' % len(d['pub'])
             else: o += 'public key already registered!'
         elif re.match('\+\S{211,357}$', arg):
@@ -2524,13 +2550,6 @@ def gui():
     w.show()
     app.exec_()
 
-def randrange(order):
-    "_"
-    byts = (1+len('%x' % order))//2
-    #print (b2i(os.urandom(10)))
-    cand = b2i(os.urandom(byts))
-    return cand//2 if cand >= order else cand
-
 def list_mairies():
     "_"
     host1, host2, serv1, serv2 = 'elections.interieur.gouv.fr', 'lannuaire.service-public.fr', '/MN2014/', '/navigation/'
@@ -2583,18 +2602,75 @@ def list_mairies():
         #print (x, MA+1)
     d.close()
 
+def convert2bin1(t):
+    return sum([(t[i] & 0xFFFFFFF)<<(i*28) for i in range(18)]) + ((t[18] & 0xFFFFF)<<(18*28))
+
+def bin2expand1(myi):
+    return [ ((myi >> (i*28)) & 0xFFFFFFF) for i in range(19) ]
+
+def convert2bin(t):
+    "in:19 out:66"
+    r, o, j = [0]*66, False, 0
+    for i in range(19):
+        for k in range(7):
+            if o:
+                r[j] += ((t[i]>>(4*k)) & 0xF)<<4
+                j += 1
+            elif j<66:
+                r[j] = (t[i]>>(4*k)) & 0xF
+            o = not o
+    return b2i(bytes(r))
+
+def bin2expand(myi):
+    "in: 66: long integer x, y,...key on 66 bytes"
+    "out 19: tab[unsigned int] on 7 bits/byte length 18x4x7+1x4x6 = 528 = 8x66"
+    r, t, j, p = i2b(myi, 66), [0]*19, 0, 0
+    for i in range(66):
+        if p == 6:
+            p = 0
+            t[j] += (r[i]&0xF)<<24
+            j += 1
+        else:
+            t[j] += (r[i]&0xF)<<(4*p)
+            p += 1
+        if p == 6: 
+            p = 0
+            t[j] += ((r[i]>>4)&0xF)<<24
+            j += 1
+        else:
+            t[j] += ((r[i]>>4)&0xF)<<(4*p)
+            p += 1
+    return t
+
+def test_mac():
+    msg = bytes([i for i in range(100)])
+    ID = 'JaHlfjVi3Frn'
+    KEY3 =b'AE37KNxnyMiFCI7oYnTPENATZAYmbwKuRKEgSMYdVdmWn7TiP7AJZSaOGtXeiB7ljN2PKW50OiJUThlSAsbPlkpHAFsurZnP8EgDKlDEYzt7QU8mHgExb5bjQAR2EhOpq6ydeJViDUTrI4uJn6Q28i1s015-jpjI3aoaJaHlfjVi3FrnASkIoS9kjQ52jQ-RtYJ-XCSuB040C4s4hDbLZn3CAfSJFjLPWnm1mIr6Q0plR0Vo_ejVHN_A-ZyFrNCjTIlMSFua'
+    SIGN = b'AVUA5fKCp9FUZ-heM9Tq1bN4rkBkT5EIcyYo-zCbVPnApCr21ZUFJNAX6uT2gY3W7_8z16zEMtasbGlQ7CrJ3bi2Admj3XL-elc7QovlspoxjShHGHOhitc8jYeA7qA7dJGs4CvRAhZUi6Uo4xl5gdNB5fqttldWgmwieKFaVOveP34h'
+    ALLK = b'D5ZKRwUgLGwCVE4ZBudDogzdjykIge5YDhrV3gCWUmgE4j-wDZlp-wjGHVUEShIEBm8CrgE2QGIEzxDQCO6GJwjIhQgCjcZ8AABN-wLcWucOV-NWCholoQmMjdoDXn6ODyLWzQmfpDYOsji4BWINRArJ14kCE6mrBABHYQFvluMCYeATC3tBTwUMRjMASAMqCtmc_wAAWy4MSFuaCjTIlAyFrNAN_A-ZDejVHAR0Vo8KQ0plC1mIrwLPWnkPSJFjBn3CAQhDbLYEC4s4CuB04wJ-XCQA-RtYDQ52jQoS9kgAASkI'
+    k, z = ecdsa(), b64tob(ALLK)
+    k.generate()
+    r = [sum([(b2i(z[j*76:(j+1)*76][4*i:4*(i+1)]) & 0xFFFFFFF)<<(i*28) for i in range(19)]) for j in range(3)]
+    k.pt, k.privkey, = Point(c521, r[0], r[1]), r[2]
+    g = b64tob(KEY3)
+    assert i2b(r[0], 66) == g[:66]
+    assert i2b(r[1], 66) == g[66:132]
+    assert i2b(r[2], 66) == g[132:]
+    sid = btob64(g[123:132])
+    assert ID == sid
+    s1 = k.sign(msg)
+    s2 = b64tob(SIGN)
+    assert k.verify(s2, msg)
+
 if __name__ == '__main__':
-    #print (b64toi(_R))
-    #print (randrange(b64toi(_R)))
-    #k = ecdsa()
-    #k.generate()
-    #print (k.pt.x, k.pt.y, k.privkey)
     #simulate2()
     #simul_table()
     #simulate()
     #get_proof(50)
     #list_mairies()
+    #test_mac()
     #sys.exit()
+
     #import tweepy
 
     if len(sys.argv) > 1:
