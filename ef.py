@@ -176,10 +176,10 @@ def send_get(host='localhost', data=''):
 def blc(d, cm):
     "get balance"
     bal = 0
-    for t in d['trx'].keys(): 
+    for t in d['txn'].keys(): 
         if len(t) == 13:
-            if cm == d['trx'][t][:9]: bal += b2i(d['trx'][t][9:11]) 
-            if cm == t[4:]:           bal -= b2i(d['trx'][t][9:11]) 
+            if cm == d['txn'][t][:9]: bal += b2i(d['txn'][t][9:11]) 
+            if cm == t[4:]:           bal -= b2i(d['txn'][t][9:11]) 
     return bal
 
 def init_dbs(dbs, port):
@@ -250,6 +250,8 @@ def test():
     print (send_get('cup', btob64(b'h'*24)))
     print (send_get('cup', btob64(b'h'*132)))
     print (send_get('cup', btob64(b'h'*156)))
+
+    print (send_get('eurofranc.fr', 'SVahsR_yhTxl'))
 
 if __name__ == '__main__':
     test()
