@@ -206,7 +206,7 @@ def application(environ, start_response):
         if re.match('(cm=(\S{1,12})&)prc=([\d\.\,]{1,7})\s*€?$', arg): o  = 'Hello post'
     else: # get
         s = raw # use directory or arygument
-        if s == '': o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez vous en excuser\nPour toute question: contact@eurofranc.fr %s'
+        if s == '': o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez vous en excuser\nPour toute question: contact@eurofranc.fr'
         else:
             r = b64tob(bytes(s, 'ascii'))            
             if re.match('\S{12}$', s) and r in d['pbk']: # get balance
