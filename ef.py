@@ -159,9 +159,9 @@ def inverse_mod(a, m):
 
 ##### API #####
 
-def send(host='localhost', data=''):
+def send_post(host='localhost', data=''):
     "_"
-    co, serv = http.client.HTTPConnection(host), '/' 
+    co, serv = http.client.HTTPConnection(host), '/ef/' 
     co.request('POST', serv, urllib.parse.quote(data))
     return co.getresponse().read().decode('utf8')    
 
@@ -202,8 +202,38 @@ def application(environ, start_response):
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base, ncok = environ['PATH_INFO'][1:], []
     if way == 'post':
-        arg = urllib.parse.unquote_plus(raw.decode('utf8'))
-        if re.match('(cm=(\S{1,12})&)prc=([\d\.\,]{1,7})\s*€?$', arg): o  = 'Hello post'
+        s = urllib.parse.unquote_plus(raw.decode('utf8'))
+        r = b64tob(bytes(s, 'ascii'))            
+        if re.match('\S{12}$', s) and r in d['pbk']: # get balance
+            o = '%d' % blc(d, r)
+        elif re.match('\S{20}$', s): # check transaction (short)
+            u, dat, src, val = r[:13], r[:4], r[4:13], r[:-2]
+            if u in d['txn'] and d['txn'][9:11] == val: 
+                o = 'valid'
+        elif re.match('\S{32}$', s): # check transaction (long)
+            u, dst, val = r[:13], r[13:22], r[:-2]
+            if u in d['txn'] and d['txn'][:9] == dst and d['txn'][9:11] == val: 
+                o = 'valid'
+        elif re.match('\S{176}$', s): # register publickey
+            pbk, src, v = r, r[-9:], r[:-9]
+            if src in d['pbk']: 
+                o = 'old'
+            else: 
+                d['pbk'][src], o = v, 'new'
+        elif re.match('\S{208}$', s): # add transaction
+            u, v, src, dst, val, msg, sig, k = r[:13], r[13:-132], r[4:13], r[13:22], r[22:24], r[:-132], r[-132:], ecdsa()
+            if src in d['pbk']:
+                k.pt = Point(c521, b2i(d['pbk'][src][:66]), b2i(d['pbk'][src][66:]+src))
+                #if dst in d['pbk'] and src != dst: 
+                if k.verify(sig, msg): 
+                    if u in d['txn']: 
+                        o = 'old' 
+                    else:
+                        d['txn'][u], o = v + sig, 'new'
+                else:
+                    o += ' signature!'
+            else:
+                o += ' id!'
     else: # get
         s = raw # use directory or arygument
         if s == '': o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez vous en excuser\nPour toute question: contact@eurofranc.fr'
@@ -250,6 +280,13 @@ def test():
     print (send_get('cup', btob64(b'h'*24)))
     print (send_get('cup', btob64(b'h'*132)))
     print (send_get('cup', btob64(b'h'*156)))
+
+    print (send_post('cup', ''))
+    print (send_post('cup', btob64(b'h'*9)))
+    print (send_post('cup', btob64(b'h'*15)))
+    print (send_post('cup', btob64(b'h'*24)))
+    print (send_post('cup', btob64(b'h'*132)))
+    print (send_post('cup', btob64(b'h'*156)))
 
     print (send_get('eurofranc.fr', 'SVahsR_yhTxl'))
 
