@@ -207,11 +207,8 @@ def application(environ, start_response):
         #s = urllib.parse.unquote_plus(raw.decode('utf8'))
         s = raw.decode('ascii')
         r = b64tob(bytes(s, 'ascii'))            
-        if re.match('\S{12}$', s): 
-            if r in d['pbk']: # get balance
-                o = '%d' % blc(d, r)
-            else:
-                o += 'balance'
+        if re.match('\S{12}$', s) and r in d['pbk']: # get balance
+            o = '%d' % blc(d, r)
         elif re.match('\S{20}$', s): # check transaction (short)
             u, dat, src, val = r[:13], r[:4], r[4:13], r[:-2]
             if u in d['txn'] and d['txn'][9:11] == val: 
@@ -228,9 +225,8 @@ def application(environ, start_response):
                 d['pbk'][src], o = v, 'new'
         elif re.match('\S{208}$', s): # add transaction
             u, v, src, dst, val, msg, sig, k = r[:13], r[13:-132], r[4:13], r[13:22], r[22:24], r[:-132], r[-132:], ecdsa()
-            if src in d['pbk']:
+            if src in d['pbk'] and dst in d['pbk'] and src != dst:
                 k.pt = Point(c521, b2i(d['pbk'][src][:66]), b2i(d['pbk'][src][66:]+src))
-                #if dst in d['pbk'] and src != dst: 
                 if k.verify(sig, msg): 
                     if u in d['txn']: 
                         o = 'old' 
@@ -239,9 +235,7 @@ def application(environ, start_response):
                 else:
                     o += ' signature!'
             else:
-                o += ' id!'
-        else:
-            o += 'POST!'
+                o += ' ids!'
     else: # get
         s = raw # use directory or arygument
         if s == '': o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez vous en excuser\nPour toute question: contact@eurofranc.fr'
@@ -294,9 +288,14 @@ def test():
     print (send_post('cup', btob64(b'h'*15)))
     print (send_post('cup', btob64(b'h'*24)))
     print (send_post('cup', btob64(b'h'*132)))
+
     print (send_post('cup', btob64(b'h'*156)))
 
-    print (send_get('eurofranc.fr', 'SVahsR_yhTxl'))
+    id1 = '5eI6gg80GKtF'
+    id2 = '5eKgP0ah3mrv'
+    id3 = 'SVahsR_yhTxl'
+
+    print (send_get('eurofranc.fr', id3))
 
 if __name__ == '__main__':
     test()
