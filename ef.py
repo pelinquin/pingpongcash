@@ -234,7 +234,7 @@ def application(environ, start_response):
                     else:
                         b = blc(d, src)
                         if b + 10000 > val: # allows temporary 100 €f for testing !
-                            d['txn'][u], o = v + sig, '%d' (b-val)
+                            d['txn'][u], o = v + sig, 'new' #'%d' (b-val)
                         else:
                             o += ' balance!'
                 else:
