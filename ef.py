@@ -180,8 +180,9 @@ def blc(d, cm):
     bal = 0
     for t in d['txn'].keys(): 
         if len(t) == 13:
-            if cm == d['txn'][t][:9]: bal += b2i(d['txn'][t][9:11]) 
-            if cm == t[4:]:           bal -= b2i(d['txn'][t][9:11]) 
+            v = b2i(d['txn'][t][9:11])
+            if cm == d['txn'][t][:9]: bal += v 
+            if cm == t[4:]:           bal -= v
     return bal
 
 def init_dbs(dbs, port):
@@ -221,7 +222,7 @@ def application(environ, start_response):
             pbk, src, v = r, r[-9:], r[:-9]
             if src in d['pbk']: 
                 o = 'old'
-            else: 
+            else:
                 d['pbk'][src], o = v, 'new'
         elif re.match('\S{208}$', s): # add transaction
             u, v, src, dst, val, msg, sig, k = r[:13], r[13:-132], r[4:13], r[13:22], r[22:24], r[:-132], r[-132:], ecdsa()
@@ -231,7 +232,10 @@ def application(environ, start_response):
                     if u in d['txn']: 
                         o = 'old' 
                     else:
-                        d['txn'][u], o = v + sig, 'new'
+                        if blc(d, src) + 10000 > val: # allows temporary 100 €f
+                            d['txn'][u], o = v + sig, 'new'
+                        else:
+                            o += ' balance!'
                 else:
                     o += ' signature!'
             else:
