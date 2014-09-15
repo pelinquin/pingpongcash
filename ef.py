@@ -162,9 +162,7 @@ def inverse_mod(a, m):
 def send_post(host='localhost', data=''):
     "_"
     co, serv = http.client.HTTPConnection(host), '/ef/' 
-    #co.request('POST', serv, urllib.parse.quote(data))
     co.request('POST', serv, data)
-    #return co.getresponse().read().decode('utf8')    
     return co.getresponse().read().decode('ascii')    
 
 def send_get(host='localhost', data=''):
@@ -178,11 +176,10 @@ def send_get(host='localhost', data=''):
 def blc(d, cm):
     "get balance"
     bal = 0
-    for t in d['txn'].keys(): 
-        if len(t) == 13:
-            v = b2i(d['txn'][t][9:11])
-            if cm == d['txn'][t][:9]: bal += v 
-            if cm == t[4:]:           bal -= v
+    for t in [x for x in d['txn'].keys() if len(x) == 13]:
+        v = b2i(d['txn'][t][9:11])
+        if cm == d['txn'][t][:9]: bal += v 
+        if cm == t[4:]:           bal -= v
     return bal
 
 def init_dbs(dbs, port):
@@ -205,11 +202,20 @@ def application(environ, start_response):
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base, ncok = environ['PATH_INFO'][1:], []
     if way == 'post':
-        #s = urllib.parse.unquote_plus(raw.decode('utf8'))
         s = raw.decode('ascii')
         r = b64tob(bytes(s, 'ascii'))            
         if re.match('\S{12}$', s) and r in d['pbk']: # get balance
             o = '%d' % blc(d, r)
+        elif re.match('\S{16}$', s): # get last transaction
+            src, pos = r[:9], b2i(r[9:])
+            if src in d['pbk']:
+                if src in d['txn']:
+                    li = d['txn'][src].split(b':')
+                    if pos > 0 and pos < len(li):
+                        key = li[pos] + src if len(li[pos]) == 4 else li[pos] 
+                        o = btob64(i2b(len(li), 2) + key + d['txn'][key][:24]).decode('ascii') # len: 39->52
+                else:
+                    o = 'none'
         elif re.match('\S{20}$', s): # check transaction (short)
             u, dat, src, val = r[:13], r[:4], r[4:13], r[:-2]
             if u in d['txn'] and d['txn'][9:11] == val: 
@@ -225,7 +231,7 @@ def application(environ, start_response):
             else:
                 d['pbk'][src], o = v, 'new'
         elif re.match('\S{208}$', s): # add transaction
-            u, v, src, dst, val, msg, sig, k = r[:13], r[13:-132], r[4:13], r[13:22], r[22:24], r[:-132], r[-132:], ecdsa()
+            u, dat, v, src, dst, val, msg, sig, k = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], r[22:24], r[:-132], r[-132:], ecdsa()
             if src in d['pbk'] and dst in d['pbk'] and src != dst:
                 k.pt = Point(c521, b2i(d['pbk'][src][:66]), b2i(d['pbk'][src][66:]+src))
                 if k.verify(sig, msg): 
@@ -234,7 +240,10 @@ def application(environ, start_response):
                     else:
                         b = blc(d, src)
                         if b + 10000 > b2i(val): # allows temporary 100 €f for testing !
+                            sep = b':'
                             d['txn'][u], o = v + sig, 'new' #'%d' (b-b2i(val))
+                            d['txn'][src] = d['txn'][src] + sep + dat if src in d['txn'] else dat # shortcut
+                            d['txn'][dst] = d['txn'][dst] + sep + u if dst in d['txn'] else u  # shortcut
                         else:
                             o += ' balance!'
                 else:
@@ -243,7 +252,7 @@ def application(environ, start_response):
                 o += ' ids!'
     else: # get
         s = raw # use directory or arygument
-        if s == '': o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez vous en excuser\nPour toute question: contact@eurofranc.fr'
+        if s == '': o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez nous en excuser\nPour toute question: contact@eurofranc.fr'
         else:
             r = b64tob(bytes(s, 'ascii'))            
             if re.match('\S{12}$', s) and r in d['pbk']: # get balance
@@ -266,7 +275,6 @@ def application(environ, start_response):
                 u, v, src, dst, val, msg, sig, k = r[:13], r[13:-132], r[4:13], r[13:22], r[22:24], r[:-132], r[-132:], ecdsa()
                 if src in d['pbk']:
                     k.pt = Point(c521, b2i(d['pbk'][src][:66]), b2i(d['pbk'][src][66:]+src))
-                    #if dst in d['pbk'] and src != dst: 
                     if k.verify(sig, msg): 
                         if u in d['txn']: 
                             o = 'old' 
@@ -282,14 +290,8 @@ def application(environ, start_response):
 
 def test():
     print (send_get('cup', ''))
-    print (send_get('cup', btob64(b'h'*9)))
-    print (send_get('cup', btob64(b'h'*15)))
-    print (send_get('cup', btob64(b'h'*24)))
-    print (send_get('cup', btob64(b'h'*132)))
-    print (send_get('cup', btob64(b'h'*156)))
-
-    print (send_post('cup', ''))
     print (send_post('cup', btob64(b'h'*9)))
+    print (send_post('cup', btob64(b'h'*12)))
     print (send_post('cup', btob64(b'h'*15)))
     print (send_post('cup', btob64(b'h'*24)))
     print (send_post('cup', btob64(b'h'*132)))
@@ -304,7 +306,5 @@ def test():
 
 if __name__ == '__main__':
     test()
-    t = '100'
-    print (int(t))
 
 # End ⊔net!

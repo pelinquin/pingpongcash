@@ -2642,6 +2642,22 @@ def bin2expand(myi):
             p += 1
     return t
 
+def test():
+    msg = b'Hello'
+    print ('0x%x' % H(msg))
+    MSG=0x185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969
+    PRV=0x7518f204fe6846aeb6f58174d57a3372363c0d9fcfaa3dc18b1eff7e89bf7678636580d17dd84a873b14b9c0e1680bbdc87647f3c382902d2f58d2754b39bca874
+    PUB1=0x192bf36e66ce9a5796a2ec10d2c83e0e2651374131a89777e6f9753d96f4ca11580a1e55024797492b73475b4006a870b0acfc668e509afe5e19b981cece909ca64
+    PUB2=0x51fbb14d63e3ebdaf4e671dd811cb03a74a5f8f9b31e0200ed8979edf994a58c65d6c53603789db7acf814a2ea9b1c7a3c25b557f1dc44a01d34bdca25513ad451
+    R=0x12982250bba550e595907366c80efe5d698c2f3322852b317c272148b7a027ed197a2a7759edf3d1d1ff5671eeb78faad3111bc3c5a661dee6811471b3f7085cdf7
+    S=0x1e102b0e5ec0c616a817941a556628fe8c94e2e031380756e40a14707ebf984c85aef7625b25e719528cd10c081a16e00afc07ce57f7996599340d04b3d62149765
+    k = ecdsa()
+    k.pt, k.privkey, = Point(c521, PUB1, PUB2), PRV
+    assert k.verify(i2b(R, 66) + i2b(S, 66), msg)
+    pw = b'toto'
+    print ([x for x in i2b(H(pw),32)])
+
+
 def test_mac():
     msg = bytes([i for i in range(100)])
     ID = 'JaHlfjVi3Frn'
@@ -2651,7 +2667,7 @@ def test_mac():
     k, z = ecdsa(), b64tob(ALLK)
     k.generate()
     r = [sum([(b2i(z[j*76:(j+1)*76][4*i:4*(i+1)]) & 0xFFFFFFF)<<(i*28) for i in range(19)]) for j in range(3)]
-    k.pt, k.privkey, = Point(c521, r[0], r[1]), r[2]
+    k.pt, k.privkey = Point(c521, r[0], r[1]), r[2]
     g = b64tob(KEY3)
     assert i2b(r[0], 66) == g[:66]
     assert i2b(r[1], 66) == g[66:132]
@@ -2669,6 +2685,7 @@ if __name__ == '__main__':
     #get_proof(50)
     #list_mairies()
     #test_mac()
+    #test()
     #sys.exit()
 
     #import tweepy
