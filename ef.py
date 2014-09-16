@@ -147,7 +147,7 @@ class ecdsa:
         z = u1 * G + u2 * self.pt
         return z.x % n == r
 
-def inverse_mod(a, m):
+def inverse_mod1(a, m):
     if a < 0 or m <= a: a = a % m
     c, d = a, m
     uc, vc, ud, vd = 1, 0, 0, 1
@@ -156,6 +156,10 @@ def inverse_mod(a, m):
         uc, vc, ud, vd = ud - q*uc, vd - q*vc, uc, vc
     if ud > 0: return ud
     else: return ud + m
+
+def inverse_mod(a, m):
+    return pow(a, m-2, m)
+    
 
 ##### API #####
 
@@ -313,5 +317,10 @@ if __name__ == '__main__':
     k.privkey = 454086624460063511464984254936031011189294057512315937409637584344757371137
     s = b'AG-ytve_8p-xCFnL-u5iyg9hWPr-8zSj5Ruvu7Ki9XZdqDUzOCa_nq1c87efPEWaLxBs6o-B1mUJNEvb-2Rp4HYAAbxKVzub8ltEjGDi10ncGtrWUMZU41ziHgfsWdtRGZj48RwB-8hpKncK3BBhH7Jj-PErJXCKNEvWIQ0UuLLtlzpv'
     cProfile.run ("k.verify(b64tob(s), b'hello')")
+    #assert k.verify(b64tob(s), b'hello')
 
+    #print (inverse_mod(42, 2017))
+    #print (inverse_mod1(42, 2017))
+    #print (invmod(42,2017))
+    
 # End ⊔net!
