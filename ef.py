@@ -32,6 +32,7 @@
 #-----------------------------------------------------------------------------
 
 import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, getpass
+import gmpy2
 
 __digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:10]
 __app__    = os.path.basename(__file__)[:-3]
@@ -147,7 +148,7 @@ class ecdsa:
         z = u1 * G + u2 * self.pt
         return z.x % n == r
 
-def inverse_mod(a, m):
+def inverse_mod2(a, m):
     if a < 0 or m <= a: a = a % m
     c, d = a, m
     uc, vc, ud, vd = 1, 0, 0, 1
@@ -159,7 +160,9 @@ def inverse_mod(a, m):
 
 def inverse_mod1(a, m):
     return pow(a, m-2, m)
-    
+
+def inverse_mod(a, m):
+    return gmpy2.invert(a, m)
 
 ##### API #####
 
@@ -201,10 +204,9 @@ def init_dbs(dbs, port):
 def application(environ, start_response):
     "wsgi server app"
     mime, o, now, fname, port = 'text/plain; charset=utf8', 'error', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
-    d = init_dbs(('prs', 'trx', 'pub', 'crt', 'pbk', 'txn'), port)
-    d['crt'][b'_'] = b64tob(bytes(_root_id, 'ascii'))
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base, ncok = environ['PATH_INFO'][1:], []
+    d = init_dbs(('pbk', 'txn', 'blc'), port)
     if way == 'post':
         s = raw.decode('ascii')
         r = b64tob(bytes(s, 'ascii'))            
@@ -319,8 +321,8 @@ if __name__ == '__main__':
     cProfile.run ("k.verify(b64tob(s), b'hello')")
     #assert k.verify(b64tob(s), b'hello')
 
-    #print (inverse_mod(42, 2017))
-    #print (inverse_mod1(42, 2017))
-    #print (invmod(42,2017))
+    print (inverse_mod(42, 2017))
+    print (inverse_mod1(42, 2017))
+    print (gmpy2.invert(42,2017))
     
 # End ⊔net!
