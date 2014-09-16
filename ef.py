@@ -181,6 +181,7 @@ def send_get(host='localhost', data=''):
 
 def blc(d, cm):
     "get balance"
+    if cm in d['blc']: return int(d['blc'][cm])
     bal = 0
     for t in [x for x in d['txn'].keys() if len(x) == 13]:
         v = b2i(d['txn'][t][9:11])
@@ -249,7 +250,7 @@ def application(environ, start_response):
                             d['txn'][u], o = v + sig, 'new' #'%d' (b-val)
                             d['txn'][src] = d['txn'][src] + sep + dat if src in d['txn'] else dat # shortcut
                             d['txn'][dst] = d['txn'][dst] + sep + u if dst in d['txn'] else u  # shortcut
-                            d['blc'][src] = '%d' % ((int(d['blc'][src])-val) if src in d['blc'] else -val) # shortcut
+                            d['blc'][src] = '%d' % ((int(d['blc'][src])-val) if src in d['blc'] else (-val)) # shortcut
                             d['blc'][dst] = '%d' % ((int(d['blc'][dst])+val) if dst in d['blc'] else val)  # shortcut
                         else:
                             o += ' balance!'
