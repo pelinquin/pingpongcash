@@ -32,9 +32,8 @@
 #-----------------------------------------------------------------------------
 
 import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, getpass
-import gmpy2
+import gmpy2 # for inverse_mod fast computing
 
-__digest__ = base64.urlsafe_b64encode(hashlib.sha1(open(__file__, 'r', encoding='utf8').read().encode('utf8')).digest())[:10]
 __app__    = os.path.basename(__file__)[:-3]
 __dfprt__  = 80
 __base__   = '/%s/%s_%s/' % (__app__, __app__, __dfprt__)
@@ -237,7 +236,7 @@ def application(environ, start_response):
             else:
                 d['pbk'][src], o = v, 'new'
         elif re.match('\S{208}$', s): # add transaction
-            u, dat, v, src, dst, val, msg, sig, k = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], r[22:24], r[:-132], r[-132:], ecdsa()
+            u, dat, v, src, dst, val, msg, sig, k = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), r[:-132], r[-132:], ecdsa()
             if src in d['pbk'] and dst in d['pbk'] and src != dst:
                 k.pt = Point(c521, b2i(d['pbk'][src][:66]), b2i(d['pbk'][src][66:]+src))
                 if k.verify(sig, msg): 
@@ -245,11 +244,13 @@ def application(environ, start_response):
                         o = 'old' 
                     else:
                         b = blc(d, src)
-                        if b + 10000 > b2i(val): # allows temporary 100 €f for testing !
+                        if b + 10000 > val: # allows temporary 100 €f for testing !
                             sep = b':'
-                            d['txn'][u], o = v + sig, 'new' #'%d' (b-b2i(val))
+                            d['txn'][u], o = v + sig, 'new' #'%d' (b-val)
                             d['txn'][src] = d['txn'][src] + sep + dat if src in d['txn'] else dat # shortcut
                             d['txn'][dst] = d['txn'][dst] + sep + u if dst in d['txn'] else u  # shortcut
+                            d['blc'][src] = '%d' % ((int(d['blc'][src])-val) if src in d['blc'] else -val) # shortcut
+                            d['blc'][dst] = '%d' % ((int(d['blc'][dst])+val) if dst in d['blc'] else val)  # shortcut
                         else:
                             o += ' balance!'
                 else:
