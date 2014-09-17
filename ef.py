@@ -189,8 +189,8 @@ def update_blc(d):
     #for t in {x:b[x] for x in b if b[x] != int(d['blc'][x])}: 
     for x in b:
         if b[x] != int(d['blc'][x]): 
-            sys.stderr.write('Diff %d %s for %s\n' % (b[t], d['blc'][t], t))
-            d['blc'][t] = '%d' % b[t]
+            sys.stderr.write('Diff %d %s for %s\n' % (b[x], d['blc'][x], x))
+            d['blc'][x] = '%d' % b[x]
 
 def blc(d, cm):
     "get balance"
