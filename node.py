@@ -226,13 +226,7 @@ class ecdsa:
 
     def sign(self, data):
         rk, G, n = randrange(self.pkorder), self.pkgenerator, self.pkorder
-        #rk = 10
-        #n1 = [20472841,117141993,206024379,211519641,97532853,76509338,192924673,200472934,25593731,268435365,268435455,268435455,268435455,268435455,268435455,268435455,268435455,268435455,131071]
-        #sr = b''.join([i2b(i,4) for i in n1])
-        #rr = sum([(b2i(sr[4*i:4*(i+1)]) & 0xFFFFFFF)<<(i*28) for i in range(19)])
-        #print ('compare', n, rr)
         k = rk % n
-        #print ('k', k)
         p1 = k * G
         r = p1.x
         s = (inverse_mod(k, n) * (H(data) + (self.privkey * r) % n)) % n

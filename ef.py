@@ -185,14 +185,9 @@ def update_blc(d):
     for t in [x for x in d['txn'].keys() if len(x) == 13]:
         src, dst, v = t[4:], d['txn'][t][:9], b2i(d['txn'][t][9:11])
         b[src], b[dst] = b[src] - v if src in b else (-v), b[dst] + v if dst in b else v
-    sys.stderr.write('HASH %s\n' % b)
-    #for t in {x:b[x] for x in b if b[x] != int(d['blc'][x])}: 
     for x in b:
-        if x in d['blc']:
-            if b[x] != int(d['blc'][x]): 
-                sys.stderr.write('Diff %d %s for %s\n' % (b[x], d['blc'][x], x))
-                d['blc'][x] = '%d' % b[x]
-        else:
+        if x in d['blc'] and b[x] != int(d['blc'][x]): 
+            sys.stderr.write('Diff %d %s for %s\n' % (b[x], d['blc'][x], x))
             d['blc'][x] = '%d' % b[x]
 
 def blc(d, cm):
@@ -226,8 +221,7 @@ def application(environ, start_response):
     if way == 'post':
         s = raw.decode('ascii')
         r = b64tob(bytes(s, 'ascii'))            
-        if re.match('\S{12}$', s) and r in d['pbk']: # get balance
-            o = '%d' % blc(d, r)
+        if re.match('\S{12}$', s) and r in d['pbk']: o = '%d' % blc(d, r) # balance
         elif re.match('\S{16}$', s): # get last transaction
             src, pos = r[:9], b2i(r[9:])
             if src in d['pbk']:
@@ -236,16 +230,12 @@ def application(environ, start_response):
                     if pos > 0 and pos < len(li):
                         key = li[pos] + src if len(li[pos]) == 4 else li[pos] 
                         o = btob64(i2b(len(li), 2) + key + d['txn'][key][:24]).decode('ascii') # len: 39->52
-                else:
-                    o = 'none'
         elif re.match('\S{20}$', s): # check transaction (short)
             u, dat, src, val = r[:13], r[:4], r[4:13], r[:-2]
-            if u in d['txn'] and d['txn'][9:11] == val: 
-                o = 'valid'
+            if u in d['txn'] and d['txn'][9:11] == val: o = 'valid'
         elif re.match('\S{32}$', s): # check transaction (long)
             u, dst, val = r[:13], r[13:22], r[:-2]
-            if u in d['txn'] and d['txn'][:9] == dst and d['txn'][9:11] == val: 
-                o = 'valid'
+            if u in d['txn'] and d['txn'][:9] == dst and d['txn'][9:11] == val: o = 'valid'
         elif re.match('\S{176}$', s): # register publickey
             pbk, src, v = r, r[-9:], r[:-9]
             if src in d['pbk']: 
@@ -281,35 +271,7 @@ def application(environ, start_response):
             update_blc(d)
         else:
             r = b64tob(bytes(s, 'ascii'))            
-            if re.match('\S{12}$', s) and r in d['pbk']: # get balance
-                o = '%d' % blc(d, r)
-            elif re.match('\S{20}$', s): # check transaction (short)
-                u, dat, src, val = r[:13], r[:4], r[4:13], r[:-2]
-                if u in d['txn'] and d['txn'][9:11] == val: 
-                    o = 'valid'
-            elif re.match('\S{32}$', s): # check transaction (long)
-                u, dst, val = r[:13], r[13:22], r[:-2]
-                if u in d['txn'] and d['txn'][:9] == dst and d['txn'][9:11] == val: 
-                    o = 'valid'
-            elif re.match('\S{176}$', s): # register publickey
-                pbk, src, v = r, r[-9:], r[:-9]
-                if src in d['pbk']: 
-                    o = 'old'
-                else: 
-                    d['pbk'][src], o = v, 'new'
-            elif re.match('\S{208}$', s): # add transaction
-                u, v, src, dst, val, msg, sig, k = r[:13], r[13:-132], r[4:13], r[13:22], r[22:24], r[:-132], r[-132:], ecdsa()
-                if src in d['pbk']:
-                    k.pt = Point(c521, b2i(d['pbk'][src][:66]), b2i(d['pbk'][src][66:]+src))
-                    if k.verify(sig, msg): 
-                        if u in d['txn']: 
-                            o = 'old' 
-                        else:
-                            d['txn'][u], o = v + sig, 'new'
-                    else:
-                        o += ' signature!'
-                else:
-                    o += ' id!'
+            if re.match('\S{12}$', s) and r in d['pbk']: o = '%d' % blc(d, r)
     for db in d: d[db].close()
     start_response('200 OK', [('Content-type', mime)] + ncok)
     return [o if mime in ('application/pdf', 'image/png', 'image/jpg') else o.encode('utf8')] 
@@ -321,13 +283,9 @@ def test():
     print (send_post('cup', btob64(b'h'*15)))
     print (send_post('cup', btob64(b'h'*24)))
     print (send_post('cup', btob64(b'h'*132)))
-
     print (send_post('cup', btob64(b'h'*156)))
 
-    id1 = '5eI6gg80GKtF'
-    id2 = '5eKgP0ah3mrv'
     id3 = 'SVahsR_yhTxl'
-
     print (send_get('eurofranc.fr', id3))
 
 if __name__ == '__main__':
@@ -339,10 +297,6 @@ if __name__ == '__main__':
     k.privkey = 454086624460063511464984254936031011189294057512315937409637584344757371137
     s = b'AG-ytve_8p-xCFnL-u5iyg9hWPr-8zSj5Ruvu7Ki9XZdqDUzOCa_nq1c87efPEWaLxBs6o-B1mUJNEvb-2Rp4HYAAbxKVzub8ltEjGDi10ncGtrWUMZU41ziHgfsWdtRGZj48RwB-8hpKncK3BBhH7Jj-PErJXCKNEvWIQ0UuLLtlzpv'
     cProfile.run ("k.verify(b64tob(s), b'hello')")
-    #assert k.verify(b64tob(s), b'hello')
-
-    print (inverse_mod(42, 2017))
-    print (inverse_mod1(42, 2017))
-    print (gmpy2.invert(42,2017))
+    assert k.verify(b64tob(s), b'hello')
     
 # End ⊔net!
