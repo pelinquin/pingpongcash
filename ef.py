@@ -188,8 +188,11 @@ def update_blc(d):
     sys.stderr.write('HASH %s\n' % b)
     #for t in {x:b[x] for x in b if b[x] != int(d['blc'][x])}: 
     for x in b:
-        if b[x] != int(d['blc'][x]): 
-            sys.stderr.write('Diff %d %s for %s\n' % (b[x], d['blc'][x], x))
+        if x in d['blc']:
+            if b[x] != int(d['blc'][x]): 
+                sys.stderr.write('Diff %d %s for %s\n' % (b[x], d['blc'][x], x))
+                d['blc'][x] = '%d' % b[x]
+        else:
             d['blc'][x] = '%d' % b[x]
 
 def blc(d, cm):
