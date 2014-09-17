@@ -185,9 +185,12 @@ def update_blc(d):
     for t in [x for x in d['txn'].keys() if len(x) == 13]:
         src, dst, v = t[4:], d['txn'][t][:9], b2i(d['txn'][t][9:11])
         b[src], b[dst] = b[src] - v if src in b else (-v), b[dst] + v if dst in b else v
-    for t in {x:b[x] for x in b if b[x] != int(d['blc'][x])}: 
-        sys.stderr.write('Diff %d %s for %s\n' % (b[t], d['blc'][t], t))
-        d['blc'][t] = '%d' % b[t]
+    sys.stderr.write('HASH %s\n' % b)
+    #for t in {x:b[x] for x in b if b[x] != int(d['blc'][x])}: 
+    for x in b:
+        if b[x] != int(d['blc'][x]): 
+            sys.stderr.write('Diff %d %s for %s\n' % (b[t], d['blc'][t], t))
+            d['blc'][t] = '%d' % b[t]
 
 def blc(d, cm):
     "get balance"
