@@ -1009,8 +1009,8 @@ def readdb(arg, ascii=False):
     d = dbm.open(arg)
     if ascii:
         #for x in d.keys(): print (x.decode('ascii'), '->', d[x].decode('ascii'))
-        for x in d.keys(): print (x.decode('utf8'), '->', d[x].decode('utf8'))
-        #for x in d.keys(): print (x, '->', d[x])
+        #for x in d.keys(): print (x.decode('utf8'), '->', d[x].decode('utf8'))
+        for x in d.keys(): print (x, '->', d[x])
     else:
         for x in d.keys(): print ('%02d:%03d' % (len(x), len(d[x])), btob64(x), '->', btob64(d[x]))
 

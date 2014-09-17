@@ -179,6 +179,16 @@ def send_get(host='localhost', data=''):
 
 ##### WEB APP #####
 
+def update_blc(d):
+    "_"
+    b = {}
+    for t in [x for x in d['txn'].keys() if len(x) == 13]:
+        src, dst, v = t[4:], d['txn'][t][:9], b2i(d['txn'][t][9:11])
+        b[src], b[dst] = b[src] - v if src in b else (-v), b[dst] + v if dst in b else v
+    for t in {x:b[x] for x in b if b[x] != int(d['blc'][x])}: 
+        sys.stderr.write('Diff %d %s for %s\n' % (b[t], d['blc'][t], t))
+        d['blc'][t] = '%d' % b[t]
+
 def blc(d, cm):
     "get balance"
     if cm in d['blc']: return int(d['blc'][cm])
@@ -259,8 +269,10 @@ def application(environ, start_response):
             else:
                 o += ' ids!'
     else: # get
-        s = raw # use directory or arygument
-        if s == '': o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez nous en excuser\nPour toute question: contact@eurofranc.fr'
+        s = raw # use directory or argument
+        if s == '': 
+            o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez nous en excuser\nPour toute question: contact@eurofranc.fr'
+            update_blc(d)
         else:
             r = b64tob(bytes(s, 'ascii'))            
             if re.match('\S{12}$', s) and r in d['pbk']: # get balance
@@ -313,7 +325,7 @@ def test():
     print (send_get('eurofranc.fr', id3))
 
 if __name__ == '__main__':
-    #test()
+    test()
     import cProfile
     k = ecdsa()
     kx, ky = 1497626729486698250092836588258522241576986267962509549806031472029777015910199567058370933525287831904420674640244116785460336785990307731327653260061341184, 3913334906008739579549527439581844548577377240182775572287928609736407393883660334541807646401094599739670101579293967007613985154383349376877321098382392173
