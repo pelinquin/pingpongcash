@@ -181,23 +181,24 @@ def send_get(host='localhost', data=''):
 
 def update_blc(d):
     "_"
-    b = {}
-    for t in [x for x in d['txn'].keys() if len(x) == 13]:
-        src, dst, v = t[4:], d['txn'][t][:9], b2i(d['txn'][t][9:11])
+    dtxn, b = ropen(d['txn']), {}
+    for t in [x for x in dtxn.keys() if len(x) == 13]:
+        src, dst, v = t[4:], dtxn[t][:9], b2i(dtxn[t][9:11])
         b[src], b[dst] = b[src] - v if src in b else (-v), b[dst] + v if dst in b else v
+    dtxn.close()
+    dblc = wopen(d['blc'])
     for x in b:
         if x in d['blc'] and b[x] != int(d['blc'][x]): 
-            sys.stderr.write('Diff %d %s for %s\n' % (b[x], d['blc'][x], x))
-            d['blc'][x] = '%d' % b[x]
+            sys.stderr.write('Diff %d %s for %s\n' % (b[x], dblc[x], x))
+            dblc[x] = '%d' % b[x]
+    dblc.close()
 
 def blc(d, cm):
     "get balance"
-    if cm in d['blc']: return int(d['blc'][cm])
-    bal = 0
-    for t in [x for x in d['txn'].keys() if len(x) == 13]:
-        v = b2i(d['txn'][t][9:11])
-        if cm == d['txn'][t][:9]: bal += v 
-        if cm == t[4:]:           bal -= v
+    dblc, bal = ropen(d['blc']), 0
+    if cm in dblc: 
+        bal = int(dblc[cm])
+    dblc.close()
     return bal
 
 def init_dbs(dbs, port):
@@ -207,10 +208,16 @@ def init_dbs(dbs, port):
     for dbn in dbs:
         db = '%s/%s' % (di, dbn)
         if not (os.path.isfile(db) or os.path.isfile(db+'.db')):
-            d = dbm.open(db, 'c')
+            d = wopen(db)
             d.close()
             os.chmod(db, 511)
-    return {b:dbm.open('%s/%s' % (di, b), 'c') for b in dbs}
+    return {b:'%s/%s' % (di, b) for b in dbs}
+
+def ropen(d):
+    return dbm.open(d)
+
+def wopen(d):
+    return dbm.open(d, 'c')
 
 def application(environ, start_response):
     "wsgi server app"
@@ -221,58 +228,65 @@ def application(environ, start_response):
     if way == 'post':
         s = raw.decode('ascii')
         r = b64tob(bytes(s, 'ascii'))            
-        if re.match('\S{12}$', s) and r in d['pbk']: o = '%d' % blc(d, r) # balance
+        if re.match('\S{12}$', s):
+            dpbk = ropen(d['pbk'])
+            if r in dpbk: 
+                o = '%d' % blc(d, r) # balance
+            dpbk.close()
         elif re.match('\S{16}$', s): # get last transaction
-            src, pos = r[:9], b2i(r[9:])
-            if src in d['pbk']:
-                if src in d['txn']:
-                    li = d['txn'][src].split(b':')
-                    if pos > 0 and pos < len(li):
-                        key = li[pos] + src if len(li[pos]) == 4 else li[pos] 
-                        o = btob64(i2b(len(li), 2) + key + d['txn'][key][:24]).decode('ascii') # len: 39->52
+            src, pos, dtxn = r[:9], b2i(r[9:]), ropen(d['txn'])
+            if src in dtxn:
+                li = dtxn[src].split(b':')
+                if pos >= 0 and pos < len(li):
+                    key = li[pos] + src if len(li[pos]) == 4 else li[pos] 
+                    o = btob64(i2b(len(li), 2) + key + dtxn[key][:24]).decode('ascii') # len: 39->52
+            dtxn.close()
         elif re.match('\S{20}$', s): # check transaction (short)
-            u, dat, src, val = r[:13], r[:4], r[4:13], r[:-2]
-            if u in d['txn'] and d['txn'][9:11] == val: o = 'valid'
+            u, dat, src, val, dtxn = r[:13], r[:4], r[4:13], r[:-2], ropen(d['txn'])
+            if u in dtxn and dtxn[9:11] == val: o = 'valid'
+            dtxn.close()
         elif re.match('\S{32}$', s): # check transaction (long)
-            u, dst, val = r[:13], r[13:22], r[:-2]
-            if u in d['txn'] and d['txn'][:9] == dst and d['txn'][9:11] == val: o = 'valid'
+            u, dst, val, dtxn = r[:13], r[13:22], r[:-2], ropen(d['txn'])
+            if u in dtxn and dtxn[:9] == dst and dtxn[9:11] == val: o = 'valid'
+            dtxn.close()
         elif re.match('\S{176}$', s): # register publickey
-            pbk, src, v = r, r[-9:], r[:-9]
-            if src in d['pbk']: 
+            pbk, src, v, dpbk = r, r[-9:], r[:-9], wopen(d['pbk'])
+            if src in dpbk: 
                 o = 'old'
             else:
-                d['pbk'][src], o = v, 'new'
+                dpbk[src], o = v, 'new'
+            dpbk.close()
         elif re.match('\S{208}$', s): # add transaction
-            u, dat, v, src, dst, val, msg, sig, k = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), r[:-132], r[-132:], ecdsa()
-            if src in d['pbk'] and dst in d['pbk'] and src != dst:
-                k.pt = Point(c521, b2i(d['pbk'][src][:66]), b2i(d['pbk'][src][66:]+src))
+            u, dat, v, src, dst, val, msg, sig, k, dpbk = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), r[:-132], r[-132:], ecdsa(), ropen(d['pbk'])
+            if src in dpbk and dst in dpbk and src != dst:
+                k.pt = Point(c521, b2i(dpbk[src][:66]), b2i(dpbk[src][66:]+src))
                 if k.verify(sig, msg): 
-                    if u in d['txn']: 
+                    dtxn = wopen(d['txn'])
+                    if u in dtxn: 
                         o = 'old' 
                     else:
                         b = blc(d, src)
                         if b + 10000 > val: # allows temporary 100 €f for testing !
-                            sep = b':'
-                            d['txn'][u], o = v + sig, 'new' #'%d' (b-val)
-                            d['txn'][src] = d['txn'][src] + sep + dat if src in d['txn'] else dat # shortcut
-                            d['txn'][dst] = d['txn'][dst] + sep + u if dst in d['txn'] else u  # shortcut
-                            d['blc'][src] = '%d' % ((int(d['blc'][src])-val) if src in d['blc'] else (-val)) # shortcut
-                            d['blc'][dst] = '%d' % ((int(d['blc'][dst])+val) if dst in d['blc'] else val)  # shortcut
+                            sep, dblc = b':', wopen(d['blc'])
+                            dtxn[u], o = v + sig, 'new' #'%d' (b-val)
+                            dtxn[src] = dtxn[src] + sep + dat if src in dtxn else dat # shortcut
+                            dtxn[dst] = dtxn[dst] + sep + u if dst in dtxn else u  # shortcut
+                            dblc[src] = '%d' % ((int(dblc[src])-val) if src in dblc else (-val)) # shortcut
+                            dblc[dst] = '%d' % ((int(dblc[dst])+val) if dst in dblc else val)  # shortcut
+                            dblc.close()
                         else:
                             o += ' balance!'
+                    dtxn.close()
                 else:
                     o += ' signature!'
             else:
                 o += ' ids!'
+            dpbk.close()
     else: # get
         s = raw # use directory or argument
         if s == '': 
             o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez nous en excuser\nPour toute question: contact@eurofranc.fr'
             update_blc(d)
-        else:
-            r = b64tob(bytes(s, 'ascii'))            
-            if re.match('\S{12}$', s) and r in d['pbk']: o = '%d' % blc(d, r)
-    for db in d: d[db].close()
     start_response('200 OK', [('Content-type', mime)] + ncok)
     return [o if mime in ('application/pdf', 'image/png', 'image/jpg') else o.encode('utf8')] 
 
