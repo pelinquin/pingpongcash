@@ -239,7 +239,7 @@ def application(environ, start_response):
                 li = dtxn[src].split(b':')
                 if pos >= 0 and pos < len(li):
                     key = li[pos] + src if len(li[pos]) == 4 else li[pos] 
-                    o = btob64(i2b(len(li), 2) + key + dtxn[key][:24]).decode('ascii') # len: 39->52
+                    o = btob64(i2b(len(li), 2) + key + dtxn[key][:24]) # len: 39->52
             dtxn.close()
         elif re.match('\S{20}$', s): # check transaction (short)
             u, dat, src, val, dtxn = r[:13], r[:4], r[4:13], r[:-2], ropen(d['txn'])
