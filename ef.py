@@ -181,11 +181,11 @@ def send_get(host='localhost', data=''):
 
 def update_blc(d):
     "_"
-    dtxn, b = ropen(d['txn']), {}
-    for t in [x for x in dtxn.keys() if len(x) == 13]:
-        src, dst, v = t[4:], dtxn[t][:9], b2i(dtxn[t][9:11])
+    dtrx, b = ropen(d['trx']), {}
+    for t in [x for x in dtrx.keys() if len(x) == 13]:
+        src, dst, v = t[4:], dtrx[t][:9], b2i(dtrx[t][9:11])
         b[src], b[dst] = b[src] - v if src in b else (-v), b[dst] + v if dst in b else v
-    dtxn.close()
+    dtrx.close()
     dblc = wopen(d['blc'])
     for x in b:
         if x in d['blc'] and b[x] != int(d['blc'][x]): 
@@ -224,69 +224,69 @@ def application(environ, start_response):
     mime, o, now, fname, port = 'text/plain; charset=utf8', 'error', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base, ncok = environ['PATH_INFO'][1:], []
-    d = init_dbs(('pbk', 'txn', 'blc'), port)
+    d = init_dbs(('pub', 'trx', 'blc'), port)
     if way == 'post':
         s = raw.decode('ascii')
         r = b64tob(bytes(s, 'ascii'))            
         if re.match('\S{12}$', s):
-            dpbk = ropen(d['pbk'])
-            if r in dpbk: 
+            dpub = ropen(d['pub'])
+            if r in dpub: 
                 o = '%d' % blc(d, r) # balance
-            dpbk.close()
+            dpub.close()
         elif re.match('\S{16}$', s): # get last transaction
-            src, pos, dtxn = r[:9], b2i(r[9:]), ropen(d['txn'])
-            if src in dtxn:
-                li = dtxn[src].split(b':')
+            src, pos, dtrx = r[:9], b2i(r[9:]), ropen(d['trx'])
+            if src in dtrx:
+                li = dtrx[src].split(b':')
                 p = len(li) - pos - 1
                 if p >= 0 and p < len(li):
                     if len(li[p]) == 4:
                         dat, key, way = li[p], li[p] + src, i2b(0,1)
-                        o = btob64(dat + dtxn[key][:9] + way + dtxn[key][9:11] + i2b(len(li), 2)) # dat+user+way+val+max len: 18->24
+                        o = btob64(dat + dtrx[key][:9] + way + dtrx[key][9:11] + i2b(len(li), 2)) # dat+user+way+val+max len: 18->24
                     elif len(li[p]) == 13:
                         dat, key, way = li[p][:4], li[p], i2b(1,1)
-                        o = btob64(dat + key[4:] + way + dtxn[key][9:11] + i2b(len(li), 2)) # dat+user+way+val+max len: 18->24 
-            dtxn.close()
+                        o = btob64(dat + key[4:] + way + dtrx[key][9:11] + i2b(len(li), 2)) # dat+user+way+val+max len: 18->24 
+            dtrx.close()
         elif re.match('\S{20}$', s): # check transaction (short)
-            u, dat, src, val, dtxn = r[:13], r[:4], r[4:13], r[:-2], ropen(d['txn'])
-            if u in dtxn and dtxn[9:11] == val: o = 'valid'
-            dtxn.close()
+            u, dat, src, val, dtrx = r[:13], r[:4], r[4:13], r[:-2], ropen(d['trx'])
+            if u in dtrx and dtrx[9:11] == val: o = 'valid'
+            dtrx.close()
         elif re.match('\S{32}$', s): # check transaction (long)
-            u, dst, val, dtxn = r[:13], r[13:22], r[:-2], ropen(d['txn'])
-            if u in dtxn and dtxn[:9] == dst and dtxn[9:11] == val: o = 'valid'
-            dtxn.close()
+            u, dst, val, dtrx = r[:13], r[13:22], r[:-2], ropen(d['trx'])
+            if u in dtrx and dtrx[:9] == dst and dtrx[9:11] == val: o = 'valid'
+            dtrx.close()
         elif re.match('\S{176}$', s): # register publickey
-            pbk, src, v, dpbk = r, r[-9:], r[:-9], wopen(d['pbk'])
-            if src in dpbk: 
+            pub, src, v, dpub = r, r[-9:], r[:-9], wopen(d['pub'])
+            if src in dpub: 
                 o = 'old'
             else:
-                dpbk[src], o = v, 'new'
-            dpbk.close()
+                dpub[src], o = v, 'new'
+            dpub.close()
         elif re.match('\S{208}$', s): # add transaction
-            u, dat, v, src, dst, val, msg, sig, k, dpbk = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), r[:-132], r[-132:], ecdsa(), ropen(d['pbk'])
-            if src in dpbk and dst in dpbk and src != dst:
-                k.pt = Point(c521, b2i(dpbk[src][:66]), b2i(dpbk[src][66:]+src))
+            u, dat, v, src, dst, val, msg, sig, k, dpub = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), r[:-132], r[-132:], ecdsa(), ropen(d['pub'])
+            if src in dpub and dst in dpub and src != dst:
+                k.pt = Point(c521, b2i(dpub[src][:66]), b2i(dpub[src][66:]+src))
                 if k.verify(sig, msg): 
-                    dtxn = wopen(d['txn'])
-                    if u in dtxn: 
+                    dtrx = wopen(d['trx'])
+                    if u in dtrx: 
                         o = 'old' 
                     else:
                         b = blc(d, src)
                         if b + 10000 > val: # allows temporary 100 €f for testing !
                             sep, dblc = b':', wopen(d['blc'])
-                            dtxn[u], o = v + sig, 'new' #'%d' (b-val)
-                            dtxn[src] = dtxn[src] + sep + dat if src in dtxn else dat # shortcut
-                            dtxn[dst] = dtxn[dst] + sep + u if dst in dtxn else u  # shortcut
+                            dtrx[u], o = v + sig, 'new' #'%d' (b-val)
+                            dtrx[src] = dtrx[src] + sep + dat if src in dtrx else dat # shortcut
+                            dtrx[dst] = dtrx[dst] + sep + u if dst in dtrx else u  # shortcut
                             dblc[src] = '%d' % ((int(dblc[src])-val) if src in dblc else (-val)) # shortcut
                             dblc[dst] = '%d' % ((int(dblc[dst])+val) if dst in dblc else val)  # shortcut
                             dblc.close()
                         else:
                             o += ' balance!'
-                    dtxn.close()
+                    dtrx.close()
                 else:
                     o += ' signature!'
             else:
                 o += ' ids!'
-            dpbk.close()
+            dpub.close()
     else: # get
         s = raw # use directory or argument
         if s == '': 
@@ -308,18 +308,12 @@ def test2():
     sys.exit()
 
 def test1():
-
-    r1 = b'SVahsR_yhTxlAAAA' 
-    r2 = b'AWbH60lWobEf8oU8ZQAAZAAAGQ'
-    r2 = b'AWbZI0lWobEf8oU8ZQAAZAAAGQ'
-
+    r2 = b'AWbdseXiOoIPNBirRQAAewAa'
     x = b64tob(r2)
     print (len(x))
     print ('dat', datdecode(x[:4]))
-    print ('user', btob64(x[4:13]))
-    print ('way', b2i(x[13:14]))
-    print ('val', b2i(x[14:16]))
-    print ('max', b2i(x[16:]))
+    print (b2i(x[:4]))
+    print ([t for t in x]);
     sys.exit()
 
 def test3():
