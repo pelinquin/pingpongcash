@@ -186,6 +186,7 @@ def update_blc(d):
         src, dst, v = t[4:], dtrx[t][:9], b2i(dtrx[t][9:11])
         b[src], b[dst] = b[src] - v if src in b else (-v), b[dst] + v if dst in b else v
     dtrx.close()
+    sys.stderr.write('SET %s\n' % b)
     dblc = wopen(d['blc'])
     for x in b:
         if x in d['blc']:
