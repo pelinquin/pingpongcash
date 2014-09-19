@@ -238,8 +238,12 @@ def application(environ, start_response):
             if src in dtxn:
                 li = dtxn[src].split(b':')
                 if pos >= 0 and pos < len(li):
-                    key = li[pos] + src if len(li[pos]) == 4 else li[pos] 
-                    o = btob64(key + dtxn[key][:11] + i2b(len(li), 3)) # dat+src+dst+val+max len: 27->36
+                    if len(li[pos]) == 4:
+                        dat, key, way = li[pos], li[pos] + src, i2b(0,1)
+                        o = btob64(dat + src + way + dtxn[key][9:11] + i2b(len(li), 3)) # dat+user+way+val+max len: 18->24
+                    elif len(li[pos]) == 13:
+                        dat, key, way = li[pos][:4], li[pos], i2b(1,1)
+                        o = btob64(dat + key[4:] + way + dtxn[key][9:11] + i2b(len(li), 3)) # dat+user+way+val+max len: 18->24 
             dtxn.close()
         elif re.match('\S{20}$', s): # check transaction (short)
             u, dat, src, val, dtxn = r[:13], r[:4], r[4:13], r[:-2], ropen(d['txn'])
@@ -298,7 +302,6 @@ def test2():
     print (send_post('cup', btob64(b'h'*24)))
     print (send_post('cup', btob64(b'h'*132)))
     print (send_post('cup', btob64(b'h'*156)))
-
     id3 = 'SVahsR_yhTxl'
     print (send_get('eurofranc.fr', id3))
 
@@ -320,9 +323,9 @@ def test3():
     assert k.verify(b64tob(s), b'hello')    
 
 if __name__ == '__main__':
-    test1()
+    #test1()
     test2()
-    test3()
+    #test3()
 
     
 # End ⊔net!
