@@ -188,7 +188,7 @@ def update_blc(d):
     dtrx.close()
     dblc = wopen(d['blc'])
     for x in b:
-        if x in dblc and if b[x] != int(dblc[x]): 
+        if x in dblc and b[x] != int(dblc[x]): 
             sys.stderr.write('Diff %d %s for %s\n' % (b[x], dblc[x], x))
             dblc[x] = '%d' % b[x]
     dblc.close()
