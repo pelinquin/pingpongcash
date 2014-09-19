@@ -239,7 +239,7 @@ def application(environ, start_response):
                 li = dtxn[src].split(b':')
                 if pos >= 0 and pos < len(li):
                     key = li[pos] + src if len(li[pos]) == 4 else li[pos] 
-                    o = btob64(i2b(len(li), 2) + key + dtxn[key][:24]) # len: 39->52
+                    o = btob64(key + dtxn[key][:11] + i2b(len(li), 3)) # dat+src+dst+val+max len: 27->36
             dtxn.close()
         elif re.match('\S{20}$', s): # check transaction (short)
             u, dat, src, val, dtxn = r[:13], r[:4], r[4:13], r[:-2], ropen(d['txn'])
@@ -290,7 +290,7 @@ def application(environ, start_response):
     start_response('200 OK', [('Content-type', mime)] + ncok)
     return [o if mime in ('application/pdf', 'image/png', 'image/jpg') else o.encode('utf8')] 
 
-def test():
+def test2():
     print (send_get('cup', ''))
     print (send_post('cup', btob64(b'h'*9)))
     print (send_post('cup', btob64(b'h'*12)))
@@ -302,8 +302,14 @@ def test():
     id3 = 'SVahsR_yhTxl'
     print (send_get('eurofranc.fr', id3))
 
-if __name__ == '__main__':
-    test()
+def test1():
+    r1 = b'SVahsR_yhTxlAAAA' 
+    r2 = b'ABkBZsfrSVahsR_yhTxl5eI6gg80GKtFAGQBSPpn3vnuTDrMadsy'
+    x = b64tob(r2)
+    print (btob64(x[:9]))
+    sys.exit()
+
+def test3():
     import cProfile
     k = ecdsa()
     kx, ky = 1497626729486698250092836588258522241576986267962509549806031472029777015910199567058370933525287831904420674640244116785460336785990307731327653260061341184, 3913334906008739579549527439581844548577377240182775572287928609736407393883660334541807646401094599739670101579293967007613985154383349376877321098382392173
@@ -311,6 +317,12 @@ if __name__ == '__main__':
     k.privkey = 454086624460063511464984254936031011189294057512315937409637584344757371137
     s = b'AG-ytve_8p-xCFnL-u5iyg9hWPr-8zSj5Ruvu7Ki9XZdqDUzOCa_nq1c87efPEWaLxBs6o-B1mUJNEvb-2Rp4HYAAbxKVzub8ltEjGDi10ncGtrWUMZU41ziHgfsWdtRGZj48RwB-8hpKncK3BBhH7Jj-PErJXCKNEvWIQ0UuLLtlzpv'
     cProfile.run ("k.verify(b64tob(s), b'hello')")
-    assert k.verify(b64tob(s), b'hello')
+    assert k.verify(b64tob(s), b'hello')    
+
+if __name__ == '__main__':
+    test1()
+    test2()
+    test3()
+
     
 # End ⊔net!
