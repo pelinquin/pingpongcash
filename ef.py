@@ -186,14 +186,11 @@ def update_blc(d):
         src, dst, v = t[4:], dtrx[t][:9], b2i(dtrx[t][9:11])
         b[src], b[dst] = b[src] - v if src in b else (-v), b[dst] + v if dst in b else v
     dtrx.close()
-    sys.stderr.write('SET %s\n' % b)
     dblc = wopen(d['blc'])
     for x in b:
-        if x in d['blc']:
-            sys.stderr.write('Ask %d ? %s\n' % (b[x], dblc[x]))
-            if b[x] != int(d['blc'][x]): 
-                sys.stderr.write('Diff %d %s for %s\n' % (b[x], dblc[x], x))
-                dblc[x] = '%d' % b[x]
+        if x in dblc and if b[x] != int(dblc[x]): 
+            sys.stderr.write('Diff %d %s for %s\n' % (b[x], dblc[x], x))
+            dblc[x] = '%d' % b[x]
     dblc.close()
 
 def blc(d, cm):
