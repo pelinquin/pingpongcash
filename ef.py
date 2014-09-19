@@ -237,12 +237,13 @@ def application(environ, start_response):
             src, pos, dtxn = r[:9], b2i(r[9:]), ropen(d['txn'])
             if src in dtxn:
                 li = dtxn[src].split(b':')
-                if pos >= 0 and pos < len(li):
-                    if len(li[pos]) == 4:
-                        dat, key, way = li[pos], li[pos] + src, i2b(0,1)
+                p = len(li) - pos - 1
+                if p >= 0 and p < len(li):
+                    if len(li[p]) == 4:
+                        dat, key, way = li[p], li[p] + src, i2b(0,1)
                         o = btob64(dat + src + way + dtxn[key][9:11] + i2b(len(li), 3)) # dat+user+way+val+max len: 18->24
-                    elif len(li[pos]) == 13:
-                        dat, key, way = li[pos][:4], li[pos], i2b(1,1)
+                    elif len(li[p]) == 13:
+                        dat, key, way = li[p][:4], li[p], i2b(1,1)
                         o = btob64(dat + key[4:] + way + dtxn[key][9:11] + i2b(len(li), 3)) # dat+user+way+val+max len: 18->24 
             dtxn.close()
         elif re.match('\S{20}$', s): # check transaction (short)
@@ -304,12 +305,18 @@ def test2():
     print (send_post('cup', btob64(b'h'*156)))
     id3 = 'SVahsR_yhTxl'
     print (send_get('eurofranc.fr', id3))
+    sys.exit()
 
 def test1():
+
     r1 = b'SVahsR_yhTxlAAAA' 
-    r2 = b'ABkBZsfrSVahsR_yhTxl5eI6gg80GKtFAGQBSPpn3vnuTDrMadsy'
+    r2 = b'AWbH60lWobEf8oU8ZQAAZAAAGQ'
     x = b64tob(r2)
-    print (btob64(x[:9]))
+    print (datdecode(x[:4]))
+    print (btob64(x[4:13]))
+    print (b2i(x[13:14]))
+    print (b2i(x[14:16]))
+    print (b2i(x[16:18]))
     sys.exit()
 
 def test3():
@@ -321,10 +328,11 @@ def test3():
     s = b'AG-ytve_8p-xCFnL-u5iyg9hWPr-8zSj5Ruvu7Ki9XZdqDUzOCa_nq1c87efPEWaLxBs6o-B1mUJNEvb-2Rp4HYAAbxKVzub8ltEjGDi10ncGtrWUMZU41ziHgfsWdtRGZj48RwB-8hpKncK3BBhH7Jj-PErJXCKNEvWIQ0UuLLtlzpv'
     cProfile.run ("k.verify(b64tob(s), b'hello')")
     assert k.verify(b64tob(s), b'hello')    
+    sys.exit()
 
 if __name__ == '__main__':
-    #test1()
-    test2()
+    test1()
+    #test2()
     #test3()
 
     
