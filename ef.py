@@ -241,10 +241,10 @@ def application(environ, start_response):
                 if p >= 0 and p < len(li):
                     if len(li[p]) == 4:
                         dat, key, way = li[p], li[p] + src, i2b(0,1)
-                        o = btob64(dat + src + way + dtxn[key][9:11] + i2b(len(li), 3)) # dat+user+way+val+max len: 18->24
+                        o = btob64(dat + dtxn[key][:9] + way + dtxn[key][9:11] + i2b(len(li), 2)) # dat+user+way+val+max len: 18->24
                     elif len(li[p]) == 13:
                         dat, key, way = li[p][:4], li[p], i2b(1,1)
-                        o = btob64(dat + key[4:] + way + dtxn[key][9:11] + i2b(len(li), 3)) # dat+user+way+val+max len: 18->24 
+                        o = btob64(dat + key[4:] + way + dtxn[key][9:11] + i2b(len(li), 2)) # dat+user+way+val+max len: 18->24 
             dtxn.close()
         elif re.match('\S{20}$', s): # check transaction (short)
             u, dat, src, val, dtxn = r[:13], r[:4], r[4:13], r[:-2], ropen(d['txn'])
@@ -311,12 +311,15 @@ def test1():
 
     r1 = b'SVahsR_yhTxlAAAA' 
     r2 = b'AWbH60lWobEf8oU8ZQAAZAAAGQ'
+    r2 = b'AWbZI0lWobEf8oU8ZQAAZAAAGQ'
+
     x = b64tob(r2)
-    print (datdecode(x[:4]))
-    print (btob64(x[4:13]))
-    print (b2i(x[13:14]))
-    print (b2i(x[14:16]))
-    print (b2i(x[16:18]))
+    print (len(x))
+    print ('dat', datdecode(x[:4]))
+    print ('user', btob64(x[4:13]))
+    print ('way', b2i(x[13:14]))
+    print ('val', b2i(x[14:16]))
+    print ('max', b2i(x[16:]))
     sys.exit()
 
 def test3():
