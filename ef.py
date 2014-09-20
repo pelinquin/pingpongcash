@@ -236,15 +236,11 @@ def application(environ, start_response):
         elif re.match('\S{16}$', s): # get last transaction
             src, pos, dtrx = r[:9], b2i(r[9:]), ropen(d['trx'])
             if src in dtrx:
-                li = dtrx[src].split(b':')
-                p = len(li) - pos - 1
-                if p >= 0 and p < len(li):
-                    if len(li[p]) == 4:
-                        dat, key, way = li[p], li[p] + src, i2b(0,1)
-                        o = btob64(dat + dtrx[key][:9] + way + dtrx[key][9:11] + i2b(len(li), 2)) # dat+user+way+val+max len: 18->24
-                    elif len(li[p]) == 13:
-                        dat, key, way = li[p][:4], li[p], i2b(1,1)
-                        o = btob64(dat + key[4:] + way + dtrx[key][9:11] + i2b(len(li), 2)) # dat+user+way+val+max len: 18->24 
+                n = len(dtrx[src])//13
+                if pos >= 0 and pos < n:
+                    sl = dtrx[src][13*(n-pos-1):13*(n-pos)]
+                    (w, ur) = (itob(0,1), dtrx[sl][:9]) if sl[4:] == src else (itob(1,1), sl[4:])
+                    o = btob64(sl[:4] + ur + dtrx[sl][9:11] + w + i2b(n, 2)) # dat(4)+usr(9)+val(2)+way(1)+max(2) len:18->24 
             dtrx.close()
         elif re.match('\S{20}$', s): # check transaction (short)
             u, dat, src, val, dtrx = r[:13], r[:4], r[4:13], r[:-2], ropen(d['trx'])
@@ -272,12 +268,11 @@ def application(environ, start_response):
                     else:
                         b = blc(d, src)
                         if b + 10000 > val: # allows temporary 100 €f for testing !
-                            sep, dblc = b':', wopen(d['blc'])
-                            dtrx[u], o = v + sig, 'new' #'%d' (b-val)
-                            dtrx[src] = dtrx[src] + sep + dat if src in dtrx else dat # shortcut
-                            dtrx[dst] = dtrx[dst] + sep + u if dst in dtrx else u  # shortcut
+                            dtrx[u], o, dblc = v + sig, 'new' #'%d' (b-val), wopen(d['blc'])
+                            dtrx[src] = dtrx[src] + u if src in dtrx else u # shortcut
+                            dtrx[dst] = dtrx[dst] + u if dst in dtrx else u # shortcut
                             dblc[src] = '%d' % ((int(dblc[src])-val) if src in dblc else (-val)) # shortcut
-                            dblc[dst] = '%d' % ((int(dblc[dst])+val) if dst in dblc else val)  # shortcut
+                            dblc[dst] = '%d' % ((int(dblc[dst])+val) if dst in dblc else val)    # shortcut
                             dblc.close()
                         else:
                             o += ' balance!'
@@ -308,6 +303,21 @@ def test2():
     sys.exit()
 
 def test1():
+    #t1 = b'AWbfI0lWobEf8oU8ZQ -> 5eI6gg80GKtFAB4AKIygOf650cbadSejCX6fmkSI6kdKimKc2KSFTU9BJMGoXstS0UOUq2fKzWC3h7WzXwylSLi_zb-Zc2J8JZwA_3gBagKnh3yMWhciG138UqK3WjP9l0JHfUQGQ5c9LvINBMK92bTRcBKRxcwfICqGmehv7JWkPbIGpRt1HjK3gwP7ChU'
+    #09:033 SVahsR_yhTxl -> 
+    v1 = b'AWbfCDoBZt8NOgFm3yM6AWbfJDoBZt_65eI6gg80GKtF'
+    #09:060 5eI6gg80GKtF -> 
+    v2 = b'AWbfCElWobEf8oU8ZToBZt8NSVahsR_yhTxlOgFm3yNJVqGxH_KFPGU6AWbfJElWobEf8oU8ZToBZt_6'
+    #13:143 AWbfJElWobEf8oU8ZQ -> 5eI6gg80GKtFAAQAuOk0I6UOg2liShFi9BhT_fA4ks_PoBRaEjzm_g0TxG_3wKjDs1H_6MtxWwdW79RNCYmVXzsdmN367wMxG63xOYIAT4Uh3tU-wN_Qot1jCGEWOPnT2JX22R0AGdoIa2hFCp-7ETfYsJh-CVleuu3Mk6DfuFCIUN1UM_ys0vvFrgBaQVs
+    #13:143 AWbfDUlWobEf8oU8ZQ -> 5eI6gg80GKtFAAIABrfAxJFQK8eOCQy-b6Yk9IcipWTISHts9kX_pibKWkmxYQEym46ewFBlFm9-pueemQEnU0URwgBgKlm0h1PsPDAAhY7_I6iGhkQ31LUp36nN2UPamamVijhvd0_pMNz3JZOBL1MPv_1etujnNkb8w6IM4UAiCRceyYKexHrphSskSYw
+    #13:143 AWbf-uXiOoIPNBirRQ -> SVahsR_yhTxlA-gAvt_pEaU5fKSLmHwdwr1KNB8AQD0WphoExQSF_bhEe0vYINjROElEFw5iuNOAyrF46GyjlV4mQjcs33yPInU9NFoBH4KjbaWy2GA2vsQgWZaKa44uVm9-ZRFO-LjySs96m23Q-bX4ZqAjRoeCPG8n6JaKtSkPlbbJ5Z6dbv9ee19KuaM
+    #13:143 AWbfCElWobEf8oU8ZQ -> 5eI6gg80GKtFAAEBofW_Xd9QUV7fJf820AWshQv5LgQ0WIs5YEIZp9f7SToZiBpHvFleOjUVkuf1BmbUGYiCktjpYnCnXdPDyPSTJLYAbQqjq5AcnWog69L4gDFcBRdAh6YZ-fUT4AsIT0N2xyLZP8Iqnr4CO_rKe9z0mkUoRKKV968QmqaD1zOl_-2AH5E
+
+    x = b64tob(v2)
+    for i in x.split(b':'):
+        print (len(i))
+
+
     r2 = b'AWbdseXiOoIPNBirRQAAewAa'
     x = b64tob(r2)
     print (len(x))
