@@ -239,7 +239,7 @@ def application(environ, start_response):
                 n = len(dtrx[src])//13
                 if pos >= 0 and pos < n:
                     sl = dtrx[src][13*(n-pos-1):13*(n-pos)]
-                    (w, ur) = (itob(0,1), dtrx[sl][:9]) if sl[4:] == src else (itob(1,1), sl[4:])
+                    (w, ur) = (i2b(0,1), dtrx[sl][:9]) if sl[4:] == src else (i2b(1,1), sl[4:])
                     o = btob64(sl[:4] + ur + dtrx[sl][9:11] + w + i2b(n, 2)) # dat(4)+usr(9)+val(2)+way(1)+max(2) len:18->24 
             dtrx.close()
         elif re.match('\S{20}$', s): # check transaction (short)
