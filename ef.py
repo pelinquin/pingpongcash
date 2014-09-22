@@ -338,9 +338,20 @@ def test3():
     sys.exit()
 
 if __name__ == '__main__':
-    test1()
+    #test1()
     #test2()
     #test3()
+    dtrx = dbm.open('/ef/ef_80/trx')
+    for src in dtrx.keys():
+        if len(src) == 9:            
+            n = len(dtrx[src])//13
+            print ('USER: ', btob64(src), n)
+            for pos in range(n):
+                sl = dtrx[src][13*(pos-x-1):13*(pos-x)]
+                (w, ur) = (i2b(0,1), dtrx[sl][:9]) if sl[4:] == src else (i2b(1,1), sl[4:])
+                print (pos, datdecode(sl[:4]), btob64(ur), b2i(dtrx[sl][9:11]), b2i(w), n)  
+                # dat(4)+usr(9)+val(2)+way(1)+max(2) len:18->24 
+    dtrx.close()
 
     
 # End ⊔net!
