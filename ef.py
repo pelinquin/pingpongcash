@@ -349,7 +349,7 @@ if __name__ == '__main__':
             for x in range(n):
                 sl = dtrx[src][13*(n-x-1):13*(n-x)]
                 (w, ur) = (i2b(0,1), dtrx[sl][:9]) if sl[4:] == src else (i2b(1,1), sl[4:])
-                print (pos, datdecode(sl[:4]), btob64(ur), b2i(dtrx[sl][9:11]), b2i(w), n)  
+                print (x, datdecode(sl[:4]), btob64(ur), b2i(dtrx[sl][9:11]), b2i(w), n)  
                 # dat(4)+usr(9)+val(2)+way(1)+max(2) len:18->24 
     dtrx.close()
 
