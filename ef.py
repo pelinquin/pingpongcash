@@ -267,9 +267,10 @@ def application(environ, start_response):
                     else:
                         b = blc(d, src)
                         if b + 10000 > val: # allows temporary 100 €f for testing !
-                            dtrx[u], o, dblc = v + sig, 'new', wopen(d['blc'])
                             dtrx[src] = dtrx[src] + u if src in dtrx else u # shortcut
                             dtrx[dst] = dtrx[dst] + u if dst in dtrx else u # shortcut
+                            poss, posd = i2b(len(dtrx[src])//13, 2), i2b(len(dtrx[dst])//13, 2)
+                            dtrx[u], o, dblc = v + poss + posd + sig, 'new', wopen(d['blc'])
                             dblc[src] = '%d' % ((int(dblc[src])-val) if src in dblc else (-val)) # shortcut
                             dblc[dst] = '%d' % ((int(dblc[dst])+val) if dst in dblc else val)    # shortcut
                             dblc.close()
@@ -350,6 +351,5 @@ if __name__ == '__main__':
                 # dat(4)+usr(9)+val(2)+way(1)+max(2) len:18->24 
     dblc.close()
     dtrx.close()
-
     
 # End ⊔net!
