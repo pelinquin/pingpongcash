@@ -228,43 +228,42 @@ def application(environ, start_response):
     if way == 'post':
         s = raw.decode('ascii')
         r = b64tob(bytes(s, 'ascii'))            
-        if re.match('\S{12}$', s):
+        if re.match('\S{12}$', s): # get balance | src:9 len9->12
             dpub = ropen(d['pub'])
             if r in dpub: 
-                o = '%d' % blc(d, r) # balance
+                o = '%d' % blc(d, r)
             dpub.close()
-        elif re.match('\S{16}$', s): # get last transaction
+        elif re.match('\S{16}$', s): # get transaction | src:9+pos:3 len 12->16
             src, pos, dtrx = r[:9], b2i(r[9:]), ropen(d['trx'])
             if src in dtrx:
                 n = len(dtrx[src])//13
                 if pos >= 0 and pos < n:
-                    sl = dtrx[src][13*(n-pos-1):13*(n-pos)]
+                    sl = dtrx[src][13*pos:13*(pos+1)]
                     (w, ur) = (i2b(0,1), dtrx[sl][:9]) if sl[4:] == src else (i2b(1,1), sl[4:])
-                    o = btob64(sl[:4] + ur + dtrx[sl][9:11] + w + i2b(n, 2)) # dat(4)+usr(9)+val(2)+way(1)+max(2) len:18->24 
+                    o = btob64(sl[:4] + ur + dtrx[sl][9:11] + w + i2b(n, 2)) # return | dat:4+usr:9+val:2+way:1+max:2 len:18->24 
             dtrx.close()
-        elif re.match('\S{20}$', s): # check transaction (short)
+        elif re.match('\S{20}$', s): # check transaction (short) | dat:4+scr:9+val:2 len 15->20
             u, dat, src, val, dtrx = r[:13], r[:4], r[4:13], r[:-2], ropen(d['trx'])
             if u in dtrx and dtrx[9:11] == val: o = 'valid'
+            #dst = dtrx[:9]
+            #if dst in dtrx: all = dtrx[dst]
             dtrx.close()
-        elif re.match('\S{32}$', s): # check transaction (long)
+        elif re.match('\S{32}$', s): # check transaction (long) | dat:4+scr:9+dst:9+val:2 len 24->32
             u, dst, val, dtrx = r[:13], r[13:22], r[:-2], ropen(d['trx'])
             if u in dtrx and dtrx[:9] == dst and dtrx[9:11] == val: o = 'valid'
             dtrx.close()
-        elif re.match('\S{176}$', s): # register publickey
+        elif re.match('\S{176}$', s): # register publickey | pbk:132 len132->176
             pub, src, v, dpub = r, r[-9:], r[:-9], wopen(d['pub'])
-            if src in dpub: 
-                o = 'old'
-            else:
-                dpub[src], o = v, 'new'
+            if src in dpub: o = 'old'
+            else: dpub[src], o = v, 'new'
             dpub.close()
-        elif re.match('\S{208}$', s): # add transaction
+        elif re.match('\S{208}$', s): # add transaction msg:24+sig:132 len 158->208
             u, dat, v, src, dst, val, msg, sig, k, dpub = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), r[:-132], r[-132:], ecdsa(), ropen(d['pub'])
             if src in dpub and dst in dpub and src != dst:
                 k.pt = Point(c521, b2i(dpub[src][:66]), b2i(dpub[src][66:]+src))
                 if k.verify(sig, msg): 
                     dtrx = wopen(d['trx'])
-                    if u in dtrx: 
-                        o = 'old' 
+                    if u in dtrx: o = 'old' 
                     else:
                         b = blc(d, src)
                         if b + 10000 > val: # allows temporary 100 €f for testing !
@@ -274,18 +273,15 @@ def application(environ, start_response):
                             dblc[src] = '%d' % ((int(dblc[src])-val) if src in dblc else (-val)) # shortcut
                             dblc[dst] = '%d' % ((int(dblc[dst])+val) if dst in dblc else val)    # shortcut
                             dblc.close()
-                        else:
-                            o += ' balance!'
+                        else: o += ' balance!'
                     dtrx.close()
-                else:
-                    o += ' signature!'
-            else:
-                o += ' ids!'
+                else: o += ' signature!'
+            else: o += ' ids!'
             dpub.close()
     else: # get
         s = raw # use directory or argument
         if s == '': 
-            o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4-6\nVeuillez nous en excuser\nPour toute question: contact@eurofranc.fr'
+            o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4S à iPhone6(6+)\nVeuillez nous en excuser\nPour toute question: contact@eurofranc.fr'
             update_blc(d)
     start_response('200 OK', [('Content-type', mime)] + ncok)
     return [o if mime in ('application/pdf', 'image/png', 'image/jpg') else o.encode('utf8')] 
