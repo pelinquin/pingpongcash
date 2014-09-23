@@ -240,7 +240,8 @@ def application(environ, start_response):
                 if pos >= 0 and pos < n:
                     sl = dtrx[src][13*pos:13*(pos+1)]
                     (w, ur) = (i2b(0,1), dtrx[sl][:9]) if sl[4:] == src else (i2b(1,1), sl[4:])
-                    o = btob64(sl[:4] + ur + dtrx[sl][9:11] + w + i2b(n, 2)) # return | dat:4+usr:9+val:2+way:1+max:2 len:18->24 
+                    o = btob64(sl[:4] + ur + dtrx[sl][9:11] + w + i2b(n, 2)) # return | dat:4+usr:9+val:2+way:1+max:2 len:18->24
+                    # QRCODE:15 btob64(dat+usr:12+val)
             dtrx.close()
         elif re.match('\S{20}$', s): # check transaction (short) | dat:4+scr:9+val:2 len 15->20
             u, dat, src, val, dtrx = r[:13], r[:4], r[4:13], r[:-2], ropen(d['trx'])
@@ -248,7 +249,7 @@ def application(environ, start_response):
             dtrx.close()
         elif re.match('\S{32}$', s): # check transaction (long) | dat:4+scr:9+dst:9+val:2 len 24->32
             u, dst, val, dtrx = r[:13], r[13:22], r[:-2], ropen(d['trx'])
-            if u in dtrx and dtrx[:9] == dst and dtrx[9:11] == val: o = '%d %d' % (b2i(dtrx[11:13]), b2i(dtrx[13,15]))
+            if u in dtrx and dtrx[:9] == dst and dtrx[9:11] == val: o = '%d %d' % (b2i(dtrx[11:13]), b2i(dtrx[13:15]))
             dtrx.close()
         elif re.match('\S{176}$', s): # register publickey | pbk:132 len132->176
             pub, src, v, dpub = r, r[-9:], r[:-9], wopen(d['pub'])
@@ -261,16 +262,17 @@ def application(environ, start_response):
                 k.pt = Point(c521, b2i(dpub[src][:66]), b2i(dpub[src][66:]+src))
                 if k.verify(sig, msg): 
                     dtrx = wopen(d['trx'])
-                    if u in dtrx: o = 'old' 
+                    if u in dtrx: o = '%d:%d' %(len(dtrx[src])//13, len(dtrx[dst])//13)
                     else:
                         b = blc(d, src)
                         if b + 10000 > val: # allows temporary 100 €f for testing !
                             dtrx[src] = dtrx[src] + u if src in dtrx else u # shortcut
                             dtrx[dst] = dtrx[dst] + u if dst in dtrx else u # shortcut
-                            poss, posd = i2b(len(dtrx[src])//13, 2), i2b(len(dtrx[dst])//13, 2)
-                            dtrx[u], o, dblc = v + poss + posd + sig, 'new', wopen(d['blc'])
+                            ps, pd = len(dtrx[src])//13, len(dtrx[dst])//13
+                            dtrx[u], dblc = v + i2b(ps, 2) + i2b(pd, 2) + sig, wopen(d['blc'])
                             dblc[src] = '%d' % ((int(dblc[src])-val) if src in dblc else (-val)) # shortcut
                             dblc[dst] = '%d' % ((int(dblc[dst])+val) if dst in dblc else val)    # shortcut
+                            o = '%d:%d' % (ps, pd)
                             dblc.close()
                         else: o += ' balance!'
                     dtrx.close()
