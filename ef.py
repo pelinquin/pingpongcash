@@ -256,12 +256,8 @@ def application(environ, start_response):
                 if pos >= 0 and pos < n:
                     sl = dtrx[src][13*pos:13*(pos+1)]
                     (w, ur) = (i2b(0,1), dtrx[sl][:9]) if sl[4:] == src else (i2b(1,1), sl[4:])
-                    if (len(dtrx[sl]) == 150):
-                        o = btob64(sl[:4] + ur + dtrx[sl][9:14] + w + i2b(n, 2)) 
-                        # return | dat:4+usr:9+val:2+ref:3+way:1+max:2 len:21->28
-                    else:
-                        o = btob64(sl[:4] + ur + dtrx[sl][9:11] + w + i2b(n, 2)) 
-                        # return | dat:4+usr:9+val:2+way:1+max:2 len:18->24
+                    o = btob64(sl[:4] + ur + dtrx[sl][9:14] + w + i2b(n, 2)) 
+                    # return | dat:4+usr:9+val:2+ref:3+way:1+max:2 len:21->28
                     # QRCODE:15 btob64(dat+usr:12+val)
             dtrx.close()
         elif re.match('\S{20}$', s): # check transaction (short) | dat:4+scr:9+val:2 len 15->20
@@ -392,11 +388,10 @@ if __name__ == '__main__':
             bal, n = int(dblc[src]) if src in dblc else 0, len(dtrx[src])//13
             print ('USER: ', btob64(src), n, bal)
             for x in range(n):
-                sl = dtrx[src][13*(n-x-1):13*(n-x)]
-                (w, ur) = (i2b(0,1), dtrx[sl][:9]) if sl[4:] == src else (i2b(1,1), sl[4:])
+                s = dtrx[src][13*(n-x-1):13*(n-x)]
+                (w, ur) = (i2b(0,1), dtrx[s][:9]) if s[4:] == src else (i2b(1,1), s[4:])
                 way = '+' if b2i(w) == 1 else '-'
-                print (x, datdecode(sl[:4]), btob64(ur), way, b2i(dtrx[sl][9:11]))  
-                # dat(4)+usr(9)+val(2)+way(1)+max(2) len:18->24 
+                print (x, datdecode(s[:4]), btob64(ur), way, b2i(dtrx[s][9:11]), b2i(dtrx[s][11:14]), b2i(dtrx[s][14:16]), b2i(dtrx[s][16:18])  )  
     dblc.close()
     dtrx.close()
     
