@@ -256,29 +256,61 @@ def application(environ, start_response):
                 if pos >= 0 and pos < n:
                     sl = dtrx[src][13*pos:13*(pos+1)]
                     (w, ur) = (i2b(0,1), dtrx[sl][:9]) if sl[4:] == src else (i2b(1,1), sl[4:])
-                    o = btob64(sl[:4] + ur + dtrx[sl][9:11] + w + i2b(n, 2)) # return | dat:4+usr:9+val:2+way:1+max:2 len:18->24
+                    if (len(dtrx[sl]) == 150):
+                        o = btob64(sl[:4] + ur + dtrx[sl][9:14] + w + i2b(n, 2)) 
+                        # return | dat:4+usr:9+val:2+ref:3+way:1+max:2 len:21->28
+                    else:
+                        o = btob64(sl[:4] + ur + dtrx[sl][9:11] + w + i2b(n, 2)) 
+                        # return | dat:4+usr:9+val:2+way:1+max:2 len:18->24
                     # QRCODE:15 btob64(dat+usr:12+val)
             dtrx.close()
         elif re.match('\S{20}$', s): # check transaction (short) | dat:4+scr:9+val:2 len 15->20
             u, dat, src, val, dtrx = r[:13], r[:4], r[4:13], r[:-2], ropen(d['trx'])
-            if u in dtrx and dtrx[u][9:11] == val: o = '%d:%d' % (b2i(dtrx[u][11:13]), b2i(dtrx[u][13,15]))
+            if u in dtrx and dtrx[u][9:11] == val: 
+                #o = '%d:%d' % (b2i(dtrx[u][11:13]), b2i(dtrx[u][13,15]))
+                o = '%d:%d' % (b2i(dtrx[u][14:16]), b2i(dtrx[u][16,18]))
             dtrx.close()
         elif re.match('\S{32}$', s): # check transaction (long) | dat:4+scr:9+dst:9+val:2 len 24->32
             u, dst, val, dtrx = r[:13], r[13:22], r[:-2], ropen(d['trx'])
-            if u in dtrx and dtrx[u][:9] == dst and dtrx[u][9:11] == val: o = '%d:%d' % (b2i(dtrx[u][11:13]), b2i(dtrx[u][13:15]))
+            if u in dtrx and dtrx[u][:9] == dst and dtrx[u][9:11] == val: 
+                #o = '%d:%d' % (b2i(dtrx[u][11:13]), b2i(dtrx[u][13:15]))
+                o = '%d:%d' % (b2i(dtrx[u][14:16]), b2i(dtrx[u][14:16]))
             dtrx.close()
         elif re.match('\S{176}$', s): # register publickey | pbk:132 len132->176
             pub, src, v, dpub = r, r[-9:], r[:-9], wopen(d['pub'])
             if src in dpub: o = 'old'
             else: dpub[src], o = v, 'new'
             dpub.close()
-        elif re.match('\S{208}$', s): # add transaction msg:24+sig:132 len 158->208
+        # TEMPORARY
+        elif re.match('\S{208}$', s): # add transaction msg:24+sig:132 len 156->208
             u, dat, v, src, dst, val, msg, sig, k, dpub = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), r[:-132], r[-132:], ecdsa(), ropen(d['pub'])
             if src in dpub and dst in dpub and src != dst:
                 k.pt = Point(c521, b2i(dpub[src][:66]), b2i(dpub[src][66:]+src))
                 if k.verify(sig, msg): 
                     dtrx = wopen(d['trx'])
                     if u in dtrx: o = '%d:%d' % (b2i(dtrx[u][11:13]), b2i(dtrx[u][13:15]))
+                    else:
+                        b = blc(d, src)
+                        if b + 10000 > val: # allows temporary 100 €f for testing !
+                            dtrx[src] = dtrx[src] + u if src in dtrx else u # shortcut
+                            dtrx[dst] = dtrx[dst] + u if dst in dtrx else u # shortcut
+                            ps, pd = len(dtrx[src])//13-1, len(dtrx[dst])//13-1
+                            dtrx[u], dblc = v + i2b(ps, 2) + i2b(pd, 2) + sig, wopen(d['blc'])
+                            dblc[src] = '%d' % ((int(dblc[src])-val) if src in dblc else (-val)) # shortcut
+                            dblc[dst] = '%d' % ((int(dblc[dst])+val) if dst in dblc else val)    # shortcut
+                            o = '%d:%d' % (ps, pd)
+                            dblc.close()
+                        else: o += ' balance!'
+                    dtrx.close()
+                else: o += ' signature!'
+            else: o += ' ids!'
+        elif re.match('\S{212}$', s): # add transaction msg:27+sig:132 len 159->212
+            u, dat, v, src, dst, val, ref, msg, sig, k, dpub = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), b2i(r[24:27]), r[:-132], r[-132:], ecdsa(), ropen(d['pub'])
+            if src in dpub and dst in dpub and src != dst:
+                k.pt = Point(c521, b2i(dpub[src][:66]), b2i(dpub[src][66:]+src))
+                if k.verify(sig, msg): 
+                    dtrx = wopen(d['trx'])
+                    if u in dtrx: o = '%d:%d' % (b2i(dtrx[u][14:16]), b2i(dtrx[u][16:18]))
                     else:
                         b = blc(d, src)
                         if b + 10000 > val: # allows temporary 100 €f for testing !
