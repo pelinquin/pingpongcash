@@ -271,7 +271,7 @@ def application(environ, start_response):
             if os.path.isfile(fimg): 
                 mime, o = 'image/png', open(fimg, 'rb').read()
             else:
-                o += 'image %s %s %s' (__app__, port, r)
+                o += 'image %s %s %s' % (__app__, port, r)
         elif re.match('\S{16}$', s): # get transaction | src:9+pos:3 len 12->16
             src, pos, dtrx = r[:9], b2i(r[9:]), ropen(d['trx'])
             if src in dtrx:
