@@ -260,7 +260,7 @@ def application(environ, start_response):
     d = init_dbs(('pub', 'trx', 'blc'), port)
     if way == 'post':
         s = raw.decode('ascii')
-        r = b64tob(bytes(s, 'ascii')) if len(s) != 13 else s[1:])            
+        r = b64tob(bytes(s, 'ascii')) if len(s) != 13 else s[1:]            
         if re.match('\S{12}$', s): # get balance | src:9 len9->12
             dpub = ropen(d['pub'])
             if r in dpub: 
