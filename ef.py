@@ -202,7 +202,7 @@ def send_post(host='localhost', data=''):
     "_"
     co, serv = http.client.HTTPConnection(host), '/ef/' 
     co.request('POST', serv, data)
-    return co.getresponse().read().decode('ascii')    
+    return co.getresponse().read() #.decode('ascii')    
 
 def send_get(host='localhost', data=''):
     "_"
@@ -268,10 +268,7 @@ def application(environ, start_response):
             dpub.close()
         elif re.match('@\S{12}$', s): # get image
             fimg = '/%s/%s_%s/%s.png' % (__app__, __app__, port, r)
-            if os.path.isfile(fimg): 
-                mime, o = 'image/png', open(fimg, 'rb').read()
-            else:
-                o += 'image %s %s %s' % (fimg, len(s), s)
+            if os.path.isfile(fimg): mime, o = 'image/png', open(fimg, 'rb').read()
         elif re.match('\S{16}$', s): # get transaction | src:9+pos:3 len 12->16
             src, pos, dtrx = r[:9], b2i(r[9:]), ropen(d['trx'])
             if src in dtrx:
@@ -394,6 +391,7 @@ if __name__ == '__main__':
     dtrx.close()
     
     print (send_post('eurofranc.fr', b'@Zq7oOk3Sf6Va'))
+    print (send_post('eurofranc.fr', b'@Zq7oOk3Sf6Vs'))
 
     
 # End ⊔net!
