@@ -31,6 +31,10 @@
 #    * Encryption with ECC use an idea of jackjack-jj on github
 #-----------------------------------------------------------------------------
 
+# TODO LIST
+# disable destid when get transaction
+# add avatar when available on web server
+
 # 1 STATE PING (pink color)
 #   YES balance + date_now + 
 #   NO reference
@@ -243,12 +247,15 @@ def application(environ, start_response):
     d = init_dbs(('pub', 'trx', 'blc'), port)
     if way == 'post':
         s = raw.decode('ascii')
-        r = b64tob(bytes(s, 'ascii'))            
+        r = b64tob(bytes(s, 'ascii')) if len(s) != 13 else b64tob(bytes(s[1:], 'ascii'))            
         if re.match('\S{12}$', s): # get balance | src:9 len9->12
             dpub = ropen(d['pub'])
             if r in dpub: 
                 o = '%d' % blc(d, r)
             dpub.close()
+        elif re.match('@\S{12}$', s): # get image
+            fimg = '/%s/%s_%s/%s.png' % (__app__, __app__, port, r)
+            if os.path.isfile(fimg): mime, o = 'image/png', open(fimg, 'rb').read()
         elif re.match('\S{16}$', s): # get transaction | src:9+pos:3 len 12->16
             src, pos, dtrx = r[:9], b2i(r[9:]), ropen(d['trx'])
             if src in dtrx:
@@ -263,13 +270,11 @@ def application(environ, start_response):
         elif re.match('\S{20}$', s): # check transaction (short) | dat:4+scr:9+val:2 len 15->20
             u, dat, src, val, dtrx = r[:13], r[:4], r[4:13], r[:-2], ropen(d['trx'])
             if u in dtrx and dtrx[u][9:11] == val: 
-                #o = '%d:%d' % (b2i(dtrx[u][11:13]), b2i(dtrx[u][13,15]))
                 o = '%d:%d' % (b2i(dtrx[u][14:16]), b2i(dtrx[u][16,18]))
             dtrx.close()
         elif re.match('\S{32}$', s): # check transaction (long) | dat:4+scr:9+dst:9+val:2 len 24->32
             u, dst, val, dtrx = r[:13], r[13:22], r[:-2], ropen(d['trx'])
             if u in dtrx and dtrx[u][:9] == dst and dtrx[u][9:11] == val: 
-                #o = '%d:%d' % (b2i(dtrx[u][11:13]), b2i(dtrx[u][13:15]))
                 o = '%d:%d' % (b2i(dtrx[u][14:16]), b2i(dtrx[u][14:16]))
             dtrx.close()
         elif re.match('\S{176}$', s): # register publickey | pbk:132 len132->176
@@ -277,29 +282,6 @@ def application(environ, start_response):
             if src in dpub: o = 'old'
             else: dpub[src], o = v, 'new'
             dpub.close()
-        # TEMPORARY
-        elif re.match('\S{208}$', s): # add transaction msg:24+sig:132 len 156->208
-            u, dat, v, src, dst, val, msg, sig, k, dpub = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), r[:-132], r[-132:], ecdsa(), ropen(d['pub'])
-            if src in dpub and dst in dpub and src != dst:
-                k.pt = Point(c521, b2i(dpub[src][:66]), b2i(dpub[src][66:]+src))
-                if k.verify(sig, msg): 
-                    dtrx = wopen(d['trx'])
-                    if u in dtrx: o = '%d:%d' % (b2i(dtrx[u][11:13]), b2i(dtrx[u][13:15]))
-                    else:
-                        b = blc(d, src)
-                        if b + 10000 > val: # allows temporary 100 €f for testing !
-                            dtrx[src] = dtrx[src] + u if src in dtrx else u # shortcut
-                            dtrx[dst] = dtrx[dst] + u if dst in dtrx else u # shortcut
-                            ps, pd = len(dtrx[src])//13-1, len(dtrx[dst])//13-1
-                            dtrx[u], dblc = v + i2b(ps, 2) + i2b(pd, 2) + sig, wopen(d['blc'])
-                            dblc[src] = '%d' % ((int(dblc[src])-val) if src in dblc else (-val)) # shortcut
-                            dblc[dst] = '%d' % ((int(dblc[dst])+val) if dst in dblc else val)    # shortcut
-                            o = '%d:%d' % (ps, pd)
-                            dblc.close()
-                        else: o += ' balance!'
-                    dtrx.close()
-                else: o += ' signature!'
-            else: o += ' ids!'
         elif re.match('\S{212}$', s): # add transaction msg:27+sig:132 len 159->212
             u, dat, v, src, dst, val, ref, msg, sig, k, dpub = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), b2i(r[24:27]), r[:-132], r[-132:], ecdsa(), ropen(d['pub'])
             if src in dpub and dst in dpub and src != dst:
