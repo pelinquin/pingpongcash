@@ -51,6 +51,19 @@
 #   QRCODE dat+src+val
 #   EDITABLE efvalue, dest
 
+# TEST COVERAGE
+# 1 enter efvalue
+# 2 enter dstid
+# 3 enter reference
+# 4 enter pwd
+# 5 slide right: increment pos
+# 6 slide left:  decrement pos
+# 7 slide up: last pos
+# 8 slide down: init
+# 9 double tap: init
+# 0 push scan (id:val, msg+sig, transaction_proof)
+
+
 import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, getpass
 import gmpy2 # for inverse_mod fast computing
 
@@ -255,7 +268,10 @@ def application(environ, start_response):
             dpub.close()
         elif re.match('@\S{12}$', s): # get image
             fimg = '/%s/%s_%s/%s.png' % (__app__, __app__, port, r)
-            if os.path.isfile(fimg): mime, o = 'image/png', open(fimg, 'rb').read()
+            if os.path.isfile(fimg): 
+                mime, o = 'image/png', open(fimg, 'rb').read()
+            else:
+                o += 'image %s %s %s' (__app__, port, r)
         elif re.match('\S{16}$', s): # get transaction | src:9+pos:3 len 12->16
             src, pos, dtrx = r[:9], b2i(r[9:]), ropen(d['trx'])
             if src in dtrx:
@@ -376,5 +392,8 @@ if __name__ == '__main__':
                 print (x, datdecode(s[:4]), btob64(ur), way, b2i(dtrx[s][9:11]), b2i(dtrx[s][11:14]), b2i(dtrx[s][14:16]), b2i(dtrx[s][16:18])  )  
     dblc.close()
     dtrx.close()
+    
+    print (send_post('eurofranc.fr', '@Zq7oOk3Sf6Va'))
+
     
 # End ⊔net!
