@@ -267,11 +267,11 @@ def application(environ, start_response):
                 o = '%d' % blc(d, r)
             dpub.close()
         elif re.match('@\S{12}$', s): # get image
-            fimg = '/%s/%s_%s/%s.png' % (__app__, __app__, port, r)
+            fimg = '/%s/%s_%s/%s.png' % (__app__, __app__, port, r.decode('ascii'))
             if os.path.isfile(fimg): 
                 mime, o = 'image/png', open(fimg, 'rb').read()
             else:
-                o += 'image %s %s %s' % (__app__, port, r)
+                o += 'image %s' % (fimg)
         elif re.match('\S{16}$', s): # get transaction | src:9+pos:3 len 12->16
             src, pos, dtrx = r[:9], b2i(r[9:]), ropen(d['trx'])
             if src in dtrx:
@@ -393,7 +393,7 @@ if __name__ == '__main__':
     dblc.close()
     dtrx.close()
     
-    print (send_post('eurofranc.fr', '@Zq7oOk3Sf6Va'))
+    print (send_post('eurofranc.fr', b'@Zq7oOk3Sf6Va'))
 
     
 # End ⊔net!
