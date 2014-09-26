@@ -267,11 +267,11 @@ def application(environ, start_response):
                 o = '%d' % blc(d, r)
             dpub.close()
         elif re.match('@\S{12}$', s): # get image
-            fimg = '/%s/%s_%s/%s.png' % (__app__, __app__, port, r.decode('ascii'))
+            fimg = '/%s/%s_%s/%s.png' % (__app__, __app__, port, r)
             if os.path.isfile(fimg): 
                 mime, o = 'image/png', open(fimg, 'rb').read()
             else:
-                o += 'image %s' % (fimg)
+                o += 'image %s %s %s' % (fimg, len(s), s)
         elif re.match('\S{16}$', s): # get transaction | src:9+pos:3 len 12->16
             src, pos, dtrx = r[:9], b2i(r[9:]), ropen(d['trx'])
             if src in dtrx:
