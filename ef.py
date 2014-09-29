@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Welcome to ⊔net!
 #-----------------------------------------------------------------------------
-#  © Copyright 2013 ⊔Foundation
+#  © Copyright 2014 ⊔Foundation
 #    This file is part of ⊔net.
 #
 #    ⊔net is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 #    along with ⊔net.  If not, see <http://www.gnu.org/licenses/>.
 #
 #    Acknowledgements:
-#    * ECDSA has been adapted to Python3 and simplified for 512P curve only 
+#    * ECDSA has been adapted to Python3 and simplified for NIST521P curve only 
 #      code inspired from:
 #      Brian Warner  
 #    * The PyCrypt library is far too complex for our needs so we used a code 
@@ -31,9 +31,6 @@
 #    * Encryption with ECC use an idea of jackjack-jj on github
 #-----------------------------------------------------------------------------
 
-# TODO LIST
-# disable destid when get transaction
-# add avatar when available on web server
 
 # 1 STATE PING (pink color)
 #   YES balance + date_now + 
@@ -51,7 +48,7 @@
 #   QRCODE dat+src+val
 #   EDITABLE efvalue, dest
 
-# TEST COVERAGE
+# NON REGRESSION TEST COVERAGE 
 # 1 enter efvalue
 # 2 enter dstid
 # 3 enter reference
@@ -63,6 +60,19 @@
 # 9 double tap: init
 # 0 push scan (id:val, msg+sig, transaction_proof)
 
+# API reminder
+# GET: 
+#    NULL: index page + cookie management
+#    12\S: HTML balance report
+#    20\S: transaction page
+# POST: (after b64tob)
+#    12\S: get user's balance
+#  @+12\S: get Twitter profile image 48x48 (png)
+#    16\S get transaction at position
+#    20\S check transaction (short)
+#    32\S check transaction (long)
+#   176\S record public-key
+#   212\S record transaction 
 
 import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, getpass
 import gmpy2 # for inverse_mod fast computing
