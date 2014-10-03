@@ -71,10 +71,12 @@
 #    16\S get transaction at position
 #    20\S check transaction (short)
 #    32\S check transaction (long)
-#   176\S record public-key
+#   176\S record public-key # temporary !
 #   212\S record transaction 
+#   400\S record main account pubkey
 
-import re, os, sys, urllib.parse, hashlib, http.client, base64, dbm.ndbm, datetime, functools, subprocess, time, smtplib, operator, getpass
+import re, os, sys, urllib.parse, hashlib, http.client, base64, datetime, functools, subprocess, time, smtplib, operator, getpass
+import dbm.ndbm
 import gmpy2 # for inverse_mod fast computing
 
 __app__    = os.path.basename(__file__)[:-3]
@@ -267,11 +269,11 @@ def application(environ, start_response):
     mime, o, now, fname, port = 'text/plain; charset=utf8', 'error', '%s' % datetime.datetime.now(), 'default.txt', environ['SERVER_PORT']
     (raw, way) = (environ['wsgi.input'].read(), 'post') if environ['REQUEST_METHOD'].lower() == 'post' else (urllib.parse.unquote(environ['QUERY_STRING']), 'get')
     base, ncok = environ['PATH_INFO'][1:], []
-    d = init_dbs(('pub', 'trx', 'blc'), port)
+    d = init_dbs(('pub', 'trx', 'blc', 'hid'), port)
     if way == 'post':
         s = raw.decode('ascii')
         r = b64tob(bytes(s, 'ascii')) if len(s) != 13 else s[1:]            
-        if re.match('\S{12}$', s): # get balance | src:9 len9->12
+        if re.match('\S{12}$', s): # get balance | src:9 len(9->12)
             dpub = ropen(d['pub'])
             if r in dpub: 
                 o = '%d' % blc(d, r)
@@ -279,7 +281,7 @@ def application(environ, start_response):
         elif re.match('@\S{12}$', s): # get image
             fimg = '/%s/%s_%s/img/%s.png' % (__app__, __app__, port, r)
             if os.path.isfile(fimg): mime, o = 'image/png', open(fimg, 'rb').read()
-        elif re.match('\S{16}$', s): # get transaction | src:9+pos:3 len 12->16
+        elif re.match('\S{16}$', s): # get transaction | src:9+pos:3 len(12->16)
             src, pos, dtrx = r[:9], b2i(r[9:]), ropen(d['trx'])
             if src in dtrx:
                 n = len(dtrx[src])//13
@@ -287,25 +289,25 @@ def application(environ, start_response):
                     sl = dtrx[src][13*pos:13*(pos+1)]
                     (w, ur) = (i2b(0,1), dtrx[sl][:9]) if sl[4:] == src else (i2b(1,1), sl[4:])
                     o = btob64(sl[:4] + ur + dtrx[sl][9:14] + w + i2b(n, 2)) 
-                    # return | dat:4+usr:9+val:2+ref:3+way:1+max:2 len:21->28
+                    # return | dat:4+usr:9+val:2+ref:3+way:1+max:2 len(21->28)
                     # QRCODE:15 btob64(dat+usr:12+val)
             dtrx.close()
-        elif re.match('\S{20}$', s): # check transaction (short) | dat:4+scr:9+val:2 len 15->20
+        elif re.match('\S{20}$', s): # check transaction (short) | dat:4+scr:9+val:2 len(15->20)
             u, dat, src, val, dtrx = r[:13], r[:4], r[4:13], r[:-2], ropen(d['trx'])
             if u in dtrx and dtrx[u][9:11] == val: 
                 o = '%d:%d' % (b2i(dtrx[u][14:16]), b2i(dtrx[u][16,18]))
             dtrx.close()
-        elif re.match('\S{32}$', s): # check transaction (long) | dat:4+scr:9+dst:9+val:2 len 24->32
+        elif re.match('\S{32}$', s): # check transaction (long) | dat:4+scr:9+dst:9+val:2 len(24->32)
             u, dst, val, dtrx = r[:13], r[13:22], r[:-2], ropen(d['trx'])
             if u in dtrx and dtrx[u][:9] == dst and dtrx[u][9:11] == val: 
                 o = '%d:%d' % (b2i(dtrx[u][14:16]), b2i(dtrx[u][14:16]))
             dtrx.close()
-        elif re.match('\S{176}$', s): # register publickey | pbk:132 len132->176
+        elif re.match('\S{176}$', s): # register publickey | pbk:132 len(132->176) SPAMING RISK -> SHALL BE REMOVED !
             pub, src, v, dpub = r, r[-9:], r[:-9], wopen(d['pub'])
             if src in dpub: o = 'old'
             else: dpub[src], o = v, 'new'
             dpub.close()
-        elif re.match('\S{212}$', s): # add transaction msg:27+sig:132 len 159->212
+        elif re.match('\S{212}$', s): # add transaction msg:27+sig:132 len(159->212)
             u, dat, v, src, dst, val, ref, msg, sig, k, dpub = r[:13], r[:4], r[13:-132], r[4:13], r[13:22], b2i(r[22:24]), b2i(r[24:27]), r[:-132], r[-132:], ecdsa(), ropen(d['pub'])
             if src in dpub and dst in dpub and src != dst:
                 k.pt = Point(c521, b2i(dpub[src][:66]), b2i(dpub[src][66:]+src))
@@ -328,11 +330,22 @@ def application(environ, start_response):
                 else: o += ' signature!'
             else: o += ' ids!'
             dpub.close()
+        elif re.match('\S{400}$', s): # register main account: dat:4+hashid:32+pubkey:132+sig:132 len(300->400)
+            dat, hid, src, pk1, pk2, v, msg, sig, k = r[:4], r[4:36:], r[159:168], r[36:102], r[102:168], r[36:159], r[:-132], r[-132:], ecdsa()
+            k.pt = Point(c521, b2i(pk1), b2i(pk2))
+            if k.verify(sig, msg):
+                dpub, dhid = wopen(d['pub']), wopen(d['hid'])
+                if hid not in dhid:
+                    o, dhid[src], dhid[hid] = 'ok', dat + hid + sig, src
+                if src not in dpub: dpub[src] = v
+                dhid.close()
+                dpub.close()
     else: # get
         s = raw # use directory or argument
         if s == '': 
             o = 'Attention !\nLe site est temporairement en phase de test de l\'application iOS8 pour iPhone4S à iPhone6(6+)\nVeuillez nous en excuser\nPour toute question: contact@eurofranc.fr'
             update_blc(d)
+        elif s == 'isactive': o = 'ok'
     start_response('200 OK', [('Content-type', mime)] + ncok)
     return [o if mime in ('application/pdf', 'image/png', 'image/jpg') else o.encode('utf8')] 
 
@@ -399,5 +412,6 @@ if __name__ == '__main__':
                 print (x, datdecode(s[:4]), btob64(ur), way, b2i(dtrx[s][9:11]), b2i(dtrx[s][11:14]), b2i(dtrx[s][14:16]), b2i(dtrx[s][16:18])  )  
     dblc.close()
     dtrx.close()
-    
+    print (send_get('cup', ''))
+
 # End ⊔net!
